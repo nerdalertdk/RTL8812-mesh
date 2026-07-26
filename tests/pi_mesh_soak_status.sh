@@ -18,14 +18,27 @@ case $base in
 	*) echo "unexpected soak log name: $base" >&2; exit 3 ;;
 esac
 summary=$LOG_DIR/summary-$run_id.log
+start_utc=$(awk '/event=start/ { print $1; exit }' "$log")
+if [ -n "$start_utc" ] &&
+   journalctl -k --since "$start_utc" --no-pager -n 1 >/dev/null 2>&1; then
+	kernel_usb=$(journalctl -k --since "$start_utc" --no-pager 2>/dev/null |
+		grep -Eic 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB' || true)
+else
+	kernel_usb=unavailable
+fi
 
-awk -v run_id="$run_id" '
+awk -v run_id="$run_id" -v kernel_usb="$kernel_usb" '
 	BEGIN {
-		states = root_pings = peer_pings = transfers = 0
-		bad = recoveries = usb = samples = 0
+		states = established = state_bad = 0
+		root_pings = root_ping_bad = peer_pings = peer_ping_bad = 0
+		transfers = transfer_bad = recoveries = invalid = samples = 0
 	}
-	/event=state result=established/ {
+	/event=state / {
 		states++
+		if ($0 ~ /event=state result=established/)
+			established++
+		else
+			state_bad++
 		for (i = 1; i <= NF; i++) {
 			if ($i ~ /^temp_millic=[0-9]+$/) {
 				split($i, pair, "="); temp = pair[2] + 0
@@ -35,14 +48,23 @@ awk -v run_id="$run_id" '
 			}
 		}
 	}
-	/event=ping direction=root-to-peer status=0/ { root_pings++ }
-	/event=ping direction=peer-to-root status=0/ { peer_pings++ }
-	/event=transfer .* result=ok/ { transfers++ }
-	/result=(failed|unavailable)|event=invalid/ { bad++ }
-	/event=recovery/ { recoveries++ }
-	/error -71|EPROTO|over.?current|usb .*disconnect|usb .*reset/ { usb++ }
+	/event=ping direction=root-to-peer/ {
+		root_pings++
+		if ($0 !~ / status=0( |$)/) root_ping_bad++
+	}
+	/event=ping direction=peer-to-root/ {
+		peer_pings++
+		if ($0 !~ / status=0( |$)/) peer_ping_bad++
+	}
+	/event=transfer / {
+		transfers++
+		if ($0 !~ / result=ok( |$)/) transfer_bad++
+	}
+	/event=recovery-window result=yield/ { recoveries++ }
+	/event=invalid/ { invalid++ }
 	END {
-		printf "run_id=%s established=%d root_pings=%d peer_pings=%d transfers_ok=%d bad=%d recoveries=%d usb_events=%d", run_id, states, root_pings, peer_pings, transfers, bad, recoveries, usb
+		bad = state_bad + root_ping_bad + peer_ping_bad + transfer_bad + invalid
+		printf "run_id=%s states=%d established=%d state_bad=%d root_pings=%d root_ping_bad=%d peer_pings=%d peer_ping_bad=%d transfers=%d transfer_bad=%d invalid=%d recoveries=%d bad=%d kernel_usb_events=%s", run_id, states, established, state_bad, root_pings, root_ping_bad, peer_pings, peer_ping_bad, transfers, transfer_bad, invalid, recoveries, bad, kernel_usb
 		if (samples)
 			printf " temp_millic_min=%d temp_millic_max=%d", min_temp, max_temp
 		printf "\n"
