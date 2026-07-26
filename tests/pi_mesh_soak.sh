@@ -288,11 +288,20 @@ write_summary()
 log_event "event=start duration_seconds=$DURATION_SECONDS poll_seconds=$POLL_SECONDS transfer_seconds=$TRANSFER_SECONDS transfer_mib=$TRANSFER_MIB"
 
 if command -v flock >/dev/null 2>&1; then
-	exec 9>"$LOCK_FILE"
-	if ! flock -n 9; then
-		log_event "event=blocked reason=test-lock-held lock=$LOCK_FILE"
-		write_summary
-		exit 75
+	if [ -n "${LOCK_FD_INHERITED:-}" ]; then
+		if [ "$LOCK_FD_INHERITED" != 9 ] || [ ! -e "/proc/$$/fd/9" ] ||
+		   ! flock -n 9; then
+			log_event "event=blocked reason=inherited-test-lock-invalid"
+			write_summary
+			exit 75
+		fi
+	else
+		exec 9>"$LOCK_FILE"
+		if ! flock -n 9; then
+			log_event "event=blocked reason=test-lock-held lock=$LOCK_FILE"
+			write_summary
+			exit 75
+		fi
 	fi
 fi
 

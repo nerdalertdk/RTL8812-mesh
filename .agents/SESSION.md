@@ -142,6 +142,13 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   authoritative evidence. It prevents mixed-peer and synthetic tests from
   being used to overclaim the still-pending two-RTL8812AU and powered-path
   gates.
+- `pi_usb_path_trial.sh` now turns each physical USB matrix row/repetition into
+  one serialized evidence bundle. It validates the soak summary, runs the final
+  checksummed transfer, retains pre/post provenance and the kernel journal, and
+  treats current Raspberry Pi throttle bits as environmental invalidation.
+  Isolated Pi mocks passed the clean (`0`) and current-undervoltage-invalid
+  (`2`) paths; inherited-lock handling was verified without touching the live
+  radios.
 
 ## Known issues
 

@@ -86,6 +86,15 @@ After the soak, transfer one 512 MiB deterministic file in each direction and
 verify SHA-256 at the receiver. Keep those results separate from the periodic
 small-transfer count.
 
+`pi_usb_path_trial.sh` serializes one complete row/repetition, captures the
+required pre/post provenance, runs the soak and final checksummed transfer
+under one inherited test lock, and retains the complete kernel journal. Set
+the row, repetition, physical descriptions, DUT identity, MAC addresses, and
+absolute test-script paths explicitly. A current Raspberry Pi throttle bit, a
+new historical power bit, or a kernel under-voltage/over-current event makes
+the trial invalid rather than a driver failure. Pre-existing historical upper
+bits remain recorded but do not invalidate an otherwise controlled run.
+
 ## Event classification
 
 Classify each observed event before drawing a conclusion:
