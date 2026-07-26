@@ -175,6 +175,8 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 - Every hardware-test entry point now fails closed when `flock` is unavailable,
   preserving the repository-wide single-owner topology invariant. Churn also
   defines its namespace helper before peer-driver provenance is evaluated.
+  Debian prerequisites now name `util-linux` as the provider of mandatory
+  `flock` support.
 - The Pi's currently running soak executable predates the repository's
   run-start `latest-summary.log` update, so its summary link still names the
   prior stopped run. `pi_mesh_soak_status.sh` now derives the active run ID

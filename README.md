@@ -50,8 +50,12 @@ The RTL8192FU test peer is experimental and is not part of this driver package.
 ```sh
 sudo apt update
 sudo apt install build-essential dkms kmod linux-headers-$(uname -r) \
-  iw wpasupplicant rfkill
+  iw wpasupplicant rfkill util-linux
 ```
+
+`util-linux` supplies `flock`, which every hardware-test entry point requires
+to enforce exclusive ownership of the radios and mesh topology. The extended
+hardware harness also uses `curl`, `iproute2`, `python3`, and `tcpdump`.
 
 Remove or disable any vendor `8812au` driver that already owns the adapter.
 Keep Ethernet or another independent management path while replacing Wi-Fi
