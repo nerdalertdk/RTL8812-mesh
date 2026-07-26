@@ -143,17 +143,19 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   being used to overclaim the still-pending two-RTL8812AU and powered-path
   gates.
 - `pi_usb_path_trial.sh` now turns each physical USB matrix row/repetition into
-  one serialized evidence bundle. It validates the soak summary, runs the final
-  checksummed transfer, retains pre/post provenance and the kernel journal, and
-  treats current Raspberry Pi throttle bits as environmental invalidation.
-  Isolated Pi mocks passed the clean (`0`) and current-undervoltage-invalid
-  (`2`) paths; inherited-lock handling was verified without touching the live
-  radios.
+  one serialized evidence bundle. It validates negotiated row speed and Pi
+  path shape, all five module source versions, the soak summary, final
+  checksummed transfer, post-run topology, power history, and kernel events.
+  Clean, workload-failure, environmental/provenance-invalid, and recovered or
+  disruptive transport-event results are distinct. A non-disruptive row-A Pi
+  dry-run passed topology/provenance checks and correctly classified its inert
+  workload as failure; inherited-lock handling was also verified without
+  touching the live radios.
 - The repository soak now records an explicit completion marker and returns
   nonzero after a timed run unless every state is established and all ping,
-  transfer, and invariant counters pass. This prevents systemd success from
-  being mistaken for a passing endurance result. The active Pi process uses
-  the older deployed inode and is intentionally left undisturbed.
+  transfer, HWMP, and invariant counters pass. This prevents systemd success
+  from being mistaken for a passing endurance result. The active Pi process
+  uses the older deployed inode and is intentionally left undisturbed.
 
 ## Known issues
 
