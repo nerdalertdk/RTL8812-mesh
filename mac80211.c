@@ -599,11 +599,12 @@ static int rtw_ops_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
 	int ret = 0;
 
 	/* The legacy CAM/key-selection path does not model mesh per-peer keys.
-	 * Let mac80211 handle pairwise, MGTK and IGTK crypto for mesh interfaces;
-	 * other interface types continue to use hardware crypto.
+	 * Reject installation so mac80211 handles pairwise, MGTK and IGTK crypto
+	 * in software. A key rejected at SET_KEY is never uploaded, but honor the
+	 * mac80211 contract that DISABLE_KEY must succeed.
 	 */
 	if (vif->type == NL80211_IFTYPE_MESH_POINT)
-		return -EOPNOTSUPP;
+		return cmd == SET_KEY ? -EOPNOTSUPP : 0;
 
 	switch (key->cipher) {
 	case WLAN_CIPHER_SUITE_WEP40:

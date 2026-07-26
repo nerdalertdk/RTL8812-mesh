@@ -32,7 +32,9 @@ build has demonstrated:
 - automatic userspace topology reconstruction after module/USB rebind;
 - a clean thermal-aware 4.5-hour direct-port run with 337/337 established
   states, 672/672 ping batches, 10/10 checksummed transfers, and no USB event;
-- a final-build bidirectional checksummed 512 MiB transfer on DKMS 0.1.1.
+- a bidirectional checksummed 512 MiB transfer on DKMS 0.1.1;
+- an audited DKMS 0.1.2 build with strict 20-cycle churn and pending-RX-retry
+  teardown validation.
 
 Still required before production claims:
 
@@ -98,8 +100,8 @@ From the repository root:
 ./scripts/check-loaded-rtw88-conflicts.sh
 sudo make install_fw
 sudo dkms add .
-sudo dkms build rtl8812au-mesh/0.1.1
-sudo dkms install --force rtl8812au-mesh/0.1.1
+sudo dkms build rtl8812au-mesh/0.1.2
+sudo dkms install --force rtl8812au-mesh/0.1.2
 sudo depmod -a
 ```
 
@@ -120,7 +122,7 @@ for a live root and skips it for an explicit `INSTALL_MOD_PATH` staging root.
 Remove the DKMS package with:
 
 ```sh
-sudo dkms remove rtl8812au-mesh/0.1.1 --all
+sudo dkms remove rtl8812au-mesh/0.1.2 --all
 ```
 
 ## Create an open mesh point

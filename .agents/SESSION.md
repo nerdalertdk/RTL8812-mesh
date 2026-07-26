@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Validate the final DKMS 0.1.1 package and close the remaining hardware gates
+Validate the audited DKMS 0.1.2 package and close the remaining hardware gates
 that require a second stable RTL8812AU or independently powered USB paths.
 
 The deployment requirement is now also recorded: multinational, off-grid
@@ -99,6 +99,24 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   the expected two matching reads: one injected `-EPROTO`, one successful
   retry, `remaining=0`, `matching_calls=2`, and `missed=0`. Post-test traffic
   passed 10/10 in both directions.
+- Upstream-semantics review found that the mesh software-crypto fallback
+  returned `-EOPNOTSUPP` for both `SET_KEY` and `DISABLE_KEY`, although
+  mac80211 requires `DISABLE_KEY` to succeed. DKMS 0.1.2 rejects only mesh key
+  installation and returns success for defensive removal calls.
+- RX teardown review found a race in which a completion could queue delayed
+  retry work after the pre-kill cancellation. DKMS 0.1.2 performs a second
+  synchronized cancellation after all RX URB callbacks are quiesced.
+- DKMS 0.1.2 exact-kernel build, install, and loaded provenance checks passed.
+  Recovery restored `ESTAB` in five seconds and a strict 20-cycle churn run
+  passed every join, plink, cold-contact, multicast, and dual-HWMP gate with
+  zero USB errors.
+- On a disposable instrumented 0.1.2 build, eight synthetic RX submit
+  `-EPROTO` failures were consumed, all four RX slots recovered (`0xf`), and
+  traffic passed 40/40 both directions. A full unload began with 99,980
+  failures still pending, completed with production reload in 857 ms, and
+  produced no warning/Oops/UAF/refcount/workqueue-after-free signature.
+  Production provenance matched and post-recovery traffic passed 10/10 both
+  directions.
 
 ## Known issues
 

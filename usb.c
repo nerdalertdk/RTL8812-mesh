@@ -924,6 +924,12 @@ static void rtw_usb_cancel_rx_bufs(struct rtw_usb *rtwusb)
 		rxcb = &rtwusb->rx_cb[i];
 		usb_kill_urb(rxcb->rx_urb);
 	}
+
+	/* A completion that raced with the first cancellation can have queued a
+	 * retry before usb_kill_urb() quiesced it. With every callback now done,
+	 * cancel once more so no retry can run after teardown proceeds.
+	 */
+	cancel_delayed_work_sync(&rtwusb->rx_urb_work);
 }
 
 static void rtw_usb_free_rx_bufs(struct rtw_usb *rtwusb)
