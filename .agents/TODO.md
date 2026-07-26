@@ -48,3 +48,4 @@
 - [x] Harden the secured-mesh gate to verify the configured supplicant control
   socket, completed SAE state, bidirectional group delivery, HWMP, and optional
   checksummed payload transfer under the inherited hardware-test lock.
+- [x] Add run-ID-aware soak monitoring that cannot report a stale summary.

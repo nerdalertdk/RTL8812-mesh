@@ -131,6 +131,12 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   transfer harness while safely inheriting the already-held topology lock.
   Raspberry Pi `dash -n` and wpa_supplicant 2.10 configuration parsing pass;
   live validation remains gated on a second stable RTL8812AU.
+- The Pi's currently running soak executable predates the repository's
+  run-start `latest-summary.log` update, so its summary link still names the
+  prior stopped run. `pi_mesh_soak_status.sh` now derives the active run ID
+  from `latest.log` and will only consume the corresponding summary. It was
+  validated against both the live pending run and the prior completed run.
+  Replace the deployed soak executable only after the active process exits.
 - `docs/RELEASE_GATES.md` now maps every Debian mesh, security, endurance, USB
   recovery, physical attribution, and upstream-hygiene requirement to its
   authoritative evidence. It prevents mixed-peer and synthetic tests from

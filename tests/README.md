@@ -20,6 +20,11 @@ The summary link intentionally remains dangling until the current run writes a
 summary, preventing monitoring code from mistaking an older result for the
 active run.
 
+Use `pi_mesh_soak_status.sh` for live monitoring. It derives the run ID from
+`latest.log` and opens only the matching summary filename, so it also reports
+correctly against hosts that still have an older deployed soak script whose
+summary symlink points at a previous run.
+
 `pi_mesh_transfer.sh` is the standalone large-file integrity gate. Its default
 is one 512 MiB random source transferred in both directions, with source and
 destination SHA-256 comparison, curl timing/throughput metrics, post-transfer
