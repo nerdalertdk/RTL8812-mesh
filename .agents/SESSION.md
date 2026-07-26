@@ -147,11 +147,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 - The secured gate now preserves the complete kernel interval and returns 4
   when SAE/AMPE traffic passes but a USB transport event occurred, preventing
   recovery from being silently reported as a clean security run.
+  Its interval closes before open-topology recovery, so a deliberate fallback
+  unbind cannot be misclassified as a secured-mesh transport fault.
 - Packaging consistency review removed the stale claim that hardware scripts
   contain development MAC defaults and made the soak systemd unit load the
   same required `/etc/default/rtw88-mesh-test` identity file as recovery.
-  Its interval closes before open-topology recovery, so a deliberate fallback
-  unbind cannot be misclassified as a secured-mesh transport fault.
 - Secured preflight now discovers and validates both radio drivers before any
   netdev mutation. Pi checks proved that a missing root and the expected
   `rtl8xxxu`-versus-`rtw_8812au` peer mismatch both exit without invoking
