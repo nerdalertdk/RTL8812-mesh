@@ -29,14 +29,14 @@ static int control_entry(struct kretprobe_instance *instance,
 	struct control_probe_data *data =
 		(struct control_probe_data *)instance->data;
 	struct usb_device *udev;
-	unsigned long request;
-	unsigned long request_type;
-	unsigned long value;
+	u8 request;
+	u8 request_type;
+	u16 value;
 
 	udev = (struct usb_device *)regs_get_kernel_argument(regs, 0);
-	request = regs_get_kernel_argument(regs, 2);
-	request_type = regs_get_kernel_argument(regs, 3);
-	value = regs_get_kernel_argument(regs, 4);
+	request = (u8)regs_get_kernel_argument(regs, 2);
+	request_type = (u8)regs_get_kernel_argument(regs, 3);
+	value = (u16)regs_get_kernel_argument(regs, 4);
 
 	data->target = udev &&
 		le16_to_cpu(udev->descriptor.idVendor) ==

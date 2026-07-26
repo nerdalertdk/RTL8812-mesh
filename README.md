@@ -30,12 +30,14 @@ build has demonstrated:
 - checksummed 512 MiB and repeated 64 MiB transfers;
 - bounded recovery from injected USB control and RX `-EPROTO` (`-71`);
 - automatic userspace topology reconstruction after module/USB rebind;
-- a clean thermal-aware 15-minute direct-port endurance run.
+- a clean thermal-aware 4.5-hour direct-port run with 337/337 established
+  states, 672/672 ping batches, 10/10 checksummed transfers, and no USB event;
+- a final-build bidirectional checksummed 512 MiB transfer on DKMS 0.1.1.
 
 Still required before production claims:
 
 - protected payload validation with a second stable RTL8812AU;
-- channels 1--13 hardware sweep;
+- multicast comparison across channels with two stable RTL8812AU peers;
 - original USB2-topology and physical unplug/re-enumeration testing;
 - independently powered USB-path and long-duration endurance.
 

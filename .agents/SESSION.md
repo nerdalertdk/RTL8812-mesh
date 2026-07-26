@@ -2,7 +2,8 @@
 
 ## Current focus
 
-Complete and review a production-driver eight-hour mesh endurance run.
+Validate the final DKMS 0.1.1 package and close the remaining hardware gates
+that require a second stable RTL8812AU or independently powered USB paths.
 
 The deployment requirement is now also recorded: multinational, off-grid
 mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
@@ -65,6 +66,34 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   yet been built or installed on the Pi.
 - Packaging review documented the shared `rtw_core`/`rtw_usb` ABI constraint
   and added a loaded-module preflight check for unrelated `rtw_*` consumers.
+- The production soak was stopped on request at 20:00 CEST after about 4.5
+  hours. It passed 337/337 established states, 672/672 directional ping
+  batches, and 10/10 checksummed transfers with zero recovery windows,
+  invalidations, or kernel USB transport events. Temperature was
+  75.958--80.828 C.
+- DKMS 0.1.1 built cleanly against `6.12.47+rpt-rpi-v8`, installed all five
+  modules, and loaded with source versions matching the build artifacts.
+  Automatic recovery restored the open mesh in five seconds; immediate
+  bidirectional traffic passed 10/10 each way without a kernel warning.
+- The post-install multicast capture probe observed all 400 frames at each
+  sender. The opposite endpoint received 399/400 RTL8812AU-originated frames
+  and 398/400 RTL8192FU-originated frames. No USB event occurred. This
+  localizes the small loss after sender capture but does not attribute it to
+  one driver; 802.11 multicast is unacknowledged and the peer is experimental.
+- The final-build bidirectional 512 MiB gate passed matching SHA-256 in both
+  directions at 8.77 MB/s RTL8812AU-to-peer and 6.34 MB/s peer-to-RTL8812AU,
+  retaining both HWMP paths with no USB transport event.
+- The transfer harness initially exposed an HTTP readiness race and a
+  namespace server inheriting the shared lock. It now probes both endpoints
+  before measurement, closes the lock FD in children, terminates wrapper
+  children, and waits for cleanup. A 1 MiB smoke passed both directions with
+  no orphan server and the lock free afterward.
+- The read-only control injector initially reported zero matches on ARM64
+  because full register-sized values were compared for narrow USB API
+  arguments. Casting request/request-type/value to `u8`/`u8`/`u16` produced
+  the expected two matching reads: one injected `-EPROTO`, one successful
+  retry, `remaining=0`, `matching_calls=2`, and `missed=0`. Post-test traffic
+  passed 10/10 in both directions.
 
 ## Known issues
 

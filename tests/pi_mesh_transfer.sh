@@ -77,7 +77,13 @@ start_epoch=$(date +%s)
 cleanup()
 {
 	for pid in "$root_http_pid" "$peer_http_pid"; do
-		[ -n "$pid" ] && kill "$pid" 2>/dev/null || true
+		if [ -n "$pid" ]; then
+			# ip-netns may retain a wrapper process around the server. Stop
+			# children before the wrapper, then reap the background job.
+			pkill -TERM -P "$pid" 2>/dev/null || true
+			kill "$pid" 2>/dev/null || true
+			wait "$pid" 2>/dev/null || true
+		fi
 	done
 	rm -f -- "$source_file" "$peer_received" "$root_received"
 }
@@ -99,20 +105,49 @@ fi
 source_hash=$(sha256sum "$source_file" | awk '{ print $1 }')
 log "event=source result=ok bytes=$((FILE_MIB * 1024 * 1024)) sha256=$source_hash"
 
-python3 -m http.server 18081 --bind "$ROOT_IP" --directory "$LOG_DIR" \
+python3 -m http.server 18081 --bind "$ROOT_IP" --directory "$LOG_DIR" 9>&- \
 	>>"$http_log" 2>&1 &
 root_http_pid=$!
-ns python3 -m http.server 18080 --bind "$PEER_IP" --directory "$LOG_DIR" \
+ns python3 -m http.server 18080 --bind "$PEER_IP" --directory "$LOG_DIR" 9>&- \
 	>>"$http_log" 2>&1 &
 peer_http_pid=$!
-sleep 1
 
 source_name=$(basename "$source_file")
+root_url=http://$ROOT_IP:18081/$source_name
+peer_url=http://$PEER_IP:18080/$source_name
+
+# Server creation and cold HWMP path discovery are asynchronous. Do not turn a
+# startup race into a transfer failure: require both processes to remain alive
+# and prove each HTTP endpoint is reachable from the opposite mesh endpoint.
+http_ready=false
+attempt=1
+while [ "$attempt" -le 20 ]; do
+	if ! kill -0 "$root_http_pid" 2>/dev/null ||
+	   ! kill -0 "$peer_http_pid" 2>/dev/null; then
+		break
+	fi
+	if ns curl --interface "$PEER_IP" --connect-timeout 2 --max-time 3 \
+		--fail --silent --head "$root_url" >/dev/null 2>&1 &&
+	   curl --interface "$ROOT_IP" --connect-timeout 2 --max-time 3 \
+		--fail --silent --head "$peer_url" >/dev/null 2>&1; then
+		http_ready=true
+		break
+	fi
+	attempt=$((attempt + 1))
+	sleep 1
+done
+if [ "$http_ready" != true ]; then
+	detail=$(tail -20 "$http_log" 2>/dev/null | tr '\n' ';')
+	log "event=http-readiness result=failed attempts=$attempt detail=${detail:-none}"
+	exit 1
+fi
+log "event=http-readiness result=pass attempts=$attempt"
+
 metrics=$(ns curl --interface "$PEER_IP" --connect-timeout 10 \
 	--max-time "$MAX_TIME" --fail --silent --show-error \
 	--output "$peer_received" \
 	--write-out 'bytes=%{size_download},seconds=%{time_total},speed_Bps=%{speed_download}' \
-	"http://$ROOT_IP:18081/$source_name" 2>&1) || {
+	"$root_url" 2>&1) || {
 	status=$?
 	log "event=transfer direction=root-to-peer result=failed status=$status detail=$metrics"
 	exit 1
@@ -128,7 +163,7 @@ metrics=$(curl --interface "$ROOT_IP" --connect-timeout 10 \
 	--max-time "$MAX_TIME" --fail --silent --show-error \
 	--output "$root_received" \
 	--write-out 'bytes=%{size_download},seconds=%{time_total},speed_Bps=%{speed_download}' \
-	"http://$PEER_IP:18080/$source_name" 2>&1) || {
+	"$peer_url" 2>&1) || {
 	status=$?
 	log "event=transfer direction=peer-to-root result=failed status=$status detail=$metrics"
 	exit 1
