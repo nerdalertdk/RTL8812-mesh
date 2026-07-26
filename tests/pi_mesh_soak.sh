@@ -36,6 +36,9 @@ kernel_since=$(date '+%Y-%m-%d %H:%M:%S')
 
 mkdir -p "$LOG_DIR"
 ln -sfn "$log" "$LOG_DIR/latest.log"
+# Point at this run immediately.  Until write_summary() creates the target, a
+# dangling link is preferable to silently exposing the previous run's summary.
+ln -sfn "$summary" "$LOG_DIR/latest-summary.log"
 
 log_event()
 {

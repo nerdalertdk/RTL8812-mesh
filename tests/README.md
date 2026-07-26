@@ -11,6 +11,11 @@ missing frame can be localized to after the sender's network stack rather than
 being reported only as a binary timeout. Run it only after an endurance service
 has released the shared test lock.
 
+`pi_mesh_soak.sh` updates `latest.log` and `latest-summary.log` at run start.
+The summary link intentionally remains dangling until the current run writes a
+summary, preventing monitoring code from mistaking an older result for the
+active run.
+
 ## RX submission-failure injection
 
 `usb_rx_submit_failure.patch` is test-only instrumentation. Apply it only to a
