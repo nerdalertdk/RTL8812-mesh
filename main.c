@@ -2405,7 +2405,8 @@ int rtw_register_hw(struct rtw_dev *rtwdev, struct ieee80211_hw *hw)
 				     BIT(NL80211_IFTYPE_ADHOC) |
 				     BIT(NL80211_IFTYPE_P2P_CLIENT) |
 				     BIT(NL80211_IFTYPE_P2P_GO);
-	if (rtwdev->chip->id == RTW_CHIP_TYPE_8812A &&
+	if (IS_ENABLED(CONFIG_MAC80211_MESH) &&
+	    rtwdev->chip->id == RTW_CHIP_TYPE_8812A &&
 	    rtw_hci_type(rtwdev) == RTW_HCI_TYPE_USB) {
 		hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_MESH_POINT);
 		/* cfg80211 uses this legacy-named flag to admit any per-peer

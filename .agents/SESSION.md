@@ -43,6 +43,11 @@ Complete and review a production-driver eight-hour mesh endurance run.
 - A serialized `tests/pi_mesh_multicast_probe.sh` diagnostic is ready for the
   next free hardware window. It counts each burst simultaneously at sender and
   receiver to improve on the sweep's binary multicast capture result.
+- Driver review found that mesh capability advertisement was not conditional
+  on `CONFIG_MAC80211_MESH`. `main.c` now uses `IS_ENABLED()` so kernels built
+  without mac80211 mesh support cannot be offered a nonfunctional mesh mode.
+  Exact-kernel rebuild is deferred until the active soak completes to avoid
+  adding CPU heat to the endurance evidence.
 
 ## Known issues
 
