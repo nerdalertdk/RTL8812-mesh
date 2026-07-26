@@ -53,3 +53,8 @@ Required evidence:
 
 The first completed run is recorded in
 `results/2026-07-26-rx-submit-eproto.md`.
+
+`usb_ctrl_eproto_injector.c` targets only successful RTL8812AU vendor-device
+control reads. It must never alter a completed write: a write may already have
+changed device state, and reporting a synthetic failure afterward cannot undo
+that side effect.

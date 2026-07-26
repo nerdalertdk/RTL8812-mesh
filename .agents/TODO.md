@@ -6,6 +6,7 @@
   2026-07-26 15:29 CEST (expected completion 23:29 CEST).
 - [ ] Rebuild the new `CONFIG_MAC80211_MESH` capability guard against the Pi
   kernel after the soak releases the thermally constrained test host.
+- [ ] Build-test the read-only control-transfer injector filter after the soak.
 
 ## Pending hardware gates
 

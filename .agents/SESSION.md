@@ -48,6 +48,9 @@ Complete and review a production-driver eight-hour mesh endurance run.
   without mac80211 mesh support cannot be offered a nonfunctional mesh mode.
   Exact-kernel rebuild is deferred until the active soak completes to avoid
   adding CPU heat to the endurance evidence.
+- Safety review found the control `-EPROTO` kretprobe could match both reads and
+  writes because both use request `0x05`. It now additionally requires request
+  type `0xc0`, so it can alter only successful RTL8812AU vendor-device reads.
 
 ## Known issues
 

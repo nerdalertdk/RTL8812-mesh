@@ -10,6 +10,7 @@
 #define RTW_USB_VENDOR_ID_REALTEK	0x0bda
 #define RTW_USB_PRODUCT_ID_8812AU	0x8812
 #define RTW_USB_CMD_REQ			0x05
+#define RTW_USB_CMD_READ		0xc0
 
 struct control_probe_data {
 	bool target;
@@ -29,10 +30,12 @@ static int control_entry(struct kretprobe_instance *instance,
 		(struct control_probe_data *)instance->data;
 	struct usb_device *udev;
 	unsigned long request;
+	unsigned long request_type;
 	unsigned long value;
 
 	udev = (struct usb_device *)regs_get_kernel_argument(regs, 0);
 	request = regs_get_kernel_argument(regs, 2);
+	request_type = regs_get_kernel_argument(regs, 3);
 	value = regs_get_kernel_argument(regs, 4);
 
 	data->target = udev &&
@@ -40,7 +43,8 @@ static int control_entry(struct kretprobe_instance *instance,
 			RTW_USB_VENDOR_ID_REALTEK &&
 		le16_to_cpu(udev->descriptor.idProduct) ==
 			RTW_USB_PRODUCT_ID_8812AU &&
-		request == RTW_USB_CMD_REQ && value == target_addr;
+		request == RTW_USB_CMD_REQ &&
+		request_type == RTW_USB_CMD_READ && value == target_addr;
 	if (data->target)
 		atomic_inc(&matching_calls);
 
