@@ -163,6 +163,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   disturbing the active soak. The systemd timeout is aligned to the script's
   worst-case lock and enumeration windows; a full reconstruction test is
   queued after the soak releases the hardware lock.
+- Multicast probing now has an explicit release contract: complete sender
+  capture, at least 99% delivery in each direction, optional required peer
+  driver provenance, and distinct failure, invalid-evidence, and USB-event
+  review exits. This keeps best-effort group delivery measurable without
+  allowing a diagnostic script's former unconditional success to close a gate.
 - The Pi's currently running soak executable predates the repository's
   run-start `latest-summary.log` update, so its summary link still names the
   prior stopped run. `pi_mesh_soak_status.sh` now derives the active run ID

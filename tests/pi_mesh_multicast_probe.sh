@@ -17,6 +17,14 @@ INTERVAL=${INTERVAL:-0.05}
 CAPTURE_TIMEOUT=${CAPTURE_TIMEOUT:-4}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/mesh-multicast-probe}
+MIN_DELIVERY_PERCENT=${MIN_DELIVERY_PERCENT:-99}
+ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
+PEER_DRIVER=${PEER_DRIVER:-}
+
+for value in "$ROUNDS" "$PACKETS" "$CAPTURE_TIMEOUT" "$MIN_DELIVERY_PERCENT"; do
+	case $value in *[!0-9]*|''|0) echo "rounds, packets, timeout, and threshold must be positive integers" >&2; exit 2 ;; esac
+done
+[ "$MIN_DELIVERY_PERCENT" -le 100 ] || { echo "MIN_DELIVERY_PERCENT must be <= 100" >&2; exit 2; }
 
 if command -v flock >/dev/null 2>&1; then
 	exec 9>"$LOCK_FILE"
@@ -86,6 +94,17 @@ PEER_IF=$(find_peer_if)
 if [ -z "$ROOT_IF" ] || [ -z "$PEER_IF" ]; then
 	echo "mesh interfaces not found root=${ROOT_IF:-none} peer=${PEER_IF:-none}" >&2
 	exit 1
+fi
+
+root_driver=$(basename "$(readlink "/sys/class/net/$ROOT_IF/device/driver")")
+peer_driver=$(ns basename "$(ns readlink "/sys/class/net/$PEER_IF/device/driver")")
+if [ "$root_driver" != "$ROOT_DRIVER" ]; then
+	echo "root driver is $root_driver, expected $ROOT_DRIVER" >&2
+	exit 2
+fi
+if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
+	echo "peer driver is $peer_driver, expected $PEER_DRIVER" >&2
+	exit 2
 fi
 
 if ! $IW dev "$ROOT_IF" station dump | grep -q 'mesh plink:[[:space:]]*ESTAB' ||
@@ -164,7 +183,35 @@ printf '# summary root_sender=%s peer_received=%s peer_sender=%s root_received=%
 	"$root_sender_total" "$root_receiver_total" "$peer_sender_total" \
 	"$peer_receiver_total" | tee -a "$result"
 printf '# kernel-transport-events-since-start\n' | tee -a "$result"
-journalctl -k --since "@$start_epoch" \
-	--no-pager 2>/dev/null |
-	grep -Ei 'error -71|EPROTO|over.?current|usb .*disconnect|usb .*reset' |
-	tee -a "$result" || true
+kernel_events=$(journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
+	grep -Ei 'error -71|EPROTO|over.?current|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+printf '%s\n' "$kernel_events" | sed '/^$/d' | tee -a "$result"
+kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' | awk 'END { print NR + 0 }')
+
+expected=$((ROUNDS * PACKETS))
+classification=pass
+status=0
+if [ "$kernel_event_count" -ne 0 ]; then
+	if [ "$root_sender_total" -ne "$expected" ] ||
+	   [ "$peer_sender_total" -ne "$expected" ]; then
+		classification=transport-event-with-incomplete-sender-capture
+	elif [ $((root_receiver_total * 100)) -lt $((root_sender_total * MIN_DELIVERY_PERCENT)) ] ||
+	     [ $((peer_receiver_total * 100)) -lt $((peer_sender_total * MIN_DELIVERY_PERCENT)) ]; then
+		classification=transport-event-with-delivery-failure
+	else
+		classification=recovered-transport-event-review-required
+	fi
+	status=4
+elif [ "$root_sender_total" -ne "$expected" ] ||
+   [ "$peer_sender_total" -ne "$expected" ]; then
+	classification=invalid-incomplete-sender-capture
+	status=2
+elif [ $((root_receiver_total * 100)) -lt $((root_sender_total * MIN_DELIVERY_PERCENT)) ] ||
+     [ $((peer_receiver_total * 100)) -lt $((peer_sender_total * MIN_DELIVERY_PERCENT)) ]; then
+	classification=delivery-below-threshold
+	status=1
+fi
+printf '# result classification=%s minimum_delivery_percent=%s expected_sender=%s kernel_events=%s\n' \
+	"$classification" "$MIN_DELIVERY_PERCENT" "$expected" "$kernel_event_count" |
+	tee -a "$result"
+exit "$status"

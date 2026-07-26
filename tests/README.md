@@ -16,6 +16,10 @@ the active topology. It captures each burst at both sender and receiver, so a
 missing frame can be localized to after the sender's network stack rather than
 being reported only as a binary timeout. Run it only after an endurance service
 has released the shared test lock.
+It requires complete sender capture and defaults to at least 99% delivery in
+each direction; lower delivery exits 1, incomplete sender evidence exits 2,
+and a USB transport event exits 4 for review. Set `PEER_DRIVER=rtw_8812au` for
+the production release gate so mixed-peer evidence cannot close it.
 
 `pi_mesh_soak.sh` updates `latest.log` and `latest-summary.log` at run start.
 The summary link intentionally remains dangling until the current run writes a
