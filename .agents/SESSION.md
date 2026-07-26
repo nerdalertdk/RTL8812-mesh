@@ -40,6 +40,9 @@ Complete and review a production-driver eight-hour mesh endurance run.
   preflight, first established/HWMP state, first two ping batches, and first
   bidirectional checksummed transfers passed with no kernel transport event.
   Logs are under `/home/msh/mesh-soak/` on the Pi.
+- A serialized `tests/pi_mesh_multicast_probe.sh` diagnostic is ready for the
+  next free hardware window. It counts each burst simultaneously at sender and
+  receiver to improve on the sweep's binary multicast capture result.
 
 ## Known issues
 

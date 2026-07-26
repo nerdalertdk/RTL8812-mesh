@@ -8,6 +8,8 @@
 ## Pending hardware gates
 
 - [ ] Run channels 1--13 HT20 sweep.
+- [ ] Run the sender/receiver multicast probe after the active soak to localize
+  the intermittent mixed-adapter multicast miss.
 - [ ] Validate secured traffic with a second stable RTL8812AU.
 - [ ] Repeat original USB2 and independently powered-path endurance tests.
 - [ ] Extend bounded endurance to a long unattended run.

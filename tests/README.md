@@ -5,6 +5,12 @@ and serialize topology changes through `/run/lock/rtw88-mesh-test.lock`.
 `pi_mesh_churn.sh` returns nonzero unless every join, peer link, cold contact,
 multicast direction, and pair of HWMP path tables passes.
 
+`pi_mesh_multicast_probe.sh` quantifies group-frame delivery without changing
+the active topology. It captures each burst at both sender and receiver, so a
+missing frame can be localized to after the sender's network stack rather than
+being reported only as a binary timeout. Run it only after an endurance service
+has released the shared test lock.
+
 ## RX submission-failure injection
 
 `usb_rx_submit_failure.patch` is test-only instrumentation. Apply it only to a
