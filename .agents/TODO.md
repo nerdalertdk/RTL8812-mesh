@@ -17,3 +17,5 @@
 - [x] Pass a one-cycle open-mesh churn smoke test from the standalone package.
 - [x] Pass a 10-minute mixed-adapter endurance run with 17/17 established
   states, 34/34 ping batches, and 18/18 checksummed 32 MiB transfers.
+- [x] Prove all four RX slots recover after eight synthetic `-EPROTO` submit
+  failures and prove safe teardown while delayed retry work is active.

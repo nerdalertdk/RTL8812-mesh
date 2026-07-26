@@ -39,3 +39,6 @@ Required evidence:
 - post-injection bidirectional traffic and a checksummed transfer pass;
 - teardown/unbind during a pending retry completes without resubmission,
   warning, use-after-free, or workqueue activity after unregister.
+
+The first completed run is recorded in
+`results/2026-07-26-rx-submit-eproto.md`.

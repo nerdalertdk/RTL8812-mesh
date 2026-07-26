@@ -28,6 +28,13 @@ Bootstrap and validate the standalone RTL8812AU mesh driver package.
   Pi temperature ranged from 78.880 to 80.828 C; `get_throttled=0xe0000`
   records historical under-voltage/throttling flags but no current low-bit
   throttle condition during the run.
+- Synthetic RX submit fault injection consumed eight `-EPROTO` failures and
+  restored all four RX slots (`success_mask=0xf`) with 40/40 pings in both
+  directions. A post-fault run passed six checksummed 32 MiB transfers.
+- Teardown with 99,981 synthetic failures still pending removed all five
+  modules in 593 ms without a kernel warning/Oops/UAF signature. The production
+  DKMS stack was restored, source-version verified, and the mesh re-established.
+  Detailed evidence is in `tests/results/2026-07-26-rx-submit-eproto.md`.
 
 ## Known issues
 
