@@ -16,7 +16,9 @@
   calibration, supply/current peaks, thermal behavior, and certification.
 - [ ] Build a 100/250/500/750/1000 m bidirectional LOS field-test procedure
   based on `docs/RF_DEPLOYMENT.md`.
-- [ ] Run channels 1--13 HT20 sweep.
+- [x] Run channels 1--13 HT20 sweep on DKMS 0.1.1; all channels passed
+  peering, bidirectional unicast, and HWMP, followed by 10/10 complete
+  channel-2 fresh-join repetitions.
 - [x] Run the sender/receiver multicast probe after the active soak to localize
   the intermittent mixed-adapter multicast miss.
 - [ ] Compare multicast delivery with two stable RTL8812AU radios; the mixed

@@ -80,6 +80,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   and 398/400 RTL8192FU-originated frames. No USB event occurred. This
   localizes the small loss after sender capture but does not attribute it to
   one driver; 802.11 multicast is unacknowledged and the peer is experimental.
+- The DKMS 0.1.1 channels 1--13 HT20 sweep passed peer establishment,
+  bidirectional cold unicast, and both HWMP path tables on every channel. One
+  three-frame peer-originated multicast gate missed again on channel 2, while
+  all other gates passed. Ten subsequent fresh channel-2 joins passed every
+  gate 10/10 with no USB error, excluding a consistently broken channel-2 path.
 - The final-build bidirectional 512 MiB gate passed matching SHA-256 in both
   directions at 8.77 MB/s RTL8812AU-to-peer and 6.34 MB/s peer-to-RTL8812AU,
   retaining both HWMP paths with no USB transport event.
