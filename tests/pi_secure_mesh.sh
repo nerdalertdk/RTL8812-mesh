@@ -67,8 +67,11 @@ cleanup()
 	[ -z "$peer_pid" ] || kill "$peer_pid" 2>/dev/null || true
 	[ -z "$root_pid" ] || wait "$root_pid" 2>/dev/null || true
 	[ -z "$peer_pid" ] || wait "$peer_pid" 2>/dev/null || true
+	# End the secured-test evidence interval before reconstructing the open
+	# topology; an intentional fallback unbind must not be classified as an
+	# SAE/AMPE transport event.
+	capture_kernel
 	if [ "$topology_changed" -eq 0 ]; then
-		capture_kernel
 		return
 	fi
 	$IW dev "$ROOT_IF" mesh leave 2>/dev/null || true
@@ -90,7 +93,6 @@ cleanup()
 			[ ! -x "$OPEN_RECOVERY_HELPER" ] || "$OPEN_RECOVERY_HELPER" || true
 		fi
 	fi
-	capture_kernel
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
