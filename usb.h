@@ -5,6 +5,8 @@
 #ifndef __RTW_USB_H_
 #define __RTW_USB_H_
 
+#include <linux/mutex.h>
+
 #define FW_8192C_START_ADDRESS		0x1000
 #define FW_8192C_END_ADDRESS		0x5fff
 
@@ -66,8 +68,10 @@ struct rtw_usb {
 	struct rtw_dev *rtwdev;
 	struct usb_device *udev;
 
-	/* protects usb_data_index */
-	spinlock_t usb_lock;
+	/* Protects usb_data_index and the selected buffer for the complete
+	 * synchronous control transaction, including bounded read retries.
+	 */
+	struct mutex usb_ctrl_mutex;
 	__le32 *usb_data;
 	unsigned int usb_data_index;
 	atomic_t ctrl_error_count;

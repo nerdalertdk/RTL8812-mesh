@@ -2,8 +2,9 @@
 
 ## Current focus
 
-Validate the audited DKMS 0.1.2 package and close the remaining hardware gates
-that require a second stable RTL8812AU or independently powered USB paths.
+Complete the active DKMS 0.1.2 endurance run, then build and validate source
+DKMS 0.1.3 with deterministic USB control-transaction buffer ownership and
+close the hardware gates requiring a second RTL8812AU or powered USB paths.
 
 The deployment requirement is now also recorded: multinational, off-grid
 mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
@@ -125,6 +126,12 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   core explicitly permits NULL for both `usb_kill_urb()` and `usb_free_urb()`.
   No code change or DKMS bump was warranted. See
   `tests/results/2026-07-26-upstream-static-audit.md`.
+- USB control-context audit confirmed `usb_control_msg()` is task-context and
+  may sleep. The former spinlock protected only selection from a 128-buffer
+  ring, not the selected buffer across a retryable transaction lasting up to
+  roughly three seconds. Source DKMS 0.1.3 uses a mutex across the complete
+  read/write transaction, eliminating wrap-based buffer aliasing. Build,
+  injection, and hardware regression are queued after the 0.1.2 soak.
 - The secured-mesh harness now queries the nondefault control socket it
   configures, requires `wpa_state=COMPLETED` and `key_mgmt=SAE` at both peers,
   and gates bidirectional multicast plus HWMP. It can invoke the checksummed
@@ -177,6 +184,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   defines its namespace helper before peer-driver provenance is evaluated.
   Debian prerequisites now name `util-linux` as the provider of mandatory
   `flock` support.
+- Repository soak summaries now include a numeric kernel transport-event count.
+  A functionally complete run with a transport event or recovery window exits
+  4, and the USB matrix treats that as functionally complete so its final
+  checksummed transfer still runs before causal classification.
+  SIGINT/SIGTERM also retain an incomplete summary but no longer exit 0.
 - The Pi's currently running soak executable predates the repository's
   run-start `latest-summary.log` update, so its summary link still names the
   prior stopped run. `pi_mesh_soak_status.sh` now derives the active run ID

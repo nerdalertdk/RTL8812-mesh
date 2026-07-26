@@ -88,16 +88,12 @@ static u32 rtw_usb_read(struct rtw_dev *rtwdev, u32 addr, u16 len)
 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
 	struct usb_device *udev = rtwusb->udev;
 	__le32 *data;
-	unsigned long flags;
+	u32 value;
 	int attempt, idx, ret;
 
-	spin_lock_irqsave(&rtwusb->usb_lock, flags);
-
+	mutex_lock(&rtwusb->usb_ctrl_mutex);
 	idx = rtwusb->usb_data_index;
 	rtwusb->usb_data_index = (idx + 1) & (RTW_USB_MAX_RXTX_COUNT - 1);
-
-	spin_unlock_irqrestore(&rtwusb->usb_lock, flags);
-
 	data = &rtwusb->usb_data[idx];
 
 	for (attempt = 1; attempt <= RTW_USB_CTRL_READ_MAX_ATTEMPTS; attempt++) {
@@ -142,7 +138,10 @@ static u32 rtw_usb_read(struct rtw_dev *rtwdev, u32 addr, u16 len)
 	     rtwdev->chip->id == RTW_CHIP_TYPE_8821C))
 		rtw_usb_reg_sec(rtwdev, addr, data);
 
-	return le32_to_cpu(*data);
+	value = le32_to_cpu(*data);
+	mutex_unlock(&rtwusb->usb_ctrl_mutex);
+
+	return value;
 }
 
 static u8 rtw_usb_read8(struct rtw_dev *rtwdev, u32 addr)
@@ -164,17 +163,12 @@ static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 {
 	struct rtw_usb *rtwusb = (struct rtw_usb *)rtwdev->priv;
 	struct usb_device *udev = rtwusb->udev;
-	unsigned long flags;
 	__le32 *data;
 	int idx, ret;
 
-	spin_lock_irqsave(&rtwusb->usb_lock, flags);
-
+	mutex_lock(&rtwusb->usb_ctrl_mutex);
 	idx = rtwusb->usb_data_index;
 	rtwusb->usb_data_index = (idx + 1) & (RTW_USB_MAX_RXTX_COUNT - 1);
-
-	spin_unlock_irqrestore(&rtwusb->usb_lock, flags);
-
 	data = &rtwusb->usb_data[idx];
 
 	*data = cpu_to_le32(val);
@@ -204,6 +198,8 @@ static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 	     rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
 	     rtwdev->chip->id == RTW_CHIP_TYPE_8821C))
 		rtw_usb_reg_sec(rtwdev, addr, data);
+
+	mutex_unlock(&rtwusb->usb_ctrl_mutex);
 }
 
 static void rtw_usb_write8(struct rtw_dev *rtwdev, u32 addr, u8 val)
@@ -1219,7 +1215,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
 	usb_set_intfdata(intf, rtwdev->hw);
 
 	SET_IEEE80211_DEV(rtwdev->hw, &intf->dev);
-	spin_lock_init(&rtwusb->usb_lock);
+	mutex_init(&rtwusb->usb_ctrl_mutex);
 	atomic_set(&rtwusb->ctrl_error_count, 0);
 	atomic_set(&rtwusb->ctrl_retry_count, 0);
 	atomic_set(&rtwusb->rx_urb_error_count, 0);

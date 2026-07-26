@@ -6,7 +6,7 @@ regression evidence, but cannot substitute for an RTL8812AU-to-RTL8812AU gate.
 
 | Requirement | Required evidence | Current evidence | Status |
 | --- | --- | --- | --- |
-| Exact-kernel Debian package | All five DKMS modules build, install, load, and match installed `srcversion` values | DKMS 0.1.2 on `6.12.47+rpt-rpi-v8`; all five loaded values match | Pass |
+| Exact-kernel Debian package | All five DKMS modules build, install, load, and match installed `srcversion` values | DKMS 0.1.2 on `6.12.47+rpt-rpi-v8`; source 0.1.3 control-transaction serialization awaits post-soak build/install | Pending 0.1.3 validation |
 | Open mesh peering | Repeated fresh joins with both peer links `ESTAB` | Strict 20-cycle churn passed 20/20 | Pass |
 | Cold HWMP discovery | Bidirectional first contact after path/neighbour flush and paths at both peers | Strict churn passed 20/20; channel sweep passed channels 1--13 | Pass |
 | Open unicast integrity | Checksummed large payload in both directions | 512 MiB each direction with matching SHA-256 | Pass |
@@ -30,3 +30,7 @@ RTL8812AU interoperability, secured group-key, or symmetric multicast gates.
 For hardware gates, exit 0 means both the workload and the observed kernel
 interval were clean. Exit 4 preserves a potentially recovered transport event
 for causal review and is not a clean release pass.
+The endurance soak records a numeric kernel-event count and returns exit 4 when
+the workload completes after any transport event or recovery window. A physical
+USB-path trial must still complete its final checksummed transfer in that case
+before it classifies the event as recovered.

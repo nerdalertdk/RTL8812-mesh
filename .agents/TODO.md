@@ -2,6 +2,8 @@
 
 ## In progress
 
+- [ ] Build, install, and regression-test DKMS `0.1.3` after the active soak,
+  including control-read injection and concurrency-safe unload/reload.
 - [x] Build, install, and regression-test DKMS `0.1.2` with the audited mesh
   `DISABLE_KEY` contract and RX teardown retry-race fix.
 - [ ] Deploy and run the hardened recovery helper after the active soak, then
@@ -62,3 +64,6 @@
   churn, channel-sweep, and checksummed-transfer gates.
 - [x] Require the shared `flock` in every hardware test instead of silently
   permitting unserialized execution; fix churn peer provenance preflight.
+- [x] Make soak verdicts distinguish clean completion, workload failure, and a
+  functionally recovered transport event without skipping the matrix's final
+  integrity transfer.
