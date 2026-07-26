@@ -34,6 +34,9 @@ patches.
    - Treat short reads as errors and retry only idempotent reads for bounded
      transient USB errors.
    - Do not retry writes whose device-side completion is ambiguous.
+   - Serialize the complete synchronous control transaction. The original
+     spinlock reserves only a ring index; it does not retain ownership of that
+     buffer while a transfer or bounded retry is in flight.
    - Rate-limit diagnostics and retain cumulative counters.
 
 6. **rtw88: retain RX capacity across recoverable USB failures**
