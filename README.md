@@ -89,8 +89,8 @@ From the repository root:
 ```sh
 sudo make install_fw
 sudo dkms add .
-sudo dkms build rtl8812au-mesh/0.1.0
-sudo dkms install --force rtl8812au-mesh/0.1.0
+sudo dkms build rtl8812au-mesh/0.1.1
+sudo dkms install --force rtl8812au-mesh/0.1.1
 sudo depmod -a
 ```
 
@@ -102,7 +102,7 @@ copies under `kernel/`.
 Remove the DKMS package with:
 
 ```sh
-sudo dkms remove rtl8812au-mesh/0.1.0 --all
+sudo dkms remove rtl8812au-mesh/0.1.1 --all
 ```
 
 ## Create an open mesh point

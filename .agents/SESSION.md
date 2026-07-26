@@ -57,6 +57,9 @@ Complete and review a production-driver eight-hour mesh endurance run.
 - `tests/pi_mesh_transfer.sh` now provides the matrix's standalone
   bidirectional 512 MiB SHA-256 integrity gate and is queued behind the active
   soak's shared hardware lock.
+- Repository DKMS version is now `0.1.1`, separating post-baseline source from
+  the `0.1.0` modules used by the active endurance run. Version `0.1.1` has not
+  yet been built or installed on the Pi.
 
 ## Known issues
 

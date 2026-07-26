@@ -4,8 +4,8 @@
 
 - [ ] Complete and review the production eight-hour soak started
   2026-07-26 15:29 CEST (expected completion 23:29 CEST).
-- [ ] Rebuild the new `CONFIG_MAC80211_MESH` capability guard against the Pi
-  kernel after the soak releases the thermally constrained test host.
+- [ ] Build and install DKMS `0.1.1`, including the new
+  `CONFIG_MAC80211_MESH` guard, after the soak releases the Pi.
 - [ ] Build-test the read-only control-transfer injector filter after the soak.
 
 ## Pending hardware gates

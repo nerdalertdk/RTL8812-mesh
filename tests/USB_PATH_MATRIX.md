@@ -45,7 +45,7 @@ Capture immediately before each run:
 ```sh
 date --iso-8601=seconds
 uname -a
-/sbin/dkms status rtl8812au-mesh/0.1.0
+/sbin/dkms status rtl8812au-mesh
 /sbin/modinfo -n rtw_usb
 /sbin/modinfo -F srcversion rtw_usb
 cat /sys/module/rtw_usb/srcversion
