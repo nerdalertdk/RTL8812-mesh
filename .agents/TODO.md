@@ -51,3 +51,5 @@
 - [x] Add run-ID-aware soak monitoring that cannot report a stale summary.
 - [x] Add a serialized physical USB matrix trial runner with provenance,
   summary validation, final transfer, kernel journal, and power invalidation.
+- [x] Make timed soak exit status reflect its validated summary rather than
+  unconditional loop completion.

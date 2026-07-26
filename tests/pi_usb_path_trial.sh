@@ -2,6 +2,7 @@
 # Execute and preserve one controlled row/repetition of USB_PATH_MATRIX.md.
 
 set -eu
+umask 077
 
 ROW=${ROW:?set ROW to A, B, C, or D}
 REPETITION=${REPETITION:?set REPETITION to a positive integer}
@@ -22,7 +23,7 @@ ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
 
 case $ROW in A|B|C|D) ;; *) echo "ROW must be A, B, C, or D" >&2; exit 2 ;; esac
 case $REPETITION in *[!0-9]*|''|0) echo "REPETITION must be positive" >&2; exit 2 ;; esac
-case $DURATION_SECONDS in *[!0-9]*|'') echo "DURATION_SECONDS must be an integer" >&2; exit 2 ;; esac
+case $DURATION_SECONDS in *[!0-9]*|''|0) echo "DURATION_SECONDS must be positive" >&2; exit 2 ;; esac
 case $FILE_MIB in *[!0-9]*|''|0) echo "FILE_MIB must be positive" >&2; exit 2 ;; esac
 case $ROW in A|C) expected_speed=5000 ;; B|D) expected_speed=480 ;; esac
 case $ROW in
@@ -48,8 +49,19 @@ fi
 
 run_id=$(date -u +%Y%m%dT%H%M%SZ)
 trial=$LOG_ROOT/row-$ROW/rep-$REPETITION-$run_id
-mkdir -p "$trial"
+mkdir -p "$LOG_ROOT/row-$ROW"
+if ! mkdir "$trial"; then
+	echo "trial directory already exists: $trial" >&2
+	exit 2
+fi
+available_kib=$(df -Pk "$trial" | awk 'NR == 2 { print $4 }')
+required_kib=$((FILE_MIB * 1024 * 3 + 204800))
+if [ -z "$available_kib" ] || [ "$available_kib" -lt "$required_kib" ]; then
+	echo "insufficient space: available_kib=${available_kib:-unknown} required_kib=$required_kib" >&2
+	exit 2
+fi
 start_epoch=$(date +%s)
+context_epoch=$((start_epoch - 30))
 metadata=$trial/metadata.log
 
 find_root_if()
@@ -79,8 +91,13 @@ usb_speed=$(cat "$usb_sysfs/speed")
 # reject an extra hub in direct rows and require one in the USB3 powered row.
 case $ROW in
 	A) case $usb_device in 2-*.*) echo "row A is not a direct USB3 path: $usb_device" >&2; exit 1 ;; esac ;;
-	B) case $usb_device in 1-1.*.*) echo "row B has an extra downstream hub: $usb_device" >&2; exit 1 ;; esac ;;
+	B) case $usb_device in
+		1-1.*.*) echo "row B has an extra downstream hub: $usb_device" >&2; exit 1 ;;
+		1-1.*) ;;
+		*) echo "row B is not a direct Pi USB2 path: $usb_device" >&2; exit 1 ;;
+	   esac ;;
 	C) case $usb_device in 2-*.*) ;; *) echo "row C has no downstream USB3 hub: $usb_device" >&2; exit 1 ;; esac ;;
+	D) case $usb_device in 1-1.*.*) ;; *) echo "row D has no downstream USB2 hub: $usb_device" >&2; exit 1 ;; esac ;;
 esac
 
 throttle_value()
@@ -97,9 +114,18 @@ capture_state()
 		uname -a
 		cat /proc/sys/kernel/random/boot_id
 		/sbin/dkms status rtl8812au-mesh 2>&1 || true
-		/sbin/modinfo -n rtw_usb 2>&1 || true
-		/sbin/modinfo -F srcversion rtw_usb 2>&1 || true
-		cat /sys/module/rtw_usb/srcversion 2>&1 || true
+		for module in rtw_core rtw_usb rtw_88xxa rtw_8812a rtw_8812au; do
+			installed=$(/sbin/modinfo -F srcversion "$module" 2>/dev/null || true)
+			loaded=$(cat "/sys/module/$module/srcversion" 2>/dev/null || true)
+			path=$(/sbin/modinfo -n "$module" 2>/dev/null || true)
+			match=no
+			if [ -n "$installed" ] && [ "$installed" = "$loaded" ]; then
+				match=yes
+			fi
+			printf 'module=%s path=%s installed_srcversion=%s loaded_srcversion=%s match=%s\n' \
+				"$module" "${path:-unavailable}" "${installed:-unavailable}" \
+				"${loaded:-unavailable}" "$match"
+		done
 		lsusb 2>&1 || true
 		lsusb -t 2>&1 || true
 		vcgencmd get_throttled 2>&1 || true
@@ -117,12 +143,27 @@ capture_state()
 	echo "psu_desc=$PSU_DESC"
 	echo "hub_desc=$HUB_DESC"
 	echo "port_desc=$PORT_DESC"
+	echo "root_if=$root_if"
+	echo "root_driver=$root_driver"
+	echo "usb_device=$usb_device"
+	echo "usb_speed_mbps=$usb_speed"
+	echo "expected_speed_mbps=$expected_speed"
 	echo "duration_seconds=$DURATION_SECONDS"
 	echo "file_mib=$FILE_MIB"
 } >"$metadata"
 
 capture_state pre
 pre_throttle=$(throttle_value)
+pre_provenance_mismatches=$(grep -c 'match=no' "$trial/pre-state.log" || true)
+if [ "$pre_provenance_mismatches" -ne 0 ]; then
+	{
+		echo "result=invalid"
+		echo "classification=invalid-module-provenance"
+		echo "pre_provenance_mismatches=$pre_provenance_mismatches"
+		echo "trial_dir=$trial"
+	} | tee "$trial/result.log"
+	exit 2
+fi
 
 soak_status=0
 LOCK_FD_INHERITED=9 LOG_DIR="$trial/soak" \
@@ -134,25 +175,33 @@ if [ "$soak_status" -eq 0 ]; then
 	if [ -z "$soak_summary" ] || [ ! -r "$soak_summary" ]; then
 		soak_status=1
 	else
+		completed=$(sed -n 's/^completed=//p' "$soak_summary")
 		state_total=$(sed -n 's/^state_total=//p' "$soak_summary")
 		state_established=$(sed -n 's/^state_established=//p' "$soak_summary")
 		state_unavailable=$(sed -n 's/^state_unavailable=//p' "$soak_summary")
 		ping_failed=$(sed -n 's/^ping_batches_failed=//p' "$soak_summary")
 		transfers_failed=$(sed -n 's/^transfers_failed=//p' "$soak_summary")
 		invalidations=$(sed -n 's/^invalidations=//p' "$soak_summary")
-		if [ -z "$state_total" ] || [ "$state_total" -eq 0 ] ||
-		   [ "$state_total" -ne "$state_established" ] ||
-		   [ "${state_unavailable:-1}" -ne 0 ] ||
-		   [ "${ping_failed:-1}" -ne 0 ] ||
-		   [ "${transfers_failed:-1}" -ne 0 ] ||
-		   [ "${invalidations:-1}" -ne 0 ]; then
-			soak_status=1
-		fi
+		case $completed:$state_total:$state_established:$state_unavailable:$ping_failed:$transfers_failed:$invalidations in
+			:*|*::*|*:|*[!0-9:]*) soak_status=1 ;;
+			*)
+				if [ "$completed" -ne 1 ] || [ "$state_total" -eq 0 ] ||
+				   [ "$state_total" -ne "$state_established" ] ||
+				   [ "$state_unavailable" -ne 0 ] ||
+				   [ "$ping_failed" -ne 0 ] ||
+				   [ "$transfers_failed" -ne 0 ] ||
+				   [ "$invalidations" -ne 0 ]; then
+					soak_status=1
+				fi
+				;;
+		esac
 	fi
 fi
 
 transfer_status=0
+transfer_ran=0
 if [ "$soak_status" -eq 0 ]; then
+	transfer_ran=1
 	LOCK_FD_INHERITED=9 LOG_DIR="$trial/transfer" FILE_MIB="$FILE_MIB" \
 		ROOT_MAC="$ROOT_MAC" PEER_MAC="$PEER_MAC" PEER_NS="$PEER_NS" \
 		"$TRANSFER_TEST" || transfer_status=$?
@@ -160,7 +209,27 @@ fi
 
 capture_state post
 post_throttle=$(throttle_value)
+post_topology_mismatch=0
+post_root_if=$(find_root_if)
+if [ -z "$post_root_if" ]; then
+	post_topology_mismatch=1
+else
+	post_driver=$(basename "$(readlink "/sys/class/net/$post_root_if/device/driver")")
+	post_usb_interface=$(basename "$(readlink -f "/sys/class/net/$post_root_if/device")")
+	post_usb_device=${post_usb_interface%%:*}
+	post_usb_speed=$(cat "/sys/bus/usb/devices/$post_usb_device/speed" 2>/dev/null || true)
+	if [ "$post_driver" != "$ROOT_DRIVER" ] ||
+	   [ "$post_usb_device" != "$usb_device" ] ||
+	   [ "$post_usb_speed" != "$usb_speed" ]; then
+		post_topology_mismatch=1
+	fi
+fi
 journalctl -k --since "@$start_epoch" --no-pager >"$trial/kernel.log" 2>&1 || true
+journalctl -k --since "@$context_epoch" --no-pager \
+	>"$trial/kernel-context.log" 2>&1 || true
+transport_events=$(grep -Eic 'error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' \
+	"$trial/kernel.log" 2>/dev/null || true)
+post_provenance_mismatches=$(grep -c 'match=no' "$trial/post-state.log" || true)
 
 current_power_fault=0
 new_historical_power_fault=0
@@ -177,6 +246,9 @@ case $pre_throttle:$post_throttle in
 esac
 kernel_power_events=$(grep -Eic 'under.?voltage|over.?current' \
 	"$trial/kernel.log" 2>/dev/null || true)
+soak_environment_invalidations=$(grep -Eic 'event=invalid reason=thermal-limit' \
+	"$trial"/soak/soak-*.log 2>/dev/null || true)
+[ -n "$soak_environment_invalidations" ] || soak_environment_invalidations=0
 
 classification=valid
 result=pass
@@ -184,10 +256,26 @@ if [ "$current_power_fault" -ne 0 ]; then
 	classification=invalid-current-power-state
 	result=invalid
 elif [ "$new_historical_power_fault" -ne 0 ] ||
-     [ "$kernel_power_events" -ne 0 ]; then
-	classification=invalid-power-event-during-trial
+     [ "$kernel_power_events" -ne 0 ] ||
+     [ "$soak_environment_invalidations" -ne 0 ]; then
+	classification=invalid-environment-event-during-trial
 	result=invalid
+elif [ "$post_provenance_mismatches" -ne 0 ]; then
+	classification=invalid-module-provenance
+	result=invalid
+elif [ "$transport_events" -ne 0 ]; then
+	if [ "$soak_status" -ne 0 ] || [ "$transfer_status" -ne 0 ] ||
+	   [ "$post_topology_mismatch" -ne 0 ]; then
+		classification=transport-event-with-workload-or-topology-failure
+	else
+		classification=recovered-transport-event-review-required
+	fi
+	result=event
+elif [ "$post_topology_mismatch" -ne 0 ]; then
+	classification=topology-changed-without-classified-kernel-event
+	result=fail
 elif [ "$soak_status" -ne 0 ] || [ "$transfer_status" -ne 0 ]; then
+	classification=workload-failure
 	result=fail
 fi
 
@@ -195,11 +283,18 @@ fi
 	echo "result=$result"
 	echo "classification=$classification"
 	echo "soak_status=$soak_status"
+	echo "transfer_ran=$transfer_ran"
 	echo "transfer_status=$transfer_status"
 	echo "pre_throttled=${pre_throttle:-unavailable}"
 	echo "post_throttled=${post_throttle:-unavailable}"
 	echo "kernel_power_events=$kernel_power_events"
+	echo "soak_environment_invalidations=$soak_environment_invalidations"
+	echo "transport_events=$transport_events"
+	echo "pre_provenance_mismatches=$pre_provenance_mismatches"
+	echo "post_provenance_mismatches=$post_provenance_mismatches"
+	echo "post_root_if=${post_root_if:-unavailable}"
+	echo "post_topology_mismatch=$post_topology_mismatch"
 	echo "trial_dir=$trial"
 } | tee "$trial/result.log"
 
-case $result in pass) exit 0 ;; invalid) exit 2 ;; *) exit 1 ;; esac
+case $result in pass) exit 0 ;; invalid) exit 2 ;; event) exit 4 ;; *) exit 1 ;; esac

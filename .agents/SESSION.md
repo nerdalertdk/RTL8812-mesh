@@ -149,6 +149,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   Isolated Pi mocks passed the clean (`0`) and current-undervoltage-invalid
   (`2`) paths; inherited-lock handling was verified without touching the live
   radios.
+- The repository soak now records an explicit completion marker and returns
+  nonzero after a timed run unless every state is established and all ping,
+  transfer, and invariant counters pass. This prevents systemd success from
+  being mistaken for a passing endurance result. The active Pi process uses
+  the older deployed inode and is intentionally left undisturbed.
 
 ## Known issues
 

@@ -244,6 +244,7 @@ write_summary()
 		printf 'mesh_soak_summary run_id=%s generated_utc=%s\n' \
 			"$run_id" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 		printf 'duration_requested_seconds=%s\n' "$DURATION_SECONDS"
+		printf 'completed=%s\n' "$(grep -c 'event=complete$' "$log" || true)"
 		printf 'state_total=%s\n' "$(grep -c 'event=state' "$log" || true)"
 		printf 'state_established=%s\n' "$(grep -c 'event=state result=established' "$log" || true)"
 		printf 'state_unavailable=%s\n' "$(grep -c 'event=state result=unavailable' "$log" || true)"
@@ -283,6 +284,24 @@ write_summary()
 			grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB' || true
 	} >"$summary"
 	ln -sfn "$summary" "$LOG_DIR/latest-summary.log"
+}
+
+summary_passes()
+{
+	completed=$(sed -n 's/^completed=//p' "$summary")
+	state_total=$(sed -n 's/^state_total=//p' "$summary")
+	state_established=$(sed -n 's/^state_established=//p' "$summary")
+	state_unavailable=$(sed -n 's/^state_unavailable=//p' "$summary")
+	ping_failed=$(sed -n 's/^ping_batches_failed=//p' "$summary")
+	transfers_failed=$(sed -n 's/^transfers_failed=//p' "$summary")
+	invalidations=$(sed -n 's/^invalidations=//p' "$summary")
+	case $completed:$state_total:$state_established:$state_unavailable:$ping_failed:$transfers_failed:$invalidations in
+		:*|*::*|*:|*[!0-9:]*) return 1 ;;
+	esac
+	[ "$completed" -eq 1 ] && [ "$state_total" -gt 0 ] &&
+		[ "$state_total" -eq "$state_established" ] &&
+		[ "$state_unavailable" -eq 0 ] && [ "$ping_failed" -eq 0 ] &&
+		[ "$transfers_failed" -eq 0 ] && [ "$invalidations" -eq 0 ]
 }
 
 log_event "event=start duration_seconds=$DURATION_SECONDS poll_seconds=$POLL_SECONDS transfer_seconds=$TRANSFER_SECONDS transfer_mib=$TRANSFER_MIB"
@@ -348,7 +367,8 @@ while [ "$(date +%s)" -lt "$end_epoch" ]; do
 		peer_paths=$(ip netns exec "$PEER_NS" $IW dev "$peer_if" \
 			mpath dump 2>/dev/null |
 			awk 'NR > 1 { count++ } END { print count + 0 }')
-		if [ "$root_plink" = ESTAB ] && [ "$peer_plink" = ESTAB ]; then
+		if [ "$root_plink" = ESTAB ] && [ "$peer_plink" = ESTAB ] &&
+		   [ "$root_paths" -gt 0 ] && [ "$peer_paths" -gt 0 ]; then
 			state=established
 		else
 			state=degraded
@@ -404,3 +424,4 @@ done
 
 log_event "event=complete"
 write_summary
+summary_passes

@@ -96,5 +96,6 @@ synthetic driver-retry evidence.
 soak and final 512 MiB transfer under one lock, verifies the soak summary rather
 than trusting its process exit alone, records pre/post module, topology, power,
 temperature, and boot provenance, and preserves the complete kernel journal.
-It returns 2 for an environmentally invalid current throttle state, 1 for a
-valid-path test failure, and 0 only when both workload stages pass.
+It returns 2 for invalid environmental or provenance evidence, 1 for a
+valid-path workload/topology failure, 4 when a transport event requires causal
+review, and 0 only when both workload stages pass without a transport event.

@@ -95,6 +95,16 @@ new historical power bit, or a kernel under-voltage/over-current event makes
 the trial invalid rather than a driver failure. Pre-existing historical upper
 bits remain recorded but do not invalidate an otherwise controlled run.
 
+The runner verifies the expected negotiated speed (5000 Mbit/s for rows A/C
+and 480 Mbit/s for B/D), checks the RTL8812AU driver and all five loaded module
+source versions, and rejects inconsistent direct/hub path shapes where the Pi
+topology is unambiguous. Exit status 0 is a clean pass, 1 is a workload
+failure, 2 is invalid environmental/provenance evidence, 4 means a transport
+event was preserved and needs causal review, and 75 means another serialized
+hardware test owns the topology.
+It keeps `kernel.log` for exact trial classification and a separate
+`kernel-context.log` beginning 30 seconds before the trial for event context.
+
 ## Event classification
 
 Classify each observed event before drawing a conclusion:
