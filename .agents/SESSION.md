@@ -131,6 +131,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   transfer harness while safely inheriting the already-held topology lock.
   Raspberry Pi `dash -n` and wpa_supplicant 2.10 configuration parsing pass;
   live validation remains gated on a second stable RTL8812AU.
+- `docs/RELEASE_GATES.md` now maps every Debian mesh, security, endurance, USB
+  recovery, physical attribution, and upstream-hygiene requirement to its
+  authoritative evidence. It prevents mixed-peer and synthetic tests from
+  being used to overclaim the still-pending two-RTL8812AU and powered-path
+  gates.
 
 ## Known issues
 

@@ -177,6 +177,9 @@ environment variables for the local topology.
 Fault-injection modules and `usb_rx_submit_failure.patch` are test-only. Never
 ship an instrumented module as the production driver.
 
+The requirement-by-requirement release verdict and authoritative evidence are
+tracked in [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md).
+
 ## Source and licensing
 
 See [SOURCE.md](SOURCE.md). Source files retain their SPDX identifiers and

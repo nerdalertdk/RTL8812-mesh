@@ -1,0 +1,29 @@
+# RTL8812AU mesh release gates
+
+This matrix defines the evidence required before the Debian driver can be
+called robust for native IEEE 802.11s. A passing mixed-adapter result is useful
+regression evidence, but cannot substitute for an RTL8812AU-to-RTL8812AU gate.
+
+| Requirement | Required evidence | Current evidence | Status |
+| --- | --- | --- | --- |
+| Exact-kernel Debian package | All five DKMS modules build, install, load, and match installed `srcversion` values | DKMS 0.1.2 on `6.12.47+rpt-rpi-v8`; all five loaded values match | Pass |
+| Open mesh peering | Repeated fresh joins with both peer links `ESTAB` | Strict 20-cycle churn passed 20/20 | Pass |
+| Cold HWMP discovery | Bidirectional first contact after path/neighbour flush and paths at both peers | Strict churn passed 20/20; channel sweep passed channels 1--13 | Pass |
+| Open unicast integrity | Checksummed large payload in both directions | 512 MiB each direction with matching SHA-256 | Pass |
+| Open group traffic | Bidirectional sender/receiver capture with two stable RTL8812AU radios | Mixed RTL8812AU/RTL8192FU delivered 797/800; 20-cycle strict bursts passed | Pending two RTL8812AU radios |
+| SAE/AMPE | Both peers report `COMPLETED` and SAE, then pass bidirectional unicast, multicast, HWMP, and checksummed payload | Harness parses under wpa_supplicant 2.10; current RTL8192FU is not a release peer | Pending two RTL8812AU radios |
+| 2.4 GHz HT20 channels | Fresh peering, cold traffic, and HWMP on every channel allowed by the selected test regulatory profile | Channels 1--13 passed; channel 2 passed 10/10 focused repetitions after an isolated mixed-peer multicast miss | Pass for open mixed-peer regression; repeat production profile with two RTL8812AU radios |
+| Transient control `-EPROTO` | Read-only injected fault is consumed by bounded retry; no write injection | Two matching reads, injected failure followed by successful retry, no miss | Pass |
+| RX submit recovery | Every RX slot recovers after injected transient failures; traffic remains valid | Eight failures consumed, success mask `0xf`, 40/40 pings each way | Pass |
+| Retry teardown safety | Unload while retries are pending with no post-free work, warning, Oops, or UAF | Unload with 99,980 failures pending; production reload in 857 ms; no kernel fault signature | Pass |
+| Physical USB fault attribution | Three valid repetitions for direct USB3, direct USB2, powered USB3, and powered USB2 with topology/power/event logs | Matrix and causal rules exist; independently powered paths unavailable | Pending hardware |
+| Endurance | Bounded unattended run with peer/HWMP state, traffic, checksums, recovery, USB events, temperature, and power flags | Clean 4.5-hour run; final eight-hour DKMS 0.1.2 run started 2026-07-26 21:07 CEST | In progress |
+| Upstream hygiene | Reviewable patch split, exact-kernel warning build, strict checkpatch, and comparison with current kernel behavior | `W=1` clean; strict checkpatch 0/0/0; patch order documented | Pass |
+
+## Completion rule
+
+Release readiness requires every row to pass at its stated scope. In
+particular, synthetic USB recovery proves driver behavior but cannot establish
+whether real `-71` events originate in the adapter, cable, hub, host
+controller, or power path. Likewise, an RTL8192FU peer cannot close the
+RTL8812AU interoperability, secured group-key, or symmetric multicast gates.
