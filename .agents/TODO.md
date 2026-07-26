@@ -13,6 +13,7 @@
 - [ ] Run channels 1--13 HT20 sweep.
 - [ ] Run the sender/receiver multicast probe after the active soak to localize
   the intermittent mixed-adapter multicast miss.
+- [ ] Run the bidirectional 512 MiB SHA-256 transfer gate after the active soak.
 - [ ] Validate secured traffic with a second stable RTL8812AU.
 - [ ] Complete three valid repetitions of each row in
   `tests/USB_PATH_MATRIX.md` (direct USB3/USB2 and powered USB3/USB2 paths).

@@ -16,6 +16,12 @@ The summary link intentionally remains dangling until the current run writes a
 summary, preventing monitoring code from mistaking an older result for the
 active run.
 
+`pi_mesh_transfer.sh` is the standalone large-file integrity gate. Its default
+is one 512 MiB random source transferred in both directions, with source and
+destination SHA-256 comparison, curl timing/throughput metrics, post-transfer
+HWMP validation, and kernel USB event capture. Temporary payloads are removed
+on exit; the result log is retained under `/home/msh/mesh-transfer/`.
+
 ## RX submission-failure injection
 
 `usb_rx_submit_failure.patch` is test-only instrumentation. Apply it only to a

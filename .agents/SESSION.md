@@ -54,6 +54,9 @@ Complete and review a production-driver eight-hour mesh endurance run.
 - `tests/USB_PATH_MATRIX.md` now defines the controlled physical test rows,
   repetitions, evidence capture, event classification, and causal decision
   rules required to separate driver/adapter faults from Pi USB power/topology.
+- `tests/pi_mesh_transfer.sh` now provides the matrix's standalone
+  bidirectional 512 MiB SHA-256 integrity gate and is queued behind the active
+  soak's shared hardware lock.
 
 ## Known issues
 
