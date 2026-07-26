@@ -146,9 +146,12 @@ iw dev wlan1 station dump
 iw dev wlan1 mpath dump
 ```
 
-For SAE/AMPE security use `wpa_supplicant`; the test profile in
-`tests/wpa_secure_mesh.conf` is an example only and contains a public test
-passphrase that must be changed.
+For SAE/AMPE security use `wpa_supplicant`; the canonical test profile in
+`tests/wpa_sae_mesh.conf` is an example only and contains a public test
+passphrase that must be changed. `tests/pi_secure_mesh.sh` requires both peers
+to report `wpa_state=COMPLETED` and `key_mgmt=SAE`, then validates directional
+unicast, multicast, and HWMP. Set `TRANSFER_TEST=tests/pi_mesh_transfer.sh` to
+also run a bidirectional checksummed payload gate under the secured topology.
 
 ## USB `-71` behavior
 

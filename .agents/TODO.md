@@ -45,3 +45,6 @@
   failures and prove safe teardown while delayed retry work is active.
 - [x] Complete exact-kernel `W=1`, strict checkpatch, and targeted upstream
   static review of the four-file production delta.
+- [x] Harden the secured-mesh gate to verify the configured supplicant control
+  socket, completed SAE state, bidirectional group delivery, HWMP, and optional
+  checksummed payload transfer under the inherited hardware-test lock.

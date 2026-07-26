@@ -27,6 +27,26 @@ HWMP validation, and kernel USB event capture. Temporary payloads are removed
 on exit; the result log is retained under the configured `LOG_DIR` (default:
 `/var/tmp/rtl8812au-mesh/mesh-transfer/`).
 
+`pi_secure_mesh.sh` controls both peers with `wpa_supplicant`, verifies that
+both control interfaces reached `COMPLETED` with SAE, and requires
+bidirectional unicast, multicast, and HWMP paths. Its default configuration is
+`wpa_sae_mesh.conf`; the credential is intentionally public test data. To add
+a checksummed transfer without deadlocking the shared test lock, set
+`TRANSFER_TEST` to the absolute path of `pi_mesh_transfer.sh` and select the
+size with `SECURE_FILE_MIB` (default 32 MiB). `ROOT_DRIVER` defaults to
+`rtw_8812au`; set `PEER_DRIVER=rtw_8812au` for the release-gate run so the
+result cannot accidentally be attributed to the experimental fixture. The
+optional `PEER_DRIVER_ID` unbind fallback is only for a specifically identified
+test adapter and is disabled by default.
+
+`pi_secure_mesh.sh` controls both peers with `wpa_supplicant`, verifies that
+both control interfaces reached `COMPLETED` with SAE, and requires
+bidirectional unicast, multicast, and HWMP paths. Its default configuration is
+`wpa_sae_mesh.conf`; the credential is intentionally public test data. To add
+a checksummed transfer without deadlocking the shared test lock, invoke it with
+`TRANSFER_TEST` set to the absolute path of `pi_mesh_transfer.sh` and choose the
+size with `SECURE_FILE_MIB` (default 32 MiB).
+
 ## RX submission-failure injection
 
 `usb_rx_submit_failure.patch` is test-only instrumentation. Apply it only to a

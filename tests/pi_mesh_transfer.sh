@@ -1,5 +1,5 @@
 #!/bin/sh
-# Bidirectional checksummed transfer gate for an established open mesh.
+# Bidirectional checksummed transfer gate for an established mesh.
 
 set -eu
 
@@ -15,10 +15,21 @@ LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 MAX_TIME=${MAX_TIME:-3600}
 
 if command -v flock >/dev/null 2>&1; then
-	exec 9>"$LOCK_FILE"
-	if ! flock -n 9; then
-		echo "another rtw88 mesh test holds $LOCK_FILE" >&2
-		exit 75
+	if [ -n "${LOCK_FD_INHERITED:-}" ]; then
+		case $LOCK_FD_INHERITED in
+			*[!0-9]*|'') echo "LOCK_FD_INHERITED must name an open fd" >&2; exit 2 ;;
+		esac
+		if [ ! -e "/proc/$$/fd/$LOCK_FD_INHERITED" ] ||
+		   ! flock -n "$LOCK_FD_INHERITED"; then
+			echo "inherited mesh test lock is not held" >&2
+			exit 75
+		fi
+	else
+		exec 9>"$LOCK_FILE"
+		if ! flock -n 9; then
+			echo "another rtw88 mesh test holds $LOCK_FILE" >&2
+			exit 75
+		fi
 	fi
 fi
 

@@ -125,6 +125,12 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   core explicitly permits NULL for both `usb_kill_urb()` and `usb_free_urb()`.
   No code change or DKMS bump was warranted. See
   `tests/results/2026-07-26-upstream-static-audit.md`.
+- The secured-mesh harness now queries the nondefault control socket it
+  configures, requires `wpa_state=COMPLETED` and `key_mgmt=SAE` at both peers,
+  and gates bidirectional multicast plus HWMP. It can invoke the checksummed
+  transfer harness while safely inheriting the already-held topology lock.
+  Raspberry Pi `dash -n` and wpa_supplicant 2.10 configuration parsing pass;
+  live validation remains gated on a second stable RTL8812AU.
 
 ## Known issues
 
