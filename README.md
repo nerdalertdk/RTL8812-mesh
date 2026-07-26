@@ -164,8 +164,8 @@ kernel timestamps when reporting one.
 ## Tests
 
 See [tests/README.md](tests/README.md). The scripts default to the development
-Pi's MAC addresses and network namespace; override their environment variables
-for another topology.
+test adapter MAC addresses and network namespace; provide the documented
+environment variables for the local topology.
 
 Fault-injection modules and `usb_rx_submit_failure.patch` are test-only. Never
 ship an instrumented module as the production driver.

@@ -4,8 +4,8 @@
 set -u
 
 IW=${IW:-/usr/sbin/iw}
-ROOT_MAC=${ROOT_MAC:-fc:22:1c:30:08:c1}
-PEER_MAC=${PEER_MAC:-1c:bf:ce:f3:78:4d}
+ROOT_MAC=${ROOT_MAC:?set ROOT_MAC to the primary adapter MAC}
+PEER_MAC=${PEER_MAC:?set PEER_MAC to the peer adapter MAC}
 PEER_NS=${PEER_NS:-meshpeer}
 ROOT_IP=${ROOT_IP:-10.44.0.1}
 PEER_IP=${PEER_IP:-10.44.0.2}
@@ -13,7 +13,7 @@ DURATION_SECONDS=${DURATION_SECONDS:-28800}
 POLL_SECONDS=${POLL_SECONDS:-30}
 TRANSFER_SECONDS=${TRANSFER_SECONDS:-3600}
 TRANSFER_MIB=${TRANSFER_MIB:-10}
-LOG_DIR=${LOG_DIR:-/home/msh/mesh-soak}
+LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/mesh-soak}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 LOCK_WAIT=${LOCK_WAIT:-90}
 THERMAL_ZONE=${THERMAL_ZONE:-/sys/class/thermal/thermal_zone0/temp}

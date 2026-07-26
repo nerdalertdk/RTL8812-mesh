@@ -9,7 +9,7 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 ## Current status
 
-- Source imported from `/Users/michael/code/privat/rtw88` at base commit
+- Source imported from a local `rtw88` development worktree at base commit
   `a56bcd2`, including the current uncommitted mesh/USB fixes.
 - The focused build produced exactly five modules against Pi kernel
   `6.12.47+rpt-rpi-v8`.
@@ -42,7 +42,7 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   CEST (run ID `20260726T132933Z`, expected completion 23:29 CEST). Its
   preflight, first established/HWMP state, first two ping batches, and first
   bidirectional checksummed transfers passed with no kernel transport event.
-  Logs are under `/home/msh/mesh-soak/` on the Pi.
+  Logs are under the soak harness's configured `LOG_DIR` on the Pi.
 - A serialized `tests/pi_mesh_multicast_probe.sh` diagnostic is ready for the
   next free hardware window. It counts each burst simultaneously at sender and
   receiver to improve on the sweep's binary multicast capture result.

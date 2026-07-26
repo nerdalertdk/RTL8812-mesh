@@ -4,8 +4,8 @@
 set -eu
 
 IW=${IW:-/usr/sbin/iw}
-ROOT_MAC=${ROOT_MAC:-fc:22:1c:30:08:c1}
-PEER_MAC=${PEER_MAC:-1c:bf:ce:f3:78:4d}
+ROOT_MAC=${ROOT_MAC:?set ROOT_MAC to the primary adapter MAC}
+PEER_MAC=${PEER_MAC:?set PEER_MAC to the peer adapter MAC}
 PEER_NS=${PEER_NS:-meshpeer}
 ROOT_IP=${ROOT_IP:-10.44.0.1}
 PEER_IP=${PEER_IP:-10.44.0.2}
@@ -16,7 +16,7 @@ PACKETS=${PACKETS:-20}
 INTERVAL=${INTERVAL:-0.05}
 CAPTURE_TIMEOUT=${CAPTURE_TIMEOUT:-4}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
-LOG_DIR=${LOG_DIR:-/home/msh/mesh-multicast-probe}
+LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/mesh-multicast-probe}
 
 if command -v flock >/dev/null 2>&1; then
 	exec 9>"$LOCK_FILE"

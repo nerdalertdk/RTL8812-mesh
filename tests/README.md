@@ -2,6 +2,10 @@
 
 Run the Pi scripts as root. They identify the two test radios by permanent MAC
 and serialize topology changes through `/run/lock/rtw88-mesh-test.lock`.
+Set `ROOT_MAC` and `PEER_MAC` explicitly when invoking a script. For systemd
+recovery, copy `rtw88-mesh-test.env.example` to
+`/etc/default/rtw88-mesh-test`, replace both example addresses, and make the
+same replacements in `99-rtw88-mesh-recover.rules` before installing it.
 `pi_mesh_churn.sh` returns nonzero unless every join, peer link, cold contact,
 multicast direction, and pair of HWMP path tables passes.
 
@@ -20,7 +24,8 @@ active run.
 is one 512 MiB random source transferred in both directions, with source and
 destination SHA-256 comparison, curl timing/throughput metrics, post-transfer
 HWMP validation, and kernel USB event capture. Temporary payloads are removed
-on exit; the result log is retained under `/home/msh/mesh-transfer/`.
+on exit; the result log is retained under the configured `LOG_DIR` (default:
+`/var/tmp/rtl8812au-mesh/mesh-transfer/`).
 
 ## RX submission-failure injection
 

@@ -6,12 +6,12 @@ set -eu
 IW=${IW:-/usr/sbin/iw}
 WPA=${WPA:-/usr/sbin/wpa_supplicant}
 WPA_CLI=${WPA_CLI:-/usr/sbin/wpa_cli}
-CONFIG=${CONFIG:-/home/msh/wpa_sae_mesh.conf}
+CONFIG=${CONFIG:-${HOME}/wpa_sae_mesh.conf}
 ROOT_IF=${ROOT_IF:-wlan2}
 PEER_IF=${PEER_IF:-wlan1}
 PEER_NS=${PEER_NS:-meshpeer}
-ROOT_MAC=${ROOT_MAC:-fc:22:1c:30:08:c1}
-PEER_MAC=${PEER_MAC:-1c:bf:ce:f3:78:4d}
+ROOT_MAC=${ROOT_MAC:?set ROOT_MAC to the primary adapter MAC}
+PEER_MAC=${PEER_MAC:?set PEER_MAC to the peer adapter MAC}
 ROOT_IP=${ROOT_IP:-10.45.0.1}
 PEER_IP=${PEER_IP:-10.45.0.2}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}

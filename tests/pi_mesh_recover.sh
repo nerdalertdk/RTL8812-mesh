@@ -4,8 +4,8 @@
 set -eu
 
 IW=${IW:-/usr/sbin/iw}
-ROOT_MAC=${ROOT_MAC:-fc:22:1c:30:08:c1}
-PEER_MAC=${PEER_MAC:-1c:bf:ce:f3:78:4d}
+ROOT_MAC=${ROOT_MAC:?set ROOT_MAC to the primary adapter MAC}
+PEER_MAC=${PEER_MAC:?set PEER_MAC to the peer adapter MAC}
 PEER_NS=${PEER_NS:-meshpeer}
 MESH_ID=${MESH_ID:-overnight-mesh}
 FREQ=${FREQ:-2412}

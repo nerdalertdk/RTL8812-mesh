@@ -4,13 +4,13 @@
 set -eu
 
 IW=${IW:-/usr/sbin/iw}
-ROOT_MAC=${ROOT_MAC:-fc:22:1c:30:08:c1}
-PEER_MAC=${PEER_MAC:-1c:bf:ce:f3:78:4d}
+ROOT_MAC=${ROOT_MAC:?set ROOT_MAC to the primary adapter MAC}
+PEER_MAC=${PEER_MAC:?set PEER_MAC to the peer adapter MAC}
 PEER_NS=${PEER_NS:-meshpeer}
 ROOT_IP=${ROOT_IP:-10.44.0.1}
 PEER_IP=${PEER_IP:-10.44.0.2}
 FILE_MIB=${FILE_MIB:-512}
-LOG_DIR=${LOG_DIR:-/home/msh/mesh-transfer}
+LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/mesh-transfer}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 MAX_TIME=${MAX_TIME:-3600}
 

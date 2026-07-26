@@ -6,6 +6,7 @@ StartLimitBurst=10
 
 [Service]
 Type=oneshot
+EnvironmentFile=/etc/default/rtw88-mesh-test
 ExecStartPre=/usr/bin/sleep 2
 ExecStart=/usr/local/libexec/rtw88-mesh-recover
 Restart=on-failure
