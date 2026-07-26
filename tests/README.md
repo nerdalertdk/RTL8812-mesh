@@ -118,6 +118,12 @@ control reads. It must never alter a completed write: a write may already have
 changed device state, and reporting a synthetic failure afterward cannot undo
 that side effect.
 
+`pi_usb_ctrl_stress.sh` exercises the production control path with 16 parallel
+readers and 1,024 total reads of the previously validated read-only register
+`0x5a7` by default. It requires every debugfs result to be well formed, then
+gates bilateral traffic, HWMP, and the kernel transport interval. Set
+`PEER_DRIVER=rtw_8812au` when using it as production evidence.
+
 Use `USB_PATH_MATRIX.md` for real `-71` experiments. It defines controlled
 direct-USB3, direct-USB2, independently powered, repetition, logging, and causal
 decision requirements so physical transport evidence is not conflated with

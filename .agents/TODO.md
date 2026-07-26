@@ -3,7 +3,8 @@
 ## In progress
 
 - [ ] Build, install, and regression-test DKMS `0.1.3` after the active soak,
-  including control-read injection and concurrency-safe unload/reload.
+  including parallel control-read stress, control-read injection, and
+  concurrency-safe unload/reload.
 - [x] Build, install, and regression-test DKMS `0.1.2` with the audited mesh
   `DISABLE_KEY` contract and RX teardown retry-race fix.
 - [ ] Deploy and run the hardened recovery helper after the active soak, then
