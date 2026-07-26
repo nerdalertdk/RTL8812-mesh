@@ -96,9 +96,11 @@ done
 
 if [ -z "$peer_if" ]; then
 	peer_phy=$($IW dev "$peer_root_if" info | awk '/wiphy/ { print "phy" $2 }')
+	[ -n "$peer_phy" ] || { echo "cannot resolve peer wiphy" >&2; exit 1; }
 	ip link set "$peer_root_if" down
 	$IW phy "$peer_phy" set netns name "$PEER_NS"
 	peer_if=$(find_peer_if "$PEER_MAC")
+	[ -n "$peer_if" ] || { echo "peer netdev missing after namespace move" >&2; exit 1; }
 fi
 
 if command -v nmcli >/dev/null 2>&1; then
