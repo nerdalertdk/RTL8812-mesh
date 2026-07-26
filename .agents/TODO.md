@@ -43,3 +43,5 @@
   states, 34/34 ping batches, and 18/18 checksummed 32 MiB transfers.
 - [x] Prove all four RX slots recover after eight synthetic `-EPROTO` submit
   failures and prove safe teardown while delayed retry work is active.
+- [x] Complete exact-kernel `W=1`, strict checkpatch, and targeted upstream
+  static review of the four-file production delta.

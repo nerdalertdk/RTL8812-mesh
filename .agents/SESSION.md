@@ -117,6 +117,14 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   produced no warning/Oops/UAF/refcount/workqueue-after-free signature.
   Production provenance matched and post-recovery traffic passed 10/10 both
   directions.
+- The four-file production delta passed an exact-kernel `W=1` build and Linux
+  v6.12 strict checkpatch with zero errors, warnings, or checks. Comparison
+  with Linux v6.12 and current mainline confirmed that upstream still lacks
+  the package's deterministic control-read and recoverable RX-URB handling.
+  A suspected partial-allocation cleanup fault was rejected because Linux USB
+  core explicitly permits NULL for both `usb_kill_urb()` and `usb_free_urb()`.
+  No code change or DKMS bump was warranted. See
+  `tests/results/2026-07-26-upstream-static-audit.md`.
 
 ## Known issues
 
