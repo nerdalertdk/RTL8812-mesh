@@ -27,6 +27,13 @@ the production release gate so mixed-peer evidence cannot close it.
 The summary link intentionally remains dangling until the current run writes a
 summary, preventing monitoring code from mistaking an older result for the
 active run.
+Its exit status is 0 only for a clean functional and kernel interval, 1 for a
+workload failure, 4 for a functionally recovered transport/recovery event that
+requires causal review, and 75 when the topology evidence is invalid or busy.
+Interrupted runs preserve their incomplete summary and return the conventional
+nonzero signal status instead of being reported as successful.
+The physical USB matrix treats soak exit 4 as functionally complete and still
+runs its final checksummed transfer before classifying the transport event.
 
 Use `pi_mesh_soak_status.sh` for live monitoring. It derives the run ID from
 `latest.log` and opens only the matching summary filename, so it also reports

@@ -159,7 +159,8 @@ cleanup()
 }
 
 trap cleanup EXIT
-trap 'log_event "event=stopped"; write_summary; exit 0' INT TERM
+trap 'log_event "event=stopped signal=INT"; write_summary; exit 130' INT
+trap 'log_event "event=stopped signal=TERM"; write_summary; exit 143' TERM
 
 ensure_servers()
 {
@@ -238,6 +239,10 @@ transfer_one_way()
 
 write_summary()
 {
+	kernel_events=$(journalctl -k --since "$kernel_since" --no-pager 2>/dev/null |
+		grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+	kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' |
+		awk 'END { print NR + 0 }')
 	{
 		printf 'mesh_soak_summary run_id=%s generated_utc=%s\n' \
 			"$run_id" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -252,6 +257,7 @@ write_summary()
 		printf 'transfers_failed=%s\n' "$(grep -cE 'event=transfer .*result=(failed|hash-mismatch|source-failed)' "$log" || true)"
 		printf 'recovery_windows=%s\n' "$(grep -c 'event=recovery-window result=yield' "$log" || true)"
 		printf 'invalidations=%s\n' "$(grep -c 'event=invalid' "$log" || true)"
+		printf 'kernel_transport_events=%s\n' "$kernel_event_count"
 		printf 'temperature_samples=%s\n' "$(grep -c 'event=state .*temp_millic=' "$log" || true)"
 		printf 'temperature_min_millic=%s\n' "$(awk '
 			/event=state/ {
@@ -278,13 +284,12 @@ write_summary()
 		printf '\npower_state:\n'
 		vcgencmd get_throttled 2>&1 || true
 		printf '\nkernel_transport_events_since_start:\n'
-		journalctl -k --since "$kernel_since" --no-pager 2>&1 |
-			grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB' || true
+		printf '%s\n' "$kernel_events" | sed '/^$/d'
 	} >"$summary"
 	ln -sfn "$summary" "$LOG_DIR/latest-summary.log"
 }
 
-summary_passes()
+summary_functional_passes()
 {
 	completed=$(sed -n 's/^completed=//p' "$summary")
 	state_total=$(sed -n 's/^state_total=//p' "$summary")
@@ -300,6 +305,16 @@ summary_passes()
 		[ "$state_total" -eq "$state_established" ] &&
 		[ "$state_unavailable" -eq 0 ] && [ "$ping_failed" -eq 0 ] &&
 		[ "$transfers_failed" -eq 0 ] && [ "$invalidations" -eq 0 ]
+}
+
+summary_requires_review()
+{
+	recovery_windows=$(sed -n 's/^recovery_windows=//p' "$summary")
+	kernel_events=$(sed -n 's/^kernel_transport_events=//p' "$summary")
+	case $recovery_windows:$kernel_events in
+		:*|*::*|*:|*[!0-9:]*) return 0 ;;
+	esac
+	[ "$recovery_windows" -ne 0 ] || [ "$kernel_events" -ne 0 ]
 }
 
 log_event "event=start duration_seconds=$DURATION_SECONDS poll_seconds=$POLL_SECONDS transfer_seconds=$TRANSFER_SECONDS transfer_mib=$TRANSFER_MIB"
@@ -425,4 +440,10 @@ done
 
 log_event "event=complete"
 write_summary
-summary_passes
+if ! summary_functional_passes; then
+	exit 1
+fi
+if summary_requires_review; then
+	exit 4
+fi
+exit 0

@@ -171,9 +171,14 @@ LOCK_FD_INHERITED=9 LOG_DIR="$trial/soak" \
 	PEER_MAC="$PEER_MAC" PEER_NS="$PEER_NS" "$SOAK_TEST" || soak_status=$?
 
 soak_summary=$(readlink -f "$trial/soak/latest-summary.log" 2>/dev/null || true)
-if [ "$soak_status" -eq 0 ]; then
+soak_workload_failed=0
+case $soak_status in
+	0|4) ;;
+	*) soak_workload_failed=1 ;;
+esac
+if [ "$soak_workload_failed" -eq 0 ]; then
 	if [ -z "$soak_summary" ] || [ ! -r "$soak_summary" ]; then
-		soak_status=1
+		soak_workload_failed=1
 	else
 		completed=$(sed -n 's/^completed=//p' "$soak_summary")
 		state_total=$(sed -n 's/^state_total=//p' "$soak_summary")
@@ -183,7 +188,7 @@ if [ "$soak_status" -eq 0 ]; then
 		transfers_failed=$(sed -n 's/^transfers_failed=//p' "$soak_summary")
 		invalidations=$(sed -n 's/^invalidations=//p' "$soak_summary")
 		case $completed:$state_total:$state_established:$state_unavailable:$ping_failed:$transfers_failed:$invalidations in
-			:*|*::*|*:|*[!0-9:]*) soak_status=1 ;;
+			:*|*::*|*:|*[!0-9:]*) soak_workload_failed=1 ;;
 			*)
 				if [ "$completed" -ne 1 ] || [ "$state_total" -eq 0 ] ||
 				   [ "$state_total" -ne "$state_established" ] ||
@@ -191,7 +196,7 @@ if [ "$soak_status" -eq 0 ]; then
 				   [ "$ping_failed" -ne 0 ] ||
 				   [ "$transfers_failed" -ne 0 ] ||
 				   [ "$invalidations" -ne 0 ]; then
-					soak_status=1
+					soak_workload_failed=1
 				fi
 				;;
 		esac
@@ -200,7 +205,7 @@ fi
 
 transfer_status=0
 transfer_ran=0
-if [ "$soak_status" -eq 0 ]; then
+if [ "$soak_workload_failed" -eq 0 ]; then
 	transfer_ran=1
 	LOCK_FD_INHERITED=9 LOG_DIR="$trial/transfer" FILE_MIB="$FILE_MIB" \
 		ROOT_MAC="$ROOT_MAC" PEER_MAC="$PEER_MAC" PEER_NS="$PEER_NS" \
@@ -264,7 +269,7 @@ elif [ "$post_provenance_mismatches" -ne 0 ]; then
 	classification=invalid-module-provenance
 	result=invalid
 elif [ "$transport_events" -ne 0 ]; then
-	if [ "$soak_status" -ne 0 ] || [ "$transfer_status" -ne 0 ] ||
+	if [ "$soak_workload_failed" -ne 0 ] || [ "$transfer_status" -ne 0 ] ||
 	   [ "$post_topology_mismatch" -ne 0 ]; then
 		classification=transport-event-with-workload-or-topology-failure
 	else
@@ -274,7 +279,7 @@ elif [ "$transport_events" -ne 0 ]; then
 elif [ "$post_topology_mismatch" -ne 0 ]; then
 	classification=topology-changed-without-classified-kernel-event
 	result=fail
-elif [ "$soak_status" -ne 0 ] || [ "$transfer_status" -ne 0 ]; then
+elif [ "$soak_workload_failed" -ne 0 ] || [ "$transfer_status" -ne 0 ]; then
 	classification=workload-failure
 	result=fail
 fi
@@ -283,6 +288,7 @@ fi
 	echo "result=$result"
 	echo "classification=$classification"
 	echo "soak_status=$soak_status"
+	echo "soak_workload_failed=$soak_workload_failed"
 	echo "transfer_ran=$transfer_ran"
 	echo "transfer_status=$transfer_status"
 	echo "pre_throttled=${pre_throttle:-unavailable}"
