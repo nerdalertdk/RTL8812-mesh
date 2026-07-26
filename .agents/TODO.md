@@ -1,5 +1,10 @@
 # TODO
 
+## In progress
+
+- [ ] Complete and review the production eight-hour soak started
+  2026-07-26 15:29 CEST (expected completion 23:29 CEST).
+
 ## Pending hardware gates
 
 - [ ] Run channels 1--13 HT20 sweep.

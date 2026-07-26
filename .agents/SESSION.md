@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Bootstrap and validate the standalone RTL8812AU mesh driver package.
+Complete and review a production-driver eight-hour mesh endurance run.
 
 ## Current status
 
@@ -35,6 +35,11 @@ Bootstrap and validate the standalone RTL8812AU mesh driver package.
   modules in 593 ms without a kernel warning/Oops/UAF signature. The production
   DKMS stack was restored, source-version verified, and the mesh re-established.
   Detailed evidence is in `tests/results/2026-07-26-rx-submit-eproto.md`.
+- `rtw88-mesh-soak.service` started an eight-hour run at 2026-07-26 15:29:33
+  CEST (run ID `20260726T132933Z`, expected completion 23:29 CEST). Its
+  preflight, first established/HWMP state, first two ping batches, and first
+  bidirectional checksummed transfers passed with no kernel transport event.
+  Logs are under `/home/msh/mesh-soak/` on the Pi.
 
 ## Known issues
 
