@@ -131,6 +131,10 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   transfer harness while safely inheriting the already-held topology lock.
   Raspberry Pi `dash -n` and wpa_supplicant 2.10 configuration parsing pass;
   live validation remains gated on a second stable RTL8812AU.
+- Secured-harness control-flow review found that root driver provenance was
+  queried through the old sysfs netdev name after a rename. It now captures
+  the driver before renaming, preventing a false pre-SAE abort on the current
+  Pi naming layout.
 - The Pi's currently running soak executable predates the repository's
   run-start `latest-summary.log` update, so its summary link still names the
   prior stopped run. `pi_mesh_soak_status.sh` now derives the active run ID

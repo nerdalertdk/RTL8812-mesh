@@ -88,6 +88,14 @@ if [ -z "$current_root" ]; then
 	exit 1
 fi
 
+# Resolve provenance before renaming the netdev; the old sysfs name disappears
+# immediately after `ip link set ... name`.
+root_driver=$(basename "$(readlink "/sys/class/net/$current_root/device/driver")")
+if [ "$root_driver" != "$ROOT_DRIVER" ]; then
+	echo "root driver is $root_driver, expected $ROOT_DRIVER" >&2
+	exit 1
+fi
+
 nmcli device set "$current_root" managed no >/dev/null 2>&1 || true
 $IW dev "$current_root" mesh leave 2>/dev/null || true
 ip link set "$current_root" down
@@ -103,12 +111,7 @@ if [ -z "$current_peer" ]; then
 	exit 1
 fi
 
-root_driver=$(basename "$(readlink "/sys/class/net/$current_root/device/driver")")
 peer_driver=$(ns basename "$(ns readlink "/sys/class/net/$current_peer/device/driver")")
-if [ "$root_driver" != "$ROOT_DRIVER" ]; then
-	echo "root driver is $root_driver, expected $ROOT_DRIVER" >&2
-	exit 1
-fi
 if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 	echo "peer driver is $peer_driver, expected $PEER_DRIVER" >&2
 	exit 1

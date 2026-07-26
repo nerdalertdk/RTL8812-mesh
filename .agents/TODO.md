@@ -48,6 +48,7 @@
 - [x] Harden the secured-mesh gate to verify the configured supplicant control
   socket, completed SAE state, bidirectional group delivery, HWMP, and optional
   checksummed payload transfer under the inherited hardware-test lock.
+- [x] Make secured-test driver provenance safe across netdev renaming.
 - [x] Add run-ID-aware soak monitoring that cannot report a stale summary.
 - [x] Add a serialized physical USB matrix trial runner with provenance,
   summary validation, final transfer, kernel journal, and power invalidation.
