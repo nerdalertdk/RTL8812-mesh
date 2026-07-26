@@ -1,0 +1,48 @@
+diff --git a/usb.c b/usb.c
+--- a/usb.c
++++ b/usb.c
+@@ -785,4 +785,30 @@ static bool rtw_usb_rx_submit_error_retryable(int error)
+ }
+ 
++/* Test-only pre-submit fault injection. This patch belongs only in an
++ * isolated hardware-in-loop build; do not submit it with the driver.
++ */
++static int rtw_usb_test_rx_submit_failures;
++static unsigned long rtw_usb_test_rx_submit_success_mask;
++module_param_named(test_rx_submit_failures,
++		   rtw_usb_test_rx_submit_failures, int, 0600);
++module_param_named(test_rx_submit_success_mask,
++		   rtw_usb_test_rx_submit_success_mask, ulong, 0600);
++MODULE_PARM_DESC(test_rx_submit_failures,
++		 "number of RTL88 USB RX submissions to fail with -EPROTO");
++
++static bool rtw_usb_test_consume_rx_submit_failure(void)
++{
++	int remaining;
++
++	do {
++		remaining = READ_ONCE(rtw_usb_test_rx_submit_failures);
++		if (remaining <= 0)
++			return false;
++	} while (cmpxchg(&rtw_usb_test_rx_submit_failures, remaining,
++			 remaining - 1) != remaining);
++
++	return true;
++}
++
+ static void rtw_usb_rx_retry_later(struct rtw_usb *rtwusb)
+ {
+@@ -818,5 +844,12 @@ static void rtw_usb_rx_resubmit(struct rtw_usb *rtwusb,
+ 			  rxcb->rx_skb->data, RTW_USB_MAX_RECVBUF_SZ,
+ 			  rtw_usb_read_port_complete, rxcb);
+ 
+-	error = usb_submit_urb(rxcb->rx_urb, gfp);
++	if (unlikely(rtw_usb_test_consume_rx_submit_failure())) {
++		error = -EPROTO;
++	} else {
++		error = usb_submit_urb(rxcb->rx_urb, gfp);
++		if (!error)
++			set_bit(rxcb - rtwusb->rx_cb,
++				&rtw_usb_test_rx_submit_success_mask);
++	}
+ 	if (error) {

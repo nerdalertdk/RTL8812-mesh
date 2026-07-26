@@ -1,0 +1,9 @@
+[Unit]
+Description=Recovery-aware RTL8812AU mesh endurance test
+After=rtw88-mesh-recover.service
+
+[Service]
+Type=simple
+Environment=DURATION_SECONDS=28800
+ExecStart=/usr/local/libexec/rtw88-mesh-soak
+TimeoutStopSec=15

@@ -1,0 +1,13 @@
+[Unit]
+Description=Reconstruct the RTL8812AU/RTL8192FU test mesh after USB re-enumeration
+After=NetworkManager.service
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/sleep 2
+ExecStart=/usr/local/libexec/rtw88-mesh-recover
+Restart=on-failure
+RestartSec=2
+TimeoutStartSec=120

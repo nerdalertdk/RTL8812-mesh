@@ -1,0 +1,17 @@
+*.cmd
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+*.o
+.cache.mk
+.tmp_versions/
+Module.symvers
+modules.order
+tests/*.ko
+tests/*.mod
+tests/*.mod.c
+tests/*.mod.o
+tests/*.o
+tests/Module.symvers
+tests/modules.order
