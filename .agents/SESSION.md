@@ -4,6 +4,9 @@
 
 Complete and review a production-driver eight-hour mesh endurance run.
 
+The deployment requirement is now also recorded: multinational, off-grid
+mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
+
 ## Current status
 
 - Source imported from `/Users/michael/code/privat/rtw88` at base commit
@@ -65,6 +68,8 @@ Complete and review a production-driver eight-hour mesh endurance run.
 
 ## Known issues
 
+- Target countries are not yet enumerated, so no production regulatory/EIRP
+  profile has been approved. Denmark/EU is an example profile only.
 - Secured payload validation is blocked until another stable RTL8812AU peer is
   available; RTL8192FU is retained only as an experimental open-mesh fixture.
 - Original USB2 and independently powered-path endurance remain unvalidated.

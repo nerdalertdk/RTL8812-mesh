@@ -10,6 +10,12 @@
 
 ## Pending hardware gates
 
+- [ ] Define the first deployment-country RF profiles from authoritative
+  national sources, including channel, EIRP/PSD, and antenna constraints.
+- [ ] Inventory candidate 30 dBm adapters: per-chain power, antenna ports,
+  calibration, supply/current peaks, thermal behavior, and certification.
+- [ ] Build a 100/250/500/750/1000 m bidirectional LOS field-test procedure
+  based on `docs/RF_DEPLOYMENT.md`.
 - [ ] Run channels 1--13 HT20 sweep.
 - [ ] Run the sender/receiver multicast probe after the active soak to localize
   the intermittent mixed-adapter multicast miss.

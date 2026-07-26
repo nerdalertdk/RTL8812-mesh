@@ -12,6 +12,12 @@ rtw_8812au -> rtw_8812a -> rtw_88xxa -> rtw_usb + rtw_core
 It currently targets Debian first. Android and OpenWrt packaging are future
 work. The tested RF baseline is 2.4 GHz HT20.
 
+The intended deployment is a multinational off-grid mobile MANET with an
+engineering target of approximately 1 km LOS. Range depends on the complete
+bidirectional RF system, not the adapter's advertised conducted power. See
+[docs/RF_DEPLOYMENT.md](docs/RF_DEPLOYMENT.md) for the preliminary link budget,
+country-profile model, antenna guidance, and field-test ladder.
+
 ## Current validation
 
 On Debian 13.1 ARM64, Raspberry Pi kernel `6.12.47+rpt-rpi-v8`, the development
