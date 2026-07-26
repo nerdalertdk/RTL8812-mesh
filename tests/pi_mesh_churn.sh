@@ -6,12 +6,11 @@
 set -eu
 
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
-if command -v flock >/dev/null 2>&1; then
-	exec 9>"$LOCK_FILE"
-	if ! flock -n 9; then
-		echo "another rtw88 mesh test holds $LOCK_FILE" >&2
-		exit 75
-	fi
+command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+	echo "another rtw88 mesh test holds $LOCK_FILE" >&2
+	exit 75
 fi
 
 IW=${IW:-/usr/sbin/iw}
@@ -27,6 +26,13 @@ ROOT_MAC=${ROOT_MAC:?set ROOT_MAC to the primary adapter MAC}
 PEER_MAC=${PEER_MAC:?set PEER_MAC to the peer adapter MAC}
 CYCLES=${CYCLES:-20}
 ESTAB_POLLS=${ESTAB_POLLS:-100}
+ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
+PEER_DRIVER=${PEER_DRIVER:-}
+
+ns()
+{
+	ip netns exec "$PEER_NS" "$@"
+}
 
 if [ -z "$ROOT_IF" ]; then
 	for netdev in /sys/class/net/*; do
@@ -56,14 +62,21 @@ if [ -z "$PEER_IF" ]; then
 	exit 1
 fi
 
+root_driver=$(basename "$(readlink "/sys/class/net/$ROOT_IF/device/driver")")
+peer_driver=$(ip netns exec "$PEER_NS" basename \
+	"$(ip netns exec "$PEER_NS" readlink "/sys/class/net/$PEER_IF/device/driver")")
+if [ "$root_driver" != "$ROOT_DRIVER" ]; then
+	echo "root driver is $root_driver, expected $ROOT_DRIVER" >&2
+	exit 2
+fi
+if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
+	echo "peer driver is $peer_driver, expected $PEER_DRIVER" >&2
+	exit 2
+fi
+
 case $CYCLES in
 	*[!0-9]*|''|0) echo "CYCLES must be a positive integer" >&2; exit 2 ;;
 esac
-
-ns()
-{
-	ip netns exec "$PEER_NS" "$@"
-}
 
 is_established()
 {
@@ -206,13 +219,22 @@ printf '# summary join_pass=%s/%s plink_pass=%s/%s root_first_contact=%s/%s peer
 	"$pass_peer_mcast" "$CYCLES" "$pass_paths" "$CYCLES" \
 	"$(( $(date +%s) - start_epoch ))"
 printf '# usb-errors-since-start\n'
-journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
-	grep -Ei 'over-current|overcurrent|error -71|EPROTO|usb .*disconnect|usb .*reset' || true
+kernel_events=$(journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
+	grep -Ei 'over.?current|under.?voltage|error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+printf '%s\n' "$kernel_events" | sed '/^$/d'
+kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' |
+	awk 'END { print NR + 0 }')
 
+functional_failure=0
 if [ "$join_fail" -ne 0 ] || [ "$plink_fail" -ne 0 ] ||
    [ "$pass_root" -ne "$CYCLES" ] || [ "$pass_peer" -ne "$CYCLES" ] ||
    [ "$pass_root_mcast" -ne "$CYCLES" ] ||
    [ "$pass_peer_mcast" -ne "$CYCLES" ] ||
    [ "$pass_paths" -ne "$CYCLES" ]; then
-	exit 1
+	functional_failure=1
 fi
+if [ "$kernel_event_count" -ne 0 ]; then
+	echo "# result=transport-event-review-required functional_failure=$functional_failure kernel_events=$kernel_event_count"
+	exit 4
+fi
+[ "$functional_failure" -eq 0 ]

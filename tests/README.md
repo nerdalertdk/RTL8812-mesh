@@ -2,6 +2,8 @@
 
 Run the Pi scripts as root. They identify the two test radios by permanent MAC
 and serialize topology changes through `/run/lock/rtw88-mesh-test.lock`.
+Hardware test scripts require `flock` and fail closed if it is unavailable;
+they never proceed with an unserialized radio or topology mutation.
 Set `ROOT_MAC` and `PEER_MAC` explicitly when invoking a script. For systemd
 recovery, copy `rtw88-mesh-test.env.example` to
 `/etc/default/rtw88-mesh-test`, replace both example addresses, and make the
@@ -43,6 +45,13 @@ destination SHA-256 comparison, curl timing/throughput metrics, post-transfer
 HWMP validation, and kernel USB event capture. Temporary payloads are removed
 on exit; the result log is retained under the configured `LOG_DIR` (default:
 `/var/tmp/rtl8812au-mesh/mesh-transfer/`).
+Set `PEER_DRIVER=rtw_8812au` for a production gate. A checksummed workload with
+a kernel USB transport event exits 4 for causal review rather than being
+reported as a clean pass.
+
+The churn and channel-sweep gates use the same provenance and event convention:
+peer-driver mismatch exits 2, functional failure exits 1, and any USB transport
+event exits 4 while retaining the functional result in their output.
 
 `pi_secure_mesh.sh` controls both peers with `wpa_supplicant`, verifies that
 both control interfaces reached `COMPLETED` with SAE, and requires

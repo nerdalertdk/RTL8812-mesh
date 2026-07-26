@@ -26,12 +26,11 @@ for value in "$ROUNDS" "$PACKETS" "$CAPTURE_TIMEOUT" "$MIN_DELIVERY_PERCENT"; do
 done
 [ "$MIN_DELIVERY_PERCENT" -le 100 ] || { echo "MIN_DELIVERY_PERCENT must be <= 100" >&2; exit 2; }
 
-if command -v flock >/dev/null 2>&1; then
-	exec 9>"$LOCK_FILE"
-	if ! flock -n 9; then
-		echo "another rtw88 mesh test holds $LOCK_FILE" >&2
-		exit 75
-	fi
+command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+	echo "another rtw88 mesh test holds $LOCK_FILE" >&2
+	exit 75
 fi
 
 find_root_if()

@@ -16,13 +16,14 @@ RESTORE_FREQ=${RESTORE_FREQ:-2412}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 ESTAB_POLLS=${ESTAB_POLLS:-100}
 MULTICAST_COUNT=${MULTICAST_COUNT:-3}
+ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
+PEER_DRIVER=${PEER_DRIVER:-}
 
-if command -v flock >/dev/null 2>&1; then
-	exec 9>"$LOCK_FILE"
-	if ! flock -n 9; then
-		echo "another rtw88 mesh test holds $LOCK_FILE" >&2
-		exit 75
-	fi
+command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+	echo "another rtw88 mesh test holds $LOCK_FILE" >&2
+	exit 75
 fi
 
 find_root_if()
@@ -52,6 +53,17 @@ PEER_IF=$(find_peer_if)
 if [ -z "$ROOT_IF" ] || [ -z "$PEER_IF" ]; then
 	echo "mesh interfaces not found root=${ROOT_IF:-none} peer=${PEER_IF:-none}" >&2
 	exit 1
+fi
+
+root_driver=$(basename "$(readlink "/sys/class/net/$ROOT_IF/device/driver")")
+peer_driver=$(ns basename "$(ns readlink "/sys/class/net/$PEER_IF/device/driver")")
+if [ "$root_driver" != "$ROOT_DRIVER" ]; then
+	echo "root driver is $root_driver, expected $ROOT_DRIVER" >&2
+	exit 2
+fi
+if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
+	echo "peer driver is $peer_driver, expected $PEER_DRIVER" >&2
+	exit 2
 fi
 
 is_established()
@@ -178,7 +190,14 @@ restore_default
 printf '# summary channels_pass=%s/%s elapsed_s=%s\n' "$pass" "$total" \
 	"$(( $(date +%s) - start_epoch ))"
 printf '# usb-errors-since-start\n'
-journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
-	grep -Ei 'over-current|overcurrent|error -71|EPROTO|usb .*disconnect|usb .*reset' || true
+kernel_events=$(journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
+	grep -Ei 'over.?current|under.?voltage|error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+printf '%s\n' "$kernel_events" | sed '/^$/d'
+kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' |
+	awk 'END { print NR + 0 }')
 
+if [ "$kernel_event_count" -ne 0 ]; then
+	echo "# result=transport-event-review-required channels_pass=$pass/$total kernel_events=$kernel_event_count"
+	exit 4
+fi
 [ "$pass" -eq "$total" ]

@@ -27,3 +27,6 @@ particular, synthetic USB recovery proves driver behavior but cannot establish
 whether real `-71` events originate in the adapter, cable, hub, host
 controller, or power path. Likewise, an RTL8192FU peer cannot close the
 RTL8812AU interoperability, secured group-key, or symmetric multicast gates.
+For hardware gates, exit 0 means both the workload and the observed kernel
+interval were clean. Exit 4 preserves a potentially recovered transport event
+for causal review and is not a clean release pass.

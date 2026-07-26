@@ -29,18 +29,17 @@ start_epoch=$(date +%s)
 
 [ "$(id -u)" -eq 0 ] || { echo "run this hardware test as root" >&2; exit 2; }
 if [ ! -x "$WPA" ] || [ ! -x "$WPA_CLI" ] || [ ! -r "$CONFIG" ] ||
+   ! command -v flock >/dev/null 2>&1 ||
    ! command -v tcpdump >/dev/null 2>&1 ||
    ! command -v journalctl >/dev/null 2>&1; then
-	echo "missing wpa_supplicant, wpa_cli, tcpdump, journalctl, or $CONFIG" >&2
+	echo "missing wpa_supplicant, wpa_cli, flock, tcpdump, journalctl, or $CONFIG" >&2
 	exit 2
 fi
 
-if command -v flock >/dev/null 2>&1; then
-	exec 9>"$LOCK_FILE"
-	if ! flock -n 9; then
-		echo "another rtw88 mesh test holds $LOCK_FILE" >&2
-		exit 75
-	fi
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+	echo "another rtw88 mesh test holds $LOCK_FILE" >&2
+	exit 75
 fi
 
 ns()
@@ -81,7 +80,7 @@ cleanup()
 	# beacon update can leave the experimental RTL8192FU unable to beacon even
 	# after mesh leave/join; reset only that peer driver if ordinary recovery
 	# cannot restore the open test topology.
-	command -v flock >/dev/null 2>&1 && flock -u 9
+	flock -u 9
 	if ! [ -x "$OPEN_RECOVERY_HELPER" ] || ! "$OPEN_RECOVERY_HELPER"; then
 		unbind=/sys/bus/usb/drivers/$PEER_DRIVER/unbind
 		bind=/sys/bus/usb/drivers/$PEER_DRIVER/bind

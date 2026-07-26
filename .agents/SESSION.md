@@ -168,6 +168,13 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   driver provenance, and distinct failure, invalid-evidence, and USB-event
   review exits. This keeps best-effort group delivery measurable without
   allowing a diagnostic script's former unconditional success to close a gate.
+- Churn, channel sweep, and checksummed transfer now share the same contract:
+  optional required peer-driver provenance and exit 4 when a functional pass
+  contains a USB transport event. This prevents recovered `-71` evidence from
+  being flattened into an ordinary clean pass.
+- Every hardware-test entry point now fails closed when `flock` is unavailable,
+  preserving the repository-wide single-owner topology invariant. Churn also
+  defines its namespace helper before peer-driver provenance is evaluated.
 - The Pi's currently running soak executable predates the repository's
   run-start `latest-summary.log` update, so its summary link still names the
   prior stopped run. `pi_mesh_soak_status.sh` now derives the active run ID

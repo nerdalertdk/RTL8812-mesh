@@ -58,3 +58,7 @@
   unconditional loop completion.
 - [x] Give multicast probing explicit sender-validity, delivery, provenance,
   and transport-event release outcomes.
+- [x] Propagate peer provenance and transport-event review outcomes through
+  churn, channel-sweep, and checksummed-transfer gates.
+- [x] Require the shared `flock` in every hardware test instead of silently
+  permitting unserialized execution; fix churn peer provenance preflight.

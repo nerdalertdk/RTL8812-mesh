@@ -141,17 +141,15 @@ yield_for_recovery()
 {
 	# A USB return triggers the recovery service, which uses the same lock.
 	# Yield it a bounded window, then resume exclusive test ownership.
-	if command -v flock >/dev/null 2>&1; then
-		log_event "event=recovery-window result=yield"
-		flock -u 9
-		sleep 5
-		if ! flock -w "$LOCK_WAIT" 9; then
-			log_event "event=blocked reason=recovery-lock-timeout lock=$LOCK_FILE"
-			write_summary
-			exit 75
-		fi
-		log_event "event=recovery-window result=reacquired"
+	log_event "event=recovery-window result=yield"
+	flock -u 9
+	sleep 5
+	if ! flock -w "$LOCK_WAIT" 9; then
+		log_event "event=blocked reason=recovery-lock-timeout lock=$LOCK_FILE"
+		write_summary
+		exit 75
 	fi
+	log_event "event=recovery-window result=reacquired"
 }
 
 cleanup()
@@ -306,21 +304,24 @@ summary_passes()
 
 log_event "event=start duration_seconds=$DURATION_SECONDS poll_seconds=$POLL_SECONDS transfer_seconds=$TRANSFER_SECONDS transfer_mib=$TRANSFER_MIB"
 
-if command -v flock >/dev/null 2>&1; then
-	if [ -n "${LOCK_FD_INHERITED:-}" ]; then
-		if [ "$LOCK_FD_INHERITED" != 9 ] || [ ! -e "/proc/$$/fd/9" ] ||
-		   ! flock -n 9; then
-			log_event "event=blocked reason=inherited-test-lock-invalid"
-			write_summary
-			exit 75
-		fi
-	else
-		exec 9>"$LOCK_FILE"
-		if ! flock -n 9; then
-			log_event "event=blocked reason=test-lock-held lock=$LOCK_FILE"
-			write_summary
-			exit 75
-		fi
+if ! command -v flock >/dev/null 2>&1; then
+	log_event "event=blocked reason=flock-missing"
+	write_summary
+	exit 2
+fi
+if [ -n "${LOCK_FD_INHERITED:-}" ]; then
+	if [ "$LOCK_FD_INHERITED" != 9 ] || [ ! -e "/proc/$$/fd/9" ] ||
+	   ! flock -n 9; then
+		log_event "event=blocked reason=inherited-test-lock-invalid"
+		write_summary
+		exit 75
+	fi
+else
+	exec 9>"$LOCK_FILE"
+	if ! flock -n 9; then
+		log_event "event=blocked reason=test-lock-held lock=$LOCK_FILE"
+		write_summary
+		exit 75
 	fi
 fi
 

@@ -13,23 +13,24 @@ FILE_MIB=${FILE_MIB:-512}
 LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/mesh-transfer}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 MAX_TIME=${MAX_TIME:-3600}
+ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
+PEER_DRIVER=${PEER_DRIVER:-}
 
-if command -v flock >/dev/null 2>&1; then
-	if [ -n "${LOCK_FD_INHERITED:-}" ]; then
-		case $LOCK_FD_INHERITED in
-			*[!0-9]*|'') echo "LOCK_FD_INHERITED must name an open fd" >&2; exit 2 ;;
-		esac
-		if [ ! -e "/proc/$$/fd/$LOCK_FD_INHERITED" ] ||
-		   ! flock -n "$LOCK_FD_INHERITED"; then
-			echo "inherited mesh test lock is not held" >&2
-			exit 75
-		fi
-	else
-		exec 9>"$LOCK_FILE"
-		if ! flock -n 9; then
-			echo "another rtw88 mesh test holds $LOCK_FILE" >&2
-			exit 75
-		fi
+command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
+if [ -n "${LOCK_FD_INHERITED:-}" ]; then
+	case $LOCK_FD_INHERITED in
+		*[!0-9]*|'') echo "LOCK_FD_INHERITED must name an open fd" >&2; exit 2 ;;
+	esac
+	if [ ! -e "/proc/$$/fd/$LOCK_FD_INHERITED" ] ||
+	   ! flock -n "$LOCK_FD_INHERITED"; then
+		echo "inherited mesh test lock is not held" >&2
+		exit 75
+	fi
+else
+	exec 9>"$LOCK_FILE"
+	if ! flock -n 9; then
+		echo "another rtw88 mesh test holds $LOCK_FILE" >&2
+		exit 75
 	fi
 fi
 
@@ -60,6 +61,17 @@ PEER_IF=$(find_peer_if)
 if [ -z "$ROOT_IF" ] || [ -z "$PEER_IF" ]; then
 	echo "mesh interfaces not found root=${ROOT_IF:-none} peer=${PEER_IF:-none}" >&2
 	exit 1
+fi
+
+root_driver=$(basename "$(readlink "/sys/class/net/$ROOT_IF/device/driver")")
+peer_driver=$(ns basename "$(ns readlink "/sys/class/net/$PEER_IF/device/driver")")
+if [ "$root_driver" != "$ROOT_DRIVER" ]; then
+	echo "root driver is $root_driver, expected $ROOT_DRIVER" >&2
+	exit 2
+fi
+if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
+	echo "peer driver is $peer_driver, expected $PEER_DRIVER" >&2
+	exit 2
 fi
 
 if ! $IW dev "$ROOT_IF" station dump | grep -q 'mesh plink:[[:space:]]*ESTAB' ||
@@ -195,8 +207,14 @@ if [ "$root_paths" -eq 0 ] || [ "$peer_paths" -eq 0 ]; then
 	exit 1
 fi
 log "event=postflight result=pass root_paths=$root_paths peer_paths=$peer_paths"
-log "event=complete elapsed_s=$(( $(date +%s) - start_epoch ))"
 printf '# kernel-transport-events-since-start\n' | tee -a "$result"
-journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
-	grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB' |
-	tee -a "$result" || true
+kernel_events=$(journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
+	grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+printf '%s\n' "$kernel_events" | sed '/^$/d' | tee -a "$result"
+kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' |
+	awk 'END { print NR + 0 }')
+if [ "$kernel_event_count" -ne 0 ]; then
+	log "event=complete result=transport-event-review-required kernel_events=$kernel_event_count elapsed_s=$(( $(date +%s) - start_epoch ))"
+	exit 4
+fi
+log "event=complete result=pass kernel_events=0 elapsed_s=$(( $(date +%s) - start_epoch ))"
