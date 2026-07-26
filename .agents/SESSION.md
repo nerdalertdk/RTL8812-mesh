@@ -60,6 +60,8 @@ Complete and review a production-driver eight-hour mesh endurance run.
 - Repository DKMS version is now `0.1.1`, separating post-baseline source from
   the `0.1.0` modules used by the active endurance run. Version `0.1.1` has not
   yet been built or installed on the Pi.
+- Packaging review documented the shared `rtw_core`/`rtw_usb` ABI constraint
+  and added a loaded-module preflight check for unrelated `rtw_*` consumers.
 
 ## Known issues
 

@@ -41,7 +41,7 @@ rtw_8812a-objs := rtw8812a.o rtw8812a_table.o
 obj-m += rtw_8812au.o
 rtw_8812au-objs := rtw8812au.o
 
-.PHONY: all clean install install_fw uninstall
+.PHONY: all clean preflight install install_fw uninstall
 
 all:
 	$(MAKE) -j$(JOBS) -C $(KSRC) M=$$PWD modules
@@ -49,7 +49,14 @@ all:
 clean:
 	$(MAKE) -C $(KSRC) M=$$PWD clean
 
-install: all
+preflight:
+	@if [ -n "$(INSTALL_MOD_PATH)" ]; then \
+		echo "Skipping loaded-module check for staged root $(INSTALL_MOD_PATH)"; \
+	else \
+		./scripts/check-loaded-rtw88-conflicts.sh; \
+	fi
+
+install: preflight all
 	@install -d "$(MODDESTDIR)"
 	@set -e; for module in $(MODULES); do \
 		install -m 0644 "$$module.ko" "$(MODDESTDIR)/$$module.ko"; \

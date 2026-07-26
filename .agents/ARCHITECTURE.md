@@ -14,6 +14,9 @@ firmware, PHY/MAC, security, power-management, regulatory, TX, and RX support.
 - Firmware: `/lib/firmware/rtw88/rtw8812a_fw.bin`
 
 The package does not overwrite distribution module files in `kernel/`.
+It does replace the effective `rtw_core` and `rtw_usb` selected by depmod, so an
+unrelated downstream `rtw_*` chipset module from another source revision is an
+ABI conflict even though its file remains under `kernel/`.
 
 ## Test topology
 

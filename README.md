@@ -87,6 +87,7 @@ sudo make uninstall
 From the repository root:
 
 ```sh
+./scripts/check-loaded-rtw88-conflicts.sh
 sudo make install_fw
 sudo dkms add .
 sudo dkms build rtl8812au-mesh/0.1.1
@@ -98,6 +99,15 @@ sudo depmod -a
 modules with these same five names. On Debian DKMS installs the replacements under
 `updates/dkms`; it does not delete or overwrite the distribution
 copies under `kernel/`.
+
+This package's five-module boundary is a source/package boundary, not a private
+kernel ABI namespace. In particular, `rtw_core` and `rtw_usb` have the same
+module names used by Debian's other downstream rtw88 drivers. Do not install
+this package on a host actively using another `rtw_*` chipset module unless all
+consumers were built from the same source revision. The preflight script rejects
+an unrelated loaded consumer; it cannot detect hardware whose driver is
+currently unloaded but may be needed later. `make install` enforces the check
+for a live root and skips it for an explicit `INSTALL_MOD_PATH` staging root.
 
 Remove the DKMS package with:
 
