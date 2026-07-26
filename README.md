@@ -161,7 +161,9 @@ The transport changes distinguish two classes of failure:
   rate-limited diagnostics;
 - a physical USB disconnect destroys the netdev and cannot be repaired solely
   inside the driver. `tests/pi_mesh_recover.sh` and the accompanying udev and
-  systemd files reconstruct the test topology after re-enumeration.
+  systemd files reconstruct the test topology after re-enumeration and require
+  exact module/driver provenance, bilateral peering, bidirectional traffic, and
+  HWMP paths before reporting recovery.
 
 The Pi evidence includes a prior simultaneous hub/root-port over-current event
 that disconnected both test adapters. Do not interpret every `-71` as an
@@ -170,9 +172,9 @@ kernel timestamps when reporting one.
 
 ## Tests
 
-See [tests/README.md](tests/README.md). The scripts default to the development
-test adapter MAC addresses and network namespace; provide the documented
-environment variables for the local topology.
+See [tests/README.md](tests/README.md). Hardware scripts require explicit
+`ROOT_MAC` and `PEER_MAC` values and otherwise use the documented test network
+namespace defaults; no development adapter identities are embedded.
 
 Fault-injection modules and `usb_rx_submit_failure.patch` are test-only. Never
 ship an instrumented module as the production driver.

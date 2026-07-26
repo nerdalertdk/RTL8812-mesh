@@ -4,6 +4,7 @@ After=rtw88-mesh-recover.service
 
 [Service]
 Type=simple
+EnvironmentFile=/etc/default/rtw88-mesh-test
 Environment=DURATION_SECONDS=28800
 ExecStart=/usr/local/libexec/rtw88-mesh-soak
 TimeoutStopSec=15

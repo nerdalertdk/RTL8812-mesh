@@ -6,6 +6,8 @@ Set `ROOT_MAC` and `PEER_MAC` explicitly when invoking a script. For systemd
 recovery, copy `rtw88-mesh-test.env.example` to
 `/etc/default/rtw88-mesh-test`, replace both example addresses, and make the
 same replacements in `99-rtw88-mesh-recover.rules` before installing it.
+Both systemd units load `/etc/default/rtw88-mesh-test`; the soak unit will not
+silently fall back to development adapter identities.
 `pi_mesh_churn.sh` returns nonzero unless every join, peer link, cold contact,
 multicast direction, and pair of HWMP path tables passes.
 
@@ -24,6 +26,12 @@ Use `pi_mesh_soak_status.sh` for live monitoring. It derives the run ID from
 `latest.log` and opens only the matching summary filename, so it also reports
 correctly against hosts that still have an older deployed soak script whose
 summary symlink points at a previous run.
+
+`pi_mesh_recover.sh` accepts recovery only after exact provenance for all five
+RTL8812AU modules, expected root/peer drivers, bilateral `ESTAB`, successful
+traffic in both directions, and nonempty HWMP tables at both peers. Its unit's
+240-second start timeout covers the configured 90-second test-lock wait plus
+the device enumeration and peering windows.
 
 `pi_mesh_transfer.sh` is the standalone large-file integrity gate. Its default
 is one 512 MiB random source transferred in both directions, with source and

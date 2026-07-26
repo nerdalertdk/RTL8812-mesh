@@ -147,12 +147,22 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 - The secured gate now preserves the complete kernel interval and returns 4
   when SAE/AMPE traffic passes but a USB transport event occurred, preventing
   recovery from being silently reported as a clean security run.
+- Packaging consistency review removed the stale claim that hardware scripts
+  contain development MAC defaults and made the soak systemd unit load the
+  same required `/etc/default/rtw88-mesh-test` identity file as recovery.
   Its interval closes before open-topology recovery, so a deliberate fallback
   unbind cannot be misclassified as a secured-mesh transport fault.
 - Secured preflight now discovers and validates both radio drivers before any
   netdev mutation. Pi checks proved that a missing root and the expected
   `rtl8xxxu`-versus-`rtw_8812au` peer mismatch both exit without invoking
   recovery or disturbing the active soak.
+- Recovery now rejects wrong radio drivers or any installed/loaded source
+  version mismatch before topology mutation, and reports success only after
+  bilateral peering, traffic, and HWMP validation. Pi preflight tests proved
+  both the peer-driver and injected module-provenance rejection paths without
+  disturbing the active soak. The systemd timeout is aligned to the script's
+  worst-case lock and enumeration windows; a full reconstruction test is
+  queued after the soak releases the hardware lock.
 - The Pi's currently running soak executable predates the repository's
   run-start `latest-summary.log` update, so its summary link still names the
   prior stopped run. `pi_mesh_soak_status.sh` now derives the active run ID

@@ -16,13 +16,24 @@ DEVICE_POLLS=${DEVICE_POLLS:-60}
 ESTAB_POLLS=${ESTAB_POLLS:-100}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 LOCK_WAIT=${LOCK_WAIT:-90}
+ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
+PEER_DRIVER=${PEER_DRIVER:-}
+PING_COUNT=${PING_COUNT:-5}
+MODINFO=${MODINFO:-/sbin/modinfo}
+start_epoch=$(date +%s)
 
-if command -v flock >/dev/null 2>&1; then
-	exec 9>"$LOCK_FILE"
-	if ! flock -w "$LOCK_WAIT" 9; then
-		echo "timed out waiting ${LOCK_WAIT}s for $LOCK_FILE" >&2
-		exit 75
-	fi
+[ "$(id -u)" -eq 0 ] || { echo "run mesh recovery as root" >&2; exit 2; }
+for value in "$DEVICE_POLLS" "$ESTAB_POLLS" "$LOCK_WAIT" "$PING_COUNT"; do
+	case $value in *[!0-9]*|''|0) echo "poll, wait, and ping counts must be positive integers" >&2; exit 2 ;; esac
+done
+[ "$ROOT_MAC" != "$PEER_MAC" ] || { echo "ROOT_MAC and PEER_MAC must differ" >&2; exit 2; }
+[ -x "$IW" ] && [ -x "$MODINFO" ] || { echo "iw and modinfo are required" >&2; exit 2; }
+command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
+
+exec 9>"$LOCK_FILE"
+if ! flock -w "$LOCK_WAIT" 9; then
+	echo "timed out waiting ${LOCK_WAIT}s for $LOCK_FILE" >&2
+	exit 75
 fi
 
 find_root_if()
@@ -56,6 +67,31 @@ while :; do
 		exit 1
 	fi
 	sleep 1
+done
+
+root_driver=$(basename "$(readlink "/sys/class/net/$root_if/device/driver")")
+if [ "$root_driver" != "$ROOT_DRIVER" ]; then
+	echo "root driver is $root_driver, expected $ROOT_DRIVER" >&2
+	exit 1
+fi
+if [ -n "$peer_if" ]; then
+	peer_driver=$(ip netns exec "$PEER_NS" basename \
+		"$(ip netns exec "$PEER_NS" readlink "/sys/class/net/$peer_if/device/driver")")
+else
+	peer_driver=$(basename "$(readlink "/sys/class/net/$peer_root_if/device/driver")")
+fi
+if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
+	echo "peer driver is $peer_driver, expected $PEER_DRIVER" >&2
+	exit 1
+fi
+
+for module in rtw_core rtw_usb rtw_88xxa rtw_8812a rtw_8812au; do
+	installed=$($MODINFO -F srcversion "$module" 2>/dev/null || true)
+	loaded=$(cat "/sys/module/$module/srcversion" 2>/dev/null || true)
+	if [ -z "$installed" ] || [ "$installed" != "$loaded" ]; then
+		echo "module provenance mismatch: $module installed=${installed:-unavailable} loaded=${loaded:-unavailable}" >&2
+		exit 1
+	fi
 done
 
 if [ -z "$peer_if" ]; then
@@ -102,5 +138,20 @@ while :; do
 	sleep 0.1
 done
 
-printf 'mesh recovered root=%s peer=%s namespace=%s\n' \
-	"$root_if" "$peer_if" "$PEER_NS"
+ROOT_IP=${ROOT_ADDR%/*}
+PEER_IP=${PEER_ADDR%/*}
+ping -I "$root_if" -c "$PING_COUNT" -W 1 "$PEER_IP" >/dev/null
+ip netns exec "$PEER_NS" ping -I "$peer_if" -c "$PING_COUNT" -W 1 \
+	"$ROOT_IP" >/dev/null
+root_paths=$($IW dev "$root_if" mpath dump |
+	awk 'NR > 1 { count++ } END { print count + 0 }')
+peer_paths=$(ip netns exec "$PEER_NS" $IW dev "$peer_if" mpath dump |
+	awk 'NR > 1 { count++ } END { print count + 0 }')
+if [ "$root_paths" -eq 0 ] || [ "$peer_paths" -eq 0 ]; then
+	echo "mesh recovery has no HWMP path root=$root_paths peer=$peer_paths" >&2
+	exit 1
+fi
+
+printf 'mesh recovered root=%s peer=%s namespace=%s root_driver=%s peer_driver=%s root_paths=%s peer_paths=%s elapsed_s=%s\n' \
+	"$root_if" "$peer_if" "$PEER_NS" "$root_driver" "$peer_driver" \
+	"$root_paths" "$peer_paths" "$(( $(date +%s) - start_epoch ))"

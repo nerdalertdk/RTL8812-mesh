@@ -11,4 +11,4 @@ ExecStartPre=/usr/bin/sleep 2
 ExecStart=/usr/local/libexec/rtw88-mesh-recover
 Restart=on-failure
 RestartSec=2
-TimeoutStartSec=120
+TimeoutStartSec=240
