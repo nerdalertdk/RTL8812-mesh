@@ -14,7 +14,8 @@
 - [ ] Run the sender/receiver multicast probe after the active soak to localize
   the intermittent mixed-adapter multicast miss.
 - [ ] Validate secured traffic with a second stable RTL8812AU.
-- [ ] Repeat original USB2 and independently powered-path endurance tests.
+- [ ] Complete three valid repetitions of each row in
+  `tests/USB_PATH_MATRIX.md` (direct USB3/USB2 and powered USB3/USB2 paths).
 - [ ] Extend bounded endurance to a long unattended run.
 
 ## Completed

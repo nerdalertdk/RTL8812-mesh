@@ -51,6 +51,9 @@ Complete and review a production-driver eight-hour mesh endurance run.
 - Safety review found the control `-EPROTO` kretprobe could match both reads and
   writes because both use request `0x05`. It now additionally requires request
   type `0xc0`, so it can alter only successful RTL8812AU vendor-device reads.
+- `tests/USB_PATH_MATRIX.md` now defines the controlled physical test rows,
+  repetitions, evidence capture, event classification, and causal decision
+  rules required to separate driver/adapter faults from Pi USB power/topology.
 
 ## Known issues
 

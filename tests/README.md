@@ -58,3 +58,8 @@ The first completed run is recorded in
 control reads. It must never alter a completed write: a write may already have
 changed device state, and reporting a synthetic failure afterward cannot undo
 that side effect.
+
+Use `USB_PATH_MATRIX.md` for real `-71` experiments. It defines controlled
+direct-USB3, direct-USB2, independently powered, repetition, logging, and causal
+decision requirements so physical transport evidence is not conflated with
+synthetic driver-retry evidence.
