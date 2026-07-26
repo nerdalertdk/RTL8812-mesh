@@ -13,7 +13,7 @@ not an RTL8812AU-to-RTL8812AU security pass.
 - The nl80211 MGTK installation completed through mac80211's software-crypto
   fallback; the driver intentionally rejects mesh hardware `SET_KEY`.
 - The RTL8812AU repeatedly received peer SAE commits as authentication
-  management frame, showing that the mesh RX filter admitted those frames.
+  management frames, showing that the mesh RX filter admitted them.
 - Each commit was dropped by wpa_supplicant with `Mesh peer ... not yet known`,
   before SAE cryptographic processing, because no valid peer mesh beacon had
   established the discovery entry.

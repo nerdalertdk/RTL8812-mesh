@@ -137,10 +137,10 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   Pi naming layout.
 - Earlier mixed-peer SAE logs were causally reviewed. RTL8812AU started the
   secured group, accepted software MGTK handling, repeatedly received peer
-  commits,
-  and completed defensive key removal. RTL8192FU failed secured-beacon setup
-  with `-EOPNOTSUPP`, so RTL8812AU never discovered it and correctly dropped
-  authentication from an unknown mesh peer. The onboard `brcmfmac` firmware
+  commits, and completed defensive key removal. RTL8192FU failed
+  secured-beacon setup with `-EOPNOTSUPP`, so RTL8812AU never discovered it
+  and correctly dropped authentication from an unknown mesh peer. The onboard
+  `brcmfmac` firmware
   does not advertise mesh mode. See
   `tests/results/2026-07-26-secure-mixed-peer-diagnostic.md`; the two-RTL8812AU
   gate remains open.
