@@ -10,7 +10,6 @@
 #define FW_8192C_START_ADDRESS		0x1000
 #define FW_8192C_END_ADDRESS		0x5fff
 
-#define RTW_USB_MAX_RXTX_COUNT		128
 #define RTW_USB_VENQT_MAX_BUF_SIZE	254
 #define MAX_USBCTRL_VENDORREQ_TIMES	10
 #define RTW_USB_CTRL_READ_MAX_ATTEMPTS	3
@@ -68,12 +67,11 @@ struct rtw_usb {
 	struct rtw_dev *rtwdev;
 	struct usb_device *udev;
 
-	/* Protects usb_data_index and the selected buffer for the complete
-	 * synchronous control transaction, including bounded read retries.
+	/* Protects usb_data for the complete synchronous control transaction,
+	 * including bounded read retries.
 	 */
 	struct mutex usb_ctrl_mutex;
 	__le32 *usb_data;
-	unsigned int usb_data_index;
 	atomic_t ctrl_error_count;
 	atomic_t ctrl_retry_count;
 	atomic_t rx_urb_error_count;

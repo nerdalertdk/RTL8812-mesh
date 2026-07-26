@@ -13,7 +13,10 @@ Linux v6.12 documents `usb_control_msg()` as task-context, synchronous, and
 sleeping. DKMS source 0.1.3 therefore replaces the index-only spinlock with a
 mutex held across the complete read or write transaction, including retries,
 diagnostics, and the chipset register-section operation. The value of a read is
-copied before unlocking.
+copied before unlocking. Because serialization leaves at most one transaction
+in flight, the rotating 128-entry allocation is reduced to one separately
+allocated control word; this retains the original heap-backed USB buffer
+requirement without retaining an index that no longer provides concurrency.
 
 ## Static validation
 

@@ -89,12 +89,10 @@ static u32 rtw_usb_read(struct rtw_dev *rtwdev, u32 addr, u16 len)
 	struct usb_device *udev = rtwusb->udev;
 	__le32 *data;
 	u32 value;
-	int attempt, idx, ret;
+	int attempt, ret;
 
 	mutex_lock(&rtwusb->usb_ctrl_mutex);
-	idx = rtwusb->usb_data_index;
-	rtwusb->usb_data_index = (idx + 1) & (RTW_USB_MAX_RXTX_COUNT - 1);
-	data = &rtwusb->usb_data[idx];
+	data = rtwusb->usb_data;
 
 	for (attempt = 1; attempt <= RTW_USB_CTRL_READ_MAX_ATTEMPTS; attempt++) {
 		/* Never expose data left by an earlier transfer after an error or
@@ -164,12 +162,10 @@ static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 	struct rtw_usb *rtwusb = (struct rtw_usb *)rtwdev->priv;
 	struct usb_device *udev = rtwusb->udev;
 	__le32 *data;
-	int idx, ret;
+	int ret;
 
 	mutex_lock(&rtwusb->usb_ctrl_mutex);
-	idx = rtwusb->usb_data_index;
-	rtwusb->usb_data_index = (idx + 1) & (RTW_USB_MAX_RXTX_COUNT - 1);
-	data = &rtwusb->usb_data[idx];
+	data = rtwusb->usb_data;
 
 	*data = cpu_to_le32(val);
 
@@ -1207,8 +1203,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
 	if (ret)
 		return ret;
 
-	rtwusb->usb_data = kcalloc(RTW_USB_MAX_RXTX_COUNT, sizeof(u32),
-				   GFP_KERNEL);
+	rtwusb->usb_data = kmalloc(sizeof(*rtwusb->usb_data), GFP_KERNEL);
 	if (!rtwusb->usb_data)
 		return -ENOMEM;
 
