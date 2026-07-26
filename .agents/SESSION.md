@@ -135,6 +135,22 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   queried through the old sysfs netdev name after a rename. It now captures
   the driver before renaming, preventing a false pre-SAE abort on the current
   Pi naming layout.
+- Earlier mixed-peer SAE logs were causally reviewed. RTL8812AU started the
+  secured group, accepted software MGTK handling, repeatedly received peer
+  commits,
+  and completed defensive key removal. RTL8192FU failed secured-beacon setup
+  with `-EOPNOTSUPP`, so RTL8812AU never discovered it and correctly dropped
+  authentication from an unknown mesh peer. The onboard `brcmfmac` firmware
+  does not advertise mesh mode. See
+  `tests/results/2026-07-26-secure-mixed-peer-diagnostic.md`; the two-RTL8812AU
+  gate remains open.
+- The secured gate now preserves the complete kernel interval and returns 4
+  when SAE/AMPE traffic passes but a USB transport event occurred, preventing
+  recovery from being silently reported as a clean security run.
+- Secured preflight now discovers and validates both radio drivers before any
+  netdev mutation. Pi checks proved that a missing root and the expected
+  `rtl8xxxu`-versus-`rtw_8812au` peer mismatch both exit without invoking
+  recovery or disturbing the active soak.
 - The Pi's currently running soak executable predates the repository's
   run-start `latest-summary.log` update, so its summary link still names the
   prior stopped run. `pi_mesh_soak_status.sh` now derives the active run ID

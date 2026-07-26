@@ -18,12 +18,22 @@ PEER_IP=${PEER_IP:-10.45.0.2}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 ROOT_LOG=${ROOT_LOG:-/tmp/rtw88-wpa-root.log}
 PEER_LOG=${PEER_LOG:-/tmp/rtw88-wpa-peer.log}
+KERNEL_LOG=${KERNEL_LOG:-/tmp/rtw88-secure-kernel.log}
 OPEN_RECOVERY_HELPER=${OPEN_RECOVERY_HELPER:-/usr/local/libexec/rtw88-mesh-recover}
 ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
 PEER_DRIVER=${PEER_DRIVER:-}
 PEER_DRIVER_ID=${PEER_DRIVER_ID:-}
 TRANSFER_TEST=${TRANSFER_TEST:-}
 SECURE_FILE_MIB=${SECURE_FILE_MIB:-32}
+start_epoch=$(date +%s)
+
+[ "$(id -u)" -eq 0 ] || { echo "run this hardware test as root" >&2; exit 2; }
+if [ ! -x "$WPA" ] || [ ! -x "$WPA_CLI" ] || [ ! -r "$CONFIG" ] ||
+   ! command -v tcpdump >/dev/null 2>&1 ||
+   ! command -v journalctl >/dev/null 2>&1; then
+	echo "missing wpa_supplicant, wpa_cli, tcpdump, journalctl, or $CONFIG" >&2
+	exit 2
+fi
 
 if command -v flock >/dev/null 2>&1; then
 	exec 9>"$LOCK_FILE"
@@ -41,6 +51,12 @@ ns()
 root_pid=
 peer_pid=
 capture_pid=
+topology_changed=0
+capture_kernel()
+{
+	journalctl -k --since "@$start_epoch" --no-pager >"$KERNEL_LOG" 2>&1 || true
+}
+
 cleanup()
 {
 	trap - EXIT INT TERM
@@ -51,6 +67,10 @@ cleanup()
 	[ -z "$peer_pid" ] || kill "$peer_pid" 2>/dev/null || true
 	[ -z "$root_pid" ] || wait "$root_pid" 2>/dev/null || true
 	[ -z "$peer_pid" ] || wait "$peer_pid" 2>/dev/null || true
+	if [ "$topology_changed" -eq 0 ]; then
+		capture_kernel
+		return
+	fi
 	$IW dev "$ROOT_IF" mesh leave 2>/dev/null || true
 	ns $IW dev "$PEER_IF" mesh leave 2>/dev/null || true
 
@@ -59,27 +79,21 @@ cleanup()
 	# after mesh leave/join; reset only that peer driver if ordinary recovery
 	# cannot restore the open test topology.
 	command -v flock >/dev/null 2>&1 && flock -u 9
-	if [ -x "$OPEN_RECOVERY_HELPER" ] && "$OPEN_RECOVERY_HELPER"; then
-		return
+	if ! [ -x "$OPEN_RECOVERY_HELPER" ] || ! "$OPEN_RECOVERY_HELPER"; then
+		unbind=/sys/bus/usb/drivers/$PEER_DRIVER/unbind
+		bind=/sys/bus/usb/drivers/$PEER_DRIVER/bind
+		if [ -n "$PEER_DRIVER" ] && [ -n "$PEER_DRIVER_ID" ] &&
+		   [ -w "$unbind" ] && [ -w "$bind" ]; then
+			printf '%s' "$PEER_DRIVER_ID" >"$unbind"
+			sleep 2
+			printf '%s' "$PEER_DRIVER_ID" >"$bind"
+			[ ! -x "$OPEN_RECOVERY_HELPER" ] || "$OPEN_RECOVERY_HELPER" || true
+		fi
 	fi
-	unbind=/sys/bus/usb/drivers/$PEER_DRIVER/unbind
-	bind=/sys/bus/usb/drivers/$PEER_DRIVER/bind
-	if [ -n "$PEER_DRIVER" ] && [ -n "$PEER_DRIVER_ID" ] &&
-	   [ -w "$unbind" ] && [ -w "$bind" ]; then
-		printf '%s' "$PEER_DRIVER_ID" >"$unbind"
-		sleep 2
-		printf '%s' "$PEER_DRIVER_ID" >"$bind"
-		[ ! -x "$OPEN_RECOVERY_HELPER" ] || "$OPEN_RECOVERY_HELPER" || true
-	fi
+	capture_kernel
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
-
-if [ ! -x "$WPA" ] || [ ! -x "$WPA_CLI" ] || [ ! -r "$CONFIG" ] ||
-   ! command -v tcpdump >/dev/null 2>&1; then
-	echo "missing wpa_supplicant, wpa_cli, tcpdump, or $CONFIG" >&2
-	exit 2
-fi
 
 current_root=$(ip -o link | awk -v mac="$ROOT_MAC" \
 	'tolower($0) ~ tolower(mac) { sub(":", "", $2); print $2; exit }')
@@ -96,14 +110,6 @@ if [ "$root_driver" != "$ROOT_DRIVER" ]; then
 	exit 1
 fi
 
-nmcli device set "$current_root" managed no >/dev/null 2>&1 || true
-$IW dev "$current_root" mesh leave 2>/dev/null || true
-ip link set "$current_root" down
-if [ "$current_root" != "$ROOT_IF" ]; then
-	ip link set "$current_root" name "$ROOT_IF"
-fi
-$IW dev "$ROOT_IF" set type mesh
-
 current_peer=$(ns ip -o link | awk -v mac="$PEER_MAC" \
 	'tolower($0) ~ tolower(mac) { sub(":", "", $2); print $2; exit }')
 if [ -z "$current_peer" ]; then
@@ -117,6 +123,15 @@ if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 	exit 1
 fi
 echo "DRIVERS root=$root_driver peer=$peer_driver"
+
+topology_changed=1
+nmcli device set "$current_root" managed no >/dev/null 2>&1 || true
+$IW dev "$current_root" mesh leave 2>/dev/null || true
+ip link set "$current_root" down
+if [ "$current_root" != "$ROOT_IF" ]; then
+	ip link set "$current_root" name "$ROOT_IF"
+fi
+$IW dev "$ROOT_IF" set type mesh
 
 ns $IW dev "$current_peer" mesh leave 2>/dev/null || true
 ns ip link set "$current_peer" down
@@ -218,3 +233,13 @@ if [ -n "$TRANSFER_TEST" ]; then
 		PEER_IP="$PEER_IP" "$TRANSFER_TEST"
 fi
 echo LOGS "$ROOT_LOG" "$PEER_LOG"
+
+cleanup
+transport_events=$(grep -Eic 'error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' \
+	"$KERNEL_LOG" || true)
+echo "KERNEL_LOG $KERNEL_LOG transport_events=$transport_events"
+if [ "$transport_events" -ne 0 ]; then
+	echo "RESULT transport-event-review-required"
+	exit 4
+fi
+echo "RESULT pass"

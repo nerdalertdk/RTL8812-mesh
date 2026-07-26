@@ -43,6 +43,9 @@ size with `SECURE_FILE_MIB` (default 32 MiB). `ROOT_DRIVER` defaults to
 result cannot accidentally be attributed to the experimental fixture. The
 optional `PEER_DRIVER_ID` unbind fallback is only for a specifically identified
 test adapter and is disabled by default.
+The secured gate retains its kernel interval in `KERNEL_LOG` and returns 4 if
+an otherwise passing SAE/AMPE run contains a USB transport event requiring
+causal review.
 
 ## RX submission-failure injection
 
