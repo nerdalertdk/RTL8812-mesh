@@ -187,9 +187,19 @@ kernel timestamps when reporting one.
 
 For 2.4 GHz deployments, validate both USB modes. USB3 can create local
 2.4 GHz interference, while USB2 limits host throughput and changes the
-physical USB path. Set `rtw_usb.switch_usb_mode=N` before module load to retain
-USB2 for an A/B test. This parameter is unrelated to `usb_modeswitch`, which
-handles devices initially presenting as CD-ROM storage.
+physical USB path. The supported deployment baseline is USB2: set
+`rtw_usb.switch_usb_mode=N` before module load to retain USB2. Keep USB3 as an
+explicit regression profile, not the default 2.4 GHz operating mode. For a
+persistent Debian configuration:
+
+```conf
+# /etc/modprobe.d/rtw88-mesh.conf
+options rtw_usb switch_usb_mode=N
+```
+
+Reload the matching five-module stack or reboot, then confirm `lsusb -t`
+reports the adapter at `480M`. This parameter is unrelated to `usb_modeswitch`,
+which handles devices initially presenting as CD-ROM storage.
 
 ## Tests
 

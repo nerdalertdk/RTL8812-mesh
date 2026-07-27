@@ -20,6 +20,10 @@ tests.
 
 - HT20 is the range/interference baseline; wider channels are not required for
   the first production profile.
+- USB2 is the default transport profile for 2.4 GHz deployment:
+  `rtw_usb.switch_usb_mode=N` prevents the adapter from switching to USB3 and
+  reduces local USB3 interference risk. USB3 remains a separately validated
+  regression profile, not the default RF deployment choice.
 - Range is a bidirectional link property. High conducted transmit power on one
   node cannot compensate for a weaker return path, obstructed Fresnel zone, or
   poor receive antenna placement.

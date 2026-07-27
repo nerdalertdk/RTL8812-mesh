@@ -37,6 +37,8 @@
 - [ ] Validate secured traffic with a second stable RTL8812AU.
 - [ ] Complete three valid repetitions of each row in
   `tests/USB_PATH_MATRIX.md` (direct USB3/USB2 and powered USB3/USB2 paths).
+- [ ] Retain direct USB3 as a regression profile while using USB2
+  (`rtw_usb.switch_usb_mode=N`) as the 2.4 GHz deployment baseline.
 - [ ] Extend bounded endurance to a long unattended run.
 
 ## Completed

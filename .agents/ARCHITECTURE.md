@@ -23,3 +23,8 @@ ABI conflict even though its file remains under `kernel/`.
 The current Pi harness resolves radios by permanent MAC and places the peer in
 the `meshpeer` network namespace. Recovery is handled by udev/systemd tooling in
 `tests/`.
+
+For the 2.4 GHz deployment profile, load `rtw_usb` with
+`switch_usb_mode=N`; this keeps RTL8812AU at USB2 and avoids its intentional
+USB2-to-USB3 re-enumeration. The USB3 topology is retained for explicit
+regression and physical-path testing.
