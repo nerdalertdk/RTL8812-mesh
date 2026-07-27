@@ -23,6 +23,8 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   RTL8812AU USB2-to-USB3 mode switch also produced an expected `-EPROTO` on
   the deliberate disconnect write to register `0x5`; source 0.1.4 now
   excludes only that narrow event from generic control-failure accounting.
+  The hardened helper/unit are deployed; a live unsupported-peer invocation
+  exited `78/CONFIG` with `NRestarts=0`.
 
 - Source imported from a local `rtw88` development worktree at base commit
   `a56bcd2`, including the current uncommitted mesh/USB fixes.

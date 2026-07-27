@@ -44,11 +44,14 @@ not restart that environmental failure. A live post-boot preflight returned 78
 with `peer wiphy phy1 driver rtl8xxxu does not advertise mesh-point mode`; the
 combined root/peer `iw info` SHA-256 was identical before and after
 (`235cd99d9a93564f718567b80cb00af5e009e470f2a56cd931772f6bdfd72f30`).
+The updated helper, runtime identity file, and systemd unit were then installed
+on the Pi. A service invocation exited `78/CONFIG` with `NRestarts=0`, proving
+`RestartPreventExitStatus=78` suppresses the former restart storm.
 
 During boot RTL8812AU first appeared on USB2. The old-chip USB3 mode-switch
 path intentionally wrote `REG_SYS_PW_CTRL + 1` (`0x5`) to disconnect the
 device. That control write returned `-EPROTO`, immediately followed by the
-expected disconnect and successful USB3 re-enumeration. Source 0.1.3 classifies
+expected disconnect and successful USB3 re-enumeration. Source 0.1.4 classifies
 only this narrowly identified mode-switch disconnect as expected, keeping it
 out of generic control-error counters and diagnostics. Other `-EPROTO` writes
 remain errors and are never retried.
