@@ -50,13 +50,29 @@ find_peer_if()
 	'
 }
 
-ip netns list | awk '{ print $1 }' | grep -qx "$PEER_NS" ||
-	ip netns add "$PEER_NS"
+peer_ns_exists()
+{
+	ip netns list | awk '{ print $1 }' | grep -qx "$PEER_NS"
+}
+
+phy_supports_mesh()
+{
+	"$@" | awk '
+		/Supported interface modes:/ { modes = 1; next }
+		modes && /^\tBand [0-9]+:/ { exit }
+		modes && /\* mesh point/ { found = 1 }
+		END { exit !found }
+	'
+}
 
 poll=0
 while :; do
 	root_if=$(find_root_if "$ROOT_MAC")
-	peer_if=$(find_peer_if "$PEER_MAC")
+	if peer_ns_exists; then
+		peer_if=$(find_peer_if "$PEER_MAC")
+	else
+		peer_if=
+	fi
 	peer_root_if=$(find_root_if "$PEER_MAC")
 	if [ -n "$root_if" ] && { [ -n "$peer_if" ] || [ -n "$peer_root_if" ]; }; then
 		break
@@ -82,7 +98,7 @@ else
 fi
 if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 	echo "peer driver is $peer_driver, expected $PEER_DRIVER" >&2
-	exit 1
+	exit 78
 fi
 
 for module in rtw_core rtw_usb rtw_88xxa rtw_8812a rtw_8812au; do
@@ -94,9 +110,31 @@ for module in rtw_core rtw_usb rtw_88xxa rtw_8812a rtw_8812au; do
 	fi
 done
 
+root_phy=$($IW dev "$root_if" info | awk '/wiphy/ { print "phy" $2; exit }')
+[ -n "$root_phy" ] || { echo "cannot resolve root wiphy" >&2; exit 1; }
+if ! phy_supports_mesh $IW phy "$root_phy" info; then
+	echo "root wiphy $root_phy does not advertise mesh-point mode" >&2
+	exit 78
+fi
+
+if [ -n "$peer_if" ]; then
+	peer_phy=$(ip netns exec "$PEER_NS" $IW dev "$peer_if" info |
+		awk '/wiphy/ { print "phy" $2; exit }')
+	peer_iw="ip netns exec $PEER_NS $IW"
+else
+	peer_phy=$($IW dev "$peer_root_if" info |
+		awk '/wiphy/ { print "phy" $2; exit }')
+	peer_iw=$IW
+fi
+[ -n "$peer_phy" ] || { echo "cannot resolve peer wiphy" >&2; exit 1; }
+# shellcheck disable=SC2086 # peer_iw intentionally contains the netns prefix.
+if ! phy_supports_mesh $peer_iw phy "$peer_phy" info; then
+	echo "peer wiphy $peer_phy driver $peer_driver does not advertise mesh-point mode" >&2
+	exit 78
+fi
+
 if [ -z "$peer_if" ]; then
-	peer_phy=$($IW dev "$peer_root_if" info | awk '/wiphy/ { print "phy" $2 }')
-	[ -n "$peer_phy" ] || { echo "cannot resolve peer wiphy" >&2; exit 1; }
+	peer_ns_exists || ip netns add "$PEER_NS"
 	ip link set "$peer_root_if" down
 	$IW phy "$peer_phy" set netns name "$PEER_NS"
 	peer_if=$(find_peer_if "$PEER_MAC")

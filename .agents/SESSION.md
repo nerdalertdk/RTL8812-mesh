@@ -11,6 +11,19 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 ## Current status
 
+- The final eight-hour DKMS 0.1.2 run completed before a later power loss:
+  597/597 states established, 1,194/1,194 ping batches and 16/16 checksummed
+  transfers passed, with zero recovery windows, invalidations, or measured
+  USB events. Sticky `0xe0000` power history prevents using it as clean
+  power-path evidence. See
+  `tests/results/2026-07-27-eight-hour-soak-power-cycle.md`.
+- The later boot exposed two distinct conditions. The experimental RTL8192FU
+  reverted to distro `rtl8xxxu`, which does not advertise mesh, so recovery
+  now rejects it before topology mutation with non-restarting exit 78. The
+  RTL8812AU USB2-to-USB3 mode switch also produced an expected `-EPROTO` on
+  the deliberate disconnect write to register `0x5`; source 0.1.3 now
+  excludes only that narrow event from generic control-failure accounting.
+
 - Source imported from a local `rtw88` development worktree at base commit
   `a56bcd2`, including the current uncommitted mesh/USB fixes.
 - The focused build produced exactly five modules against Pi kernel

@@ -9,6 +9,9 @@
   `DISABLE_KEY` contract and RX teardown retry-race fix.
 - [ ] Deploy and run the hardened recovery helper after the active soak, then
   verify bilateral traffic/HWMP and exact five-module provenance.
+- [x] Complete the final eight-hour DKMS 0.1.2 soak: 597/597 states,
+  1,194/1,194 ping batches, and 16/16 checksummed transfers passed with no
+  recovery window or USB transport event.
 - [x] Complete and review the production soak started 2026-07-26 15:29 CEST
   and stopped on request at 20:00 CEST.
 - [x] Build and install DKMS `0.1.1`, including the new
