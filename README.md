@@ -32,11 +32,14 @@ build has demonstrated:
 - automatic userspace topology reconstruction after module/USB rebind;
 - a clean thermal-aware 4.5-hour direct-port run with 337/337 established
   states, 672/672 ping batches, 10/10 checksummed transfers, and no USB event;
+- a completed eight-hour DKMS 0.1.2 run with 597/597 established states,
+  1,194/1,194 ping batches, 16/16 checksummed transfers, and no recovery or
+  measured USB transport event;
 - a bidirectional checksummed 512 MiB transfer on DKMS 0.1.1;
 - an audited DKMS 0.1.2 production build with strict 20-cycle churn and
   pending-RX-retry teardown validation; source version 0.1.4 additionally
   serializes complete synchronous USB control transactions and is queued for
-  exact-kernel validation after the active endurance run.
+  exact-kernel validation.
 
 Still required before production claims:
 
@@ -165,6 +168,12 @@ The transport changes distinguish two classes of failure:
 
 - transient control/RX protocol errors are retried or resubmitted with bounded,
   rate-limited diagnostics;
+- with `rtw_usb.switch_usb_mode=Y` (the default), an old-chip RTL8812AU that
+  first enumerates at USB2 may deliberately disconnect and re-enumerate at
+  USB3. The final write to `REG_SYS_PW_CTRL + 1` can therefore return
+  `-EPROTO`, `-ENODEV`, or `-ESHUTDOWN` as the device disappears. Version 0.1.4
+  classifies only this narrow, intentional transition as expected; it does not
+  retry the write or hide other write failures;
 - a physical USB disconnect destroys the netdev and cannot be repaired solely
   inside the driver. `tests/pi_mesh_recover.sh` and the accompanying udev and
   systemd files reconstruct the test topology after re-enumeration and require
@@ -175,6 +184,12 @@ The Pi evidence includes a prior simultaneous hub/root-port over-current event
 that disconnected both test adapters. Do not interpret every `-71` as an
 RTL8812AU mesh-driver defect; retain USB topology, power, temperature, and
 kernel timestamps when reporting one.
+
+For 2.4 GHz deployments, validate both USB modes. USB3 can create local
+2.4 GHz interference, while USB2 limits host throughput and changes the
+physical USB path. Set `rtw_usb.switch_usb_mode=N` before module load to retain
+USB2 for an A/B test. This parameter is unrelated to `usb_modeswitch`, which
+handles devices initially presenting as CD-ROM storage.
 
 ## Tests
 

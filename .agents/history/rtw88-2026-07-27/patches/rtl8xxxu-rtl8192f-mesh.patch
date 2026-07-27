@@ -1,0 +1,28 @@
+--- a/drivers/net/wireless/realtek/rtl8xxxu/core.c
++++ b/drivers/net/wireless/realtek/rtl8xxxu/core.c
+@@
+ 	case NL80211_IFTYPE_AP:
++	case NL80211_IFTYPE_MESH_POINT:
+ 		type = MSR_LINKTYPE_AP;
+@@
+ 	case NL80211_IFTYPE_AP:
++	case NL80211_IFTYPE_MESH_POINT:
+@@
+-	if (priv->vifs[0] && priv->vifs[0]->type == NL80211_IFTYPE_AP)
++	if (priv->vifs[0] &&
++	    (priv->vifs[0]->type == NL80211_IFTYPE_AP ||
++	     priv->vifs[0]->type == NL80211_IFTYPE_MESH_POINT))
+@@
+-	if (vif->type == NL80211_IFTYPE_AP) {
++	if (vif->type == NL80211_IFTYPE_AP ||
++	    vif->type == NL80211_IFTYPE_MESH_POINT) {
+@@
+-	if (vif->type == NL80211_IFTYPE_AP)
++	if (vif->type == NL80211_IFTYPE_AP ||
++	    vif->type == NL80211_IFTYPE_MESH_POINT)
+ 		rtl8xxxu_release_macid(priv, sta_info->macid);
+@@
+ 	if (priv->fops->supports_ap)
+ 		hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_AP);
++	if (priv->rtl_chip == RTL8192F)
++		hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_MESH_POINT);
