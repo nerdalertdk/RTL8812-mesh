@@ -44,7 +44,9 @@ summary symlink points at a previous run.
 RTL8812AU modules, expected root/peer drivers, bilateral `ESTAB`, successful
 traffic in both directions, and nonempty HWMP tables at both peers. Its unit's
 240-second start timeout covers the configured 90-second test-lock wait plus
-the device enumeration and peering windows.
+the device enumeration and peering windows. Missing mesh-point capability or
+an explicitly configured peer-driver mismatch exits 78 before topology
+mutation; systemd does not restart that persistent environmental failure.
 
 `pi_mesh_transfer.sh` is the standalone large-file integrity gate. Its default
 is one 512 MiB random source transferred in both directions, with source and
