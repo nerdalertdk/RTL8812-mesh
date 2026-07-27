@@ -2,7 +2,7 @@
 
 ## In progress
 
-- [ ] Build, install, and regression-test DKMS `0.1.3` after the active soak,
+- [ ] Build, install, and regression-test DKMS `0.1.4` after the active soak,
   including parallel control-read stress, control-read injection, and
   concurrency-safe unload/reload.
 - [x] Build, install, and regression-test DKMS `0.1.2` with the audited mesh

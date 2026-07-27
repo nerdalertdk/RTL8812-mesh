@@ -35,3 +35,5 @@ The active eight-hour endurance run intentionally remains on production DKMS
 kernel, verify all five loaded source versions, rerun the read-only control
 `-EPROTO` injector, strict churn, and unload/reload recovery. Until those gates
 pass, 0.1.3 is source-complete but not the validated production package.
+It was superseded before release by 0.1.4 when the intentional old-chip USB3
+mode-switch disconnect was classified separately from unexpected write errors.

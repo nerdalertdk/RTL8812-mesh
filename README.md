@@ -34,7 +34,7 @@ build has demonstrated:
   states, 672/672 ping batches, 10/10 checksummed transfers, and no USB event;
 - a bidirectional checksummed 512 MiB transfer on DKMS 0.1.1;
 - an audited DKMS 0.1.2 production build with strict 20-cycle churn and
-  pending-RX-retry teardown validation; source version 0.1.3 additionally
+  pending-RX-retry teardown validation; source version 0.1.4 additionally
   serializes complete synchronous USB control transactions and is queued for
   exact-kernel validation after the active endurance run.
 
@@ -106,8 +106,8 @@ From the repository root:
 ./scripts/check-loaded-rtw88-conflicts.sh
 sudo make install_fw
 sudo dkms add .
-sudo dkms build rtl8812au-mesh/0.1.3
-sudo dkms install --force rtl8812au-mesh/0.1.3
+sudo dkms build rtl8812au-mesh/0.1.4
+sudo dkms install --force rtl8812au-mesh/0.1.4
 sudo depmod -a
 ```
 
@@ -128,7 +128,7 @@ for a live root and skips it for an explicit `INSTALL_MOD_PATH` staging root.
 Remove the DKMS package with:
 
 ```sh
-sudo dkms remove rtl8812au-mesh/0.1.3 --all
+sudo dkms remove rtl8812au-mesh/0.1.4 --all
 ```
 
 ## Create an open mesh point

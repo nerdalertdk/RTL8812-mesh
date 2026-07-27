@@ -2,8 +2,8 @@
 
 ## Current focus
 
-Complete the active DKMS 0.1.2 endurance run, then build and validate source
-DKMS 0.1.3 with deterministic USB control-transaction buffer ownership and
+Validate source DKMS 0.1.4 with deterministic USB control-transaction buffer
+ownership and intentional USB3 mode-switch classification, then
 close the hardware gates requiring a second RTL8812AU or powered USB paths.
 
 The deployment requirement is now also recorded: multinational, off-grid
@@ -21,7 +21,7 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   reverted to distro `rtl8xxxu`, which does not advertise mesh, so recovery
   now rejects it before topology mutation with non-restarting exit 78. The
   RTL8812AU USB2-to-USB3 mode switch also produced an expected `-EPROTO` on
-  the deliberate disconnect write to register `0x5`; source 0.1.3 now
+  the deliberate disconnect write to register `0x5`; source 0.1.4 now
   excludes only that narrow event from generic control-failure accounting.
 
 - Source imported from a local `rtw88` development worktree at base commit
@@ -142,9 +142,9 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 - USB control-context audit confirmed `usb_control_msg()` is task-context and
   may sleep. The former spinlock protected only selection from a 128-buffer
   ring, not the selected buffer across a retryable transaction lasting up to
-  roughly three seconds. Source DKMS 0.1.3 uses a mutex across the complete
+  roughly three seconds. Source DKMS 0.1.4 uses a mutex across the complete
   read/write transaction, eliminating wrap-based buffer aliasing. Build,
-  injection, and hardware regression are queued after the 0.1.2 soak.
+  injection and hardware regression are in progress after the 0.1.2 soak.
 - The secured-mesh harness now queries the nondefault control socket it
   configures, requires `wpa_state=COMPLETED` and `key_mgmt=SAE` at both peers,
   and gates bidirectional multicast plus HWMP. It can invoke the checksummed
