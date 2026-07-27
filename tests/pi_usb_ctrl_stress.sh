@@ -4,6 +4,7 @@
 set -eu
 
 IW=${IW:-/usr/sbin/iw}
+MODINFO=${MODINFO:-/sbin/modinfo}
 ROOT_MAC=${ROOT_MAC:?set ROOT_MAC to the primary adapter MAC}
 PEER_MAC=${PEER_MAC:?set PEER_MAC to the peer adapter MAC}
 PEER_NS=${PEER_NS:-meshpeer}
@@ -26,6 +27,7 @@ case $REGISTER_WIDTH in 1|2|4) ;; *) echo "REGISTER_WIDTH must be 1, 2, or 4" >&
 case $REGISTER in *[!0-9a-fA-F]*|'') echo "REGISTER must be hexadecimal" >&2; exit 2 ;; esac
 REGISTER=$(printf '%s' "$REGISTER" | tr 'A-F' 'a-f')
 command -v journalctl >/dev/null 2>&1 || { echo "journalctl is required" >&2; exit 2; }
+[ -x "$MODINFO" ] || { echo "modinfo is required at $MODINFO" >&2; exit 2; }
 
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
@@ -71,6 +73,14 @@ if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 	echo "peer driver is $peer_driver, expected $PEER_DRIVER" >&2
 	exit 2
 fi
+for module in rtw_core rtw_usb rtw_88xxa rtw_8812a rtw_8812au; do
+	installed=$($MODINFO -F srcversion "$module" 2>/dev/null || true)
+	loaded=$(cat "/sys/module/$module/srcversion" 2>/dev/null || true)
+	if [ -z "$installed" ] || [ "$installed" != "$loaded" ]; then
+		echo "module provenance mismatch: $module installed=${installed:-unavailable} loaded=${loaded:-unavailable}" >&2
+		exit 2
+	fi
+done
 if ! $IW dev "$ROOT_IF" station dump | grep -q 'mesh plink:[[:space:]]*ESTAB' ||
    ! ns $IW dev "$PEER_IF" station dump | grep -q 'mesh plink:[[:space:]]*ESTAB'; then
 	echo "mesh peer link is not established in both directions" >&2
