@@ -34,6 +34,8 @@ patches.
    - Treat short reads as errors and retry only idempotent reads for bounded
      transient USB errors.
    - Do not retry writes whose device-side completion is ambiguous.
+   - Treat only the old-chip USB2-to-USB3 mode-switch write's deliberate
+     disconnect statuses as expected; all other write failures remain errors.
    - Serialize the complete synchronous control transaction. The original
      spinlock reserves only a ring index; it does not retain ownership of that
      buffer while a transfer or bounded retry is in flight.

@@ -157,7 +157,13 @@ static u32 rtw_usb_read32(struct rtw_dev *rtwdev, u32 addr)
 	return (u32)rtw_usb_read(rtwdev, addr, 4);
 }
 
-static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
+static bool rtw_usb_ctrl_expected_disconnect(int error)
+{
+	return error == -EPROTO || error == -ENODEV || error == -ESHUTDOWN;
+}
+
+static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len,
+			  bool disconnect_expected)
 {
 	struct rtw_usb *rtwusb = (struct rtw_usb *)rtwdev->priv;
 	struct usb_device *udev = rtwusb->udev;
@@ -179,7 +185,8 @@ static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 	if (ret >= 0 && ret != len)
 		ret = -EIO;
 
-	if (ret != len) {
+	if (ret != len &&
+	    !(disconnect_expected && rtw_usb_ctrl_expected_disconnect(ret))) {
 		int errors = atomic_inc_return(&rtwusb->ctrl_error_count);
 
 		if (ret != -ENODEV)
@@ -187,6 +194,10 @@ static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 					    "write register 0x%x failed with %d, errors=%d read_retries=%d\n",
 					    addr, ret, errors,
 					    atomic_read(&rtwusb->ctrl_retry_count));
+	} else if (ret != len) {
+		rtw_dbg(rtwdev, RTW_DBG_USB,
+			"USB mode switch disconnected during register 0x%x write (%d)\n",
+			addr, ret);
 	}
 
 	if (ret == len &&
@@ -200,17 +211,17 @@ static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 
 static void rtw_usb_write8(struct rtw_dev *rtwdev, u32 addr, u8 val)
 {
-	rtw_usb_write(rtwdev, addr, val, 1);
+	rtw_usb_write(rtwdev, addr, val, 1, false);
 }
 
 static void rtw_usb_write16(struct rtw_dev *rtwdev, u32 addr, u16 val)
 {
-	rtw_usb_write(rtwdev, addr, val, 2);
+	rtw_usb_write(rtwdev, addr, val, 2, false);
 }
 
 static void rtw_usb_write32(struct rtw_dev *rtwdev, u32 addr, u32 val)
 {
-	rtw_usb_write(rtwdev, addr, val, 4);
+	rtw_usb_write(rtwdev, addr, val, 4, false);
 }
 
 static void rtw_usb_write_firmware_page(struct rtw_dev *rtwdev, u32 page,
@@ -1242,7 +1253,7 @@ static int rtw_usb_switch_mode_old(struct rtw_dev *rtwdev)
 			rtw_write8(rtwdev, REG_ACLK_MON, 0x1);
 			rtw_write8(rtwdev, 0x3d, 0x3);
 			/* usb disconnect */
-			rtw_write8(rtwdev, REG_SYS_PW_CTRL + 1, 0x80);
+			rtw_usb_write(rtwdev, REG_SYS_PW_CTRL + 1, 0x80, 1, true);
 			return 1;
 		}
 	} else if (cur_speed == USB_SPEED_SUPER) {
