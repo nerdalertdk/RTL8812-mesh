@@ -187,9 +187,9 @@ kernel timestamps when reporting one.
 
 For 2.4 GHz deployments, validate both USB modes. USB3 can create local
 2.4 GHz interference, while USB2 limits host throughput and changes the
-physical USB path. The supported deployment baseline is USB2: set
-`rtw_usb.switch_usb_mode=N` before module load to retain USB2. Keep USB3 as an
-explicit regression profile, not the default 2.4 GHz operating mode. For a
+physical USB path. The intended deployment baseline is USB2, pending completion
+of the physical USB2 matrix: set `rtw_usb.switch_usb_mode=N` before module load
+to retain USB2. Keep USB3 as an explicit required regression profile. For a
 persistent Debian configuration:
 
 ```conf

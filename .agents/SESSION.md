@@ -7,7 +7,8 @@ ownership and intentional USB3 mode-switch classification, then
 close the hardware gates requiring a second RTL8812AU or powered USB paths.
 
 The default 2.4 GHz deployment profile is now USB2 with
-`rtw_usb.switch_usb_mode=N`; USB3 is an explicit regression profile.
+`rtw_usb.switch_usb_mode=N` after the pending physical USB2 gates pass; USB3
+remains an explicit required regression profile.
 
 The deployment requirement is now also recorded: multinational, off-grid
 mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.

@@ -20,7 +20,8 @@ tests.
 
 - HT20 is the range/interference baseline; wider channels are not required for
   the first production profile.
-- USB2 is the default transport profile for 2.4 GHz deployment:
+- USB2 is the intended transport profile for 2.4 GHz deployment, pending the
+  physical USB2 release gates:
   `rtw_usb.switch_usb_mode=N` prevents the adapter from switching to USB3 and
   reduces local USB3 interference risk. USB3 remains a separately validated
   regression profile, not the default RF deployment choice.
