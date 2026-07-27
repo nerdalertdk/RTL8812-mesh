@@ -6,10 +6,10 @@ regression evidence, but cannot substitute for an RTL8812AU-to-RTL8812AU gate.
 
 | Requirement | Required evidence | Current evidence | Status |
 | --- | --- | --- | --- |
-| Exact-kernel Debian package | All five DKMS modules build, install, load, and match installed `srcversion` values | DKMS 0.1.2 on `6.12.47+rpt-rpi-v8`; source 0.1.4 control serialization and mode-switch classification await exact build/install | Pending 0.1.4 validation |
-| Open mesh peering | Repeated fresh joins with both peer links `ESTAB` | Strict 20-cycle churn passed 20/20 | Pass |
+| Exact-kernel Debian package | All five DKMS modules build, install, load, and match installed `srcversion` values | DKMS 0.1.4 on `6.12.47+rpt-rpi-v8`; all five loaded values match installed artifacts; exact `W=1` and strict checkpatch clean | Pass |
+| Open mesh peering | Repeated fresh joins with both peer links `ESTAB` | DKMS 0.1.4 strict 20-cycle churn passed 20/20 | Pass |
 | Cold HWMP discovery | Bidirectional first contact after path/neighbour flush and paths at both peers | Strict churn passed 20/20; channel sweep passed channels 1--13 | Pass |
-| Open unicast integrity | Checksummed large payload in both directions | 512 MiB each direction with matching SHA-256 | Pass |
+| Open unicast integrity | Checksummed large payload in both directions | DKMS 0.1.4 transferred 512 MiB each direction with matching SHA-256 and no kernel event | Pass |
 | Open group traffic | Complete sender capture and at least 99% bidirectional delivery with two stable RTL8812AU radios | Mixed RTL8812AU/RTL8192FU delivered 797/800; 20-cycle strict bursts passed | Pending two RTL8812AU radios |
 | SAE/AMPE | Both peers report `COMPLETED` and SAE, then pass bidirectional unicast, multicast, HWMP, and checksummed payload | RTL8812AU started the secure group, used software MGTK fallback, received SAE commits, and removed keys safely; RTL8192FU failed secured-beacon programming before peer discovery | Pending two RTL8812AU radios |
 | 2.4 GHz HT20 channels | Fresh peering, cold traffic, and HWMP on every channel allowed by the selected test regulatory profile | Channels 1--13 passed; channel 2 passed 10/10 focused repetitions after an isolated mixed-peer multicast miss | Pass for open mixed-peer regression; repeat production profile with two RTL8812AU radios |

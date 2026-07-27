@@ -2,13 +2,15 @@
 
 ## In progress
 
-- [ ] Build, install, and regression-test DKMS `0.1.4` after the active soak,
-  including parallel control-read stress, control-read injection, and
-  concurrency-safe unload/reload.
+- [x] Build, install, and regression-test DKMS `0.1.4`, including exact
+  five-module provenance, parallel control-read stress, control-read injection,
+  strict churn, 512 MiB transfer, and controlled unload/reload.
+- [ ] Complete and review the active bounded DKMS `0.1.4` soak.
 - [x] Build, install, and regression-test DKMS `0.1.2` with the audited mesh
   `DISABLE_KEY` contract and RX teardown retry-race fix.
-- [ ] Deploy and run the hardened recovery helper after the active soak, then
-  verify bilateral traffic/HWMP and exact five-module provenance.
+- [x] Deploy and run the hardened recovery helper; verify capability rejection
+  before mutation and successful bilateral traffic/HWMP reconstruction after
+  restoring the experimental peer's mesh-capable module.
 - [x] Complete the final eight-hour DKMS 0.1.2 soak: 597/597 states,
   1,194/1,194 ping batches, and 16/16 checksummed transfers passed with no
   recovery window or USB transport event.

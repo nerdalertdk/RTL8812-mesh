@@ -14,6 +14,22 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 ## Current status
 
+- DKMS 0.1.4 built and installed exactly five modules for
+  `6.12.47+rpt-rpi-v8`; all loaded and installed source versions match. An
+  exact-kernel `W=1` rebuild and strict checkpatch both passed cleanly.
+- The 0.1.4 control mutex passed 1,024/1,024 parallel register reads and a
+  read-only injected `-EPROTO` recovered on attempt two with no missed match.
+  Bilateral traffic, `ESTAB`, and reciprocal HWMP paths remained intact.
+- A durable 20-cycle 0.1.4 churn run passed every join, first-contact,
+  multicast, and dual-HWMP gate with no USB event. A bidirectional 512 MiB
+  transfer then passed matching SHA-256 at 8.93 and 10.21 MB/s with no event.
+- Hardened recovery rejects a mesh-incapable peer with exit 78 before mutation.
+  After restoring the mesh-enabled experimental peer module, udev recovery
+  reconstructed and validated the topology in ten seconds.
+- A bounded ten-minute 0.1.4 soak is active with repeated 32 MiB transfers.
+  Detailed evidence is in
+  `tests/results/2026-07-27-dkms-0.1.4-validation.md`.
+
 - The final eight-hour DKMS 0.1.2 run completed before a later power loss:
   597/597 states established, 1,194/1,194 ping batches and 16/16 checksummed
   transfers passed, with zero recovery windows, invalidations, or measured
