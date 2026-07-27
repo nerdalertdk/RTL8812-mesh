@@ -5,7 +5,9 @@
 - [x] Build, install, and regression-test DKMS `0.1.4`, including exact
   five-module provenance, parallel control-read stress, control-read injection,
   strict churn, 512 MiB transfer, and controlled unload/reload.
-- [ ] Complete and review the active bounded DKMS `0.1.4` soak.
+- [x] Complete and review the bounded DKMS `0.1.4` soak: 12/12 bilateral
+  established/HWMP samples, 24/24 ping batches, and 8/8 checksummed transfers
+  passed with no recovery, invalidation, or kernel transport event.
 - [x] Build, install, and regression-test DKMS `0.1.2` with the audited mesh
   `DISABLE_KEY` contract and RX teardown retry-race fix.
 - [x] Deploy and run the hardened recovery helper; verify capability rejection

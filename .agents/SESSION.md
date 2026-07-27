@@ -27,7 +27,9 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 - Hardened recovery rejects a mesh-incapable peer with exit 78 before mutation.
   After restoring the mesh-enabled experimental peer module, udev recovery
   reconstructed and validated the topology in ten seconds.
-- A bounded ten-minute 0.1.4 soak is active with repeated 32 MiB transfers.
+- The bounded ten-minute 0.1.4 soak completed naturally: 12/12 bilateral
+  established/HWMP samples, 24/24 ping batches, and 8/8 checksummed 32 MiB
+  transfers passed with zero recovery, invalidation, or kernel transport event.
   Detailed evidence is in
   `tests/results/2026-07-27-dkms-0.1.4-validation.md`.
 

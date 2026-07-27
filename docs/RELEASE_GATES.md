@@ -17,7 +17,7 @@ regression evidence, but cannot substitute for an RTL8812AU-to-RTL8812AU gate.
 | RX submit recovery | Every RX slot recovers after injected transient failures; traffic remains valid | Eight failures consumed, success mask `0xf`, 40/40 pings each way | Pass |
 | Retry teardown safety | Unload while retries are pending with no post-free work, warning, Oops, or UAF | Unload with 99,980 failures pending; production reload in 857 ms; no kernel fault signature | Pass |
 | Physical USB fault attribution | Three valid repetitions for direct USB3, direct USB2, powered USB3, and powered USB2 with topology/power/event logs | Matrix, causal rules, and serialized evidence runner exist; independently powered paths unavailable | Pending hardware |
-| Endurance | Bounded unattended run with peer/HWMP state, traffic, checksums, recovery, USB events, temperature, and power flags | Eight-hour DKMS 0.1.2 run: 597/597 established states, 1,194/1,194 ping batches, 16/16 transfers, no recovery/USB events; sticky historical power flags recorded | Pass for functional endurance; not clean power-path evidence |
+| Endurance | Bounded unattended run with peer/HWMP state, traffic, checksums, recovery, USB events, temperature, and power flags | Eight-hour DKMS 0.1.2 run passed 597 states/1,194 pings/16 transfers; bounded DKMS 0.1.4 run passed 12 states/24 pings/8 transfers; no recovery or USB event; sticky historical power flags recorded | Pass for functional endurance; not clean power-path evidence |
 | Upstream hygiene | Reviewable patch split, exact-kernel warning build, strict checkpatch, and comparison with current kernel behavior | `W=1` clean; strict checkpatch 0/0/0; patch order documented | Pass |
 
 ## Completion rule
