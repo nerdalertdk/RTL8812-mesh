@@ -77,6 +77,8 @@ remaining anchored URBs.
   driver's completion entry without shipping instrumentation. It also records
   queued-URB and active-callback anchor state immediately before and after the
   test build kills it during teardown.
+- The exact pinned Linux `315f4bd234b3` `checkpatch.pl --strict` reports zero
+  errors, warnings, or checks for the disposable TX instrumentation patch.
 - Every hardware gate's kernel-event classifier recognizes
   `USB TX URB error`, so a functionally recovered interval cannot be accepted
   as transport-clean.

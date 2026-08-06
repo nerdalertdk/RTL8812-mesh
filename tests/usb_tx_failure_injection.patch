@@ -1,5 +1,5 @@
 diff --git a/usb.c b/usb.c
-index 029766e..feee262 100644
+index 029766e..d821630 100644
 --- a/usb.c
 +++ b/usb.c
 @@ -5,6 +5,7 @@
@@ -10,30 +10,35 @@ index 029766e..feee262 100644
  #include "main.h"
  #include "debug.h"
  #include "mac.h"
-@@ -375,6 +376,38 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+@@ -375,6 +376,43 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
  	return 0;
  }
  
 +/* Test-only pre-submit and completion fault injection. This belongs only in
 + * an isolated hardware-in-loop build; do not submit it with the driver.
 + */
-+static int rtw_usb_test_tx_submit_failures;
-+static int rtw_usb_test_tx_completion_failures;
-+static int rtw_usb_test_tx_completion_delays;
++static int rtw_usb_test_tx_submit;
++static int rtw_usb_test_tx_complete;
++static int rtw_usb_test_tx_delays;
++static char rtw_usb_test_dev[32];
 +module_param_named(test_tx_submit_failures,
-+		   rtw_usb_test_tx_submit_failures, int, 0600);
++		   rtw_usb_test_tx_submit, int, 0600);
 +module_param_named(test_tx_completion_failures,
-+		   rtw_usb_test_tx_completion_failures, int, 0600);
++		   rtw_usb_test_tx_complete, int, 0600);
 +module_param_named(test_tx_completion_delays,
-+		   rtw_usb_test_tx_completion_delays, int, 0600);
++		   rtw_usb_test_tx_delays, int, 0600);
++module_param_string(test_tx_completion_delay_device,
++		    rtw_usb_test_dev, sizeof(rtw_usb_test_dev), 0600);
 +MODULE_PARM_DESC(test_tx_submit_failures,
 +		 "number of RTL88 USB TX submissions to fail with -EPROTO");
 +MODULE_PARM_DESC(test_tx_completion_failures,
 +		 "number of RTL88 USB TX completions to report as -EPROTO");
 +MODULE_PARM_DESC(test_tx_completion_delays,
 +		 "number of RTL88 USB TX completions to delay by five seconds");
++MODULE_PARM_DESC(test_tx_completion_delay_device,
++		 "USB interface name whose RTL88 TX completion may be delayed");
 +
-+static bool rtw_usb_test_consume(int *remaining_count)
++static bool rtw_usb_test_take(int *remaining_count)
 +{
 +	int remaining;
 +
@@ -49,39 +54,38 @@ index 029766e..feee262 100644
  static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
  {
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
-@@ -443,8 +476,17 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+@@ -443,8 +481,17 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
  static void rtw_usb_write_port_tx_complete(struct urb *urb)
  {
  	struct rtw_usb_txcb *txcb = urb->context;
 +	int status = urb->status;
++	bool delay;
 +
-+	if (unlikely(rtw_usb_test_consume(
-+			     &rtw_usb_test_tx_completion_delays)))
++	delay = sysfs_streq(rtw_usb_test_dev, dev_name(txcb->rtwdev->dev));
++	if (unlikely(delay && rtw_usb_test_take(&rtw_usb_test_tx_delays)))
 +		mdelay(5000);
  
 -	rtw_usb_write_port_tx_status(txcb, urb->status);
-+	if (unlikely(rtw_usb_test_consume(
-+			     &rtw_usb_test_tx_completion_failures)))
++	if (unlikely(rtw_usb_test_take(&rtw_usb_test_tx_complete)))
 +		status = -EPROTO;
 +
 +	rtw_usb_write_port_tx_status(txcb, status);
  }
  
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
-@@ -476,7 +518,11 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+@@ -476,7 +523,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
  	usb_anchor_urb(urb, &rtwusb->tx_anchor);
 -	ret = usb_submit_urb(urb, GFP_ATOMIC);
-+	if (unlikely(rtw_usb_test_consume(
-+			     &rtw_usb_test_tx_submit_failures)))
++	if (unlikely(rtw_usb_test_take(&rtw_usb_test_tx_submit)))
 +		ret = -EPROTO;
 +	else
 +		ret = usb_submit_urb(urb, GFP_ATOMIC);
  	if (ret)
  		usb_unanchor_urb(urb);
  
-@@ -1247,7 +1293,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+@@ -1247,7 +1297,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
  	rtw_usb_tx_queue_purge(rtwusb);
  #endif
  	destroy_workqueue(rtwusb->txwq);
