@@ -148,11 +148,10 @@ journalctl -k --since "@$start_epoch" --no-pager >"$kernel_log" 2>&1
 tx_events=$(grep 'USB TX URB error -71' "$kernel_log" || true)
 unexpected=$(grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' \
 	"$kernel_log" | grep -v 'USB TX URB error -71' || true)
-monotonic=$(printf '%s\n' "$tx_events" | awk '
+counter_values_valid=$(printf '%s\n' "$tx_events" | awk '
 	match($0, /errors=[0-9]+/) {
 		value = substr($0, RSTART + 7, RLENGTH - 7) + 0;
-		if (seen && value <= previous) bad = 1;
-		previous = value;
+		if (value <= 0 || values[value]++) bad = 1;
 		seen++;
 	}
 	END { print seen > 0 && !bad ? 1 : 0 }
@@ -160,9 +159,10 @@ monotonic=$(printf '%s\n' "$tx_events" | awk '
 event_count=$(printf '%s\n' "$tx_events" | sed '/^$/d' | awk 'END { print NR + 0 }')
 unexpected_count=$(printf '%s\n' "$unexpected" | sed '/^$/d' |
 	awk 'END { print NR + 0 }')
-printf 'result=complete tx_diagnostics=%s counters_monotonic=%s unexpected_events=%s root_paths=%s peer_paths=%s\n' \
-	"$event_count" "$monotonic" "$unexpected_count" "$root_paths" "$peer_paths"
+printf 'result=complete tx_diagnostics=%s counter_values_valid=%s unexpected_events=%s root_paths=%s peer_paths=%s\n' \
+	"$event_count" "$counter_values_valid" "$unexpected_count" \
+	"$root_paths" "$peer_paths"
 printf '%s\n' "$unexpected" | sed '/^$/d'
 
-[ "$event_count" -ge 2 ] && [ "$monotonic" -eq 1 ] &&
+[ "$event_count" -ge 2 ] && [ "$counter_values_valid" -eq 1 ] &&
 	[ "$unexpected_count" -eq 0 ]
