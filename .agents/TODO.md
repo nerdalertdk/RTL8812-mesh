@@ -4,8 +4,8 @@
 
 - [ ] Build and validate source DKMS 0.1.5 after the active soak. Inject USB TX
   submission/completion failures, prove traffic recovery and unload with
-  anchored TX URBs pending, then repeat strict symmetric churn and the
-  checksummed transfer gate.
+  anchored TX URBs pending, then repeat strict symmetric churn, a secured
+  SAE/AMPE smoke, and the checksummed transfer gate.
 - [ ] Complete the active eight-hour two-RTL8812AU functional endurance run
   started 2026-08-06 20:34 CEST. It passed preflight, first bilateral state,
   both initial ping batches, and both initial checksummed transfers.

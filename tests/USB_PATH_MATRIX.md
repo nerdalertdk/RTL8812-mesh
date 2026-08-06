@@ -117,6 +117,11 @@ Classify each observed event before drawing a conclusion:
   and resubmitted reception.
 - `RX submission`: `transient RX URB submit error -71; retrying`; submission
   failed before USB core accepted the URB.
+- `TX submission/completion`: `USB TX URB error -71`; source 0.1.5 releases
+  all ownership and reports no ACK. Do not infer whether the frame reached the
+  adapter from this line alone and do not replay it blindly; a synchronous
+  injector proves the pre-submit case, while a physical completion is
+  device-side-progress ambiguous.
 - `control read`: register read recovered after multiple attempts or exhausted
   its bounded retry count.
 - `control write`: register write failed; never infer that retrying it is safe.
