@@ -20,7 +20,7 @@ regression evidence, but cannot substitute for an RTL8812AU-to-RTL8812AU gate.
 | TX teardown safety | Every submitted TX URB is quiesced before skb, mac80211, or driver state is freed | Source 0.1.5 anchors TX URBs and synchronously kills the anchor after draining the producer; pending-TX unbind/unload has not run | Pending 0.1.5 teardown test |
 | Physical USB fault attribution | Three valid repetitions for direct USB3, direct USB2, powered USB3, and powered USB2 with topology/power/event logs | Matrix, causal rules, and serialized evidence runner exist; independently powered paths unavailable | Pending hardware |
 | Endurance | Bounded unattended run with peer/HWMP state, traffic, checksums, recovery, USB events, temperature, and power flags | Eight-hour DKMS 0.1.2 and bounded 0.1.4 runs passed; a symmetric 0.1.4 eight-hour run is active; 0.1.5 long regression has not run | Pass on prior builds; 0.1.5 endurance pending |
-| Upstream hygiene | Reviewable patch split, exact-kernel warning build, strict checkpatch, and comparison with current kernel behavior | Eight patches reproduce production byte-for-byte; patches 7/8 pass v6.12 strict checkpatch 0/0/0; exact-kernel `W=1` for 0.1.5 is pending | Pending current-source build |
+| Upstream hygiene | Reviewable patch split, exact-kernel warning build, strict checkpatch, and comparison with current kernel behavior | Eight downstream patches reproduce production byte-for-byte; a two-patch TX-only series against pinned Linux `315f4bd234b3` reproduces exact final hashes; all TX patches pass v6.12 strict checkpatch 0/0/0; exact-kernel `W=1` for 0.1.5 is pending | Pending current-source build |
 
 ## Completion rule
 

@@ -44,6 +44,14 @@ the intended upstream tree, omit cleanup already present there, and retain the
 completion-status/error-observability and anchored-teardown deltas. Re-run
 strict checkpatch and hardware evidence against that rebased series.
 
+That rebase is materialized for pinned Linux commit
+`315f4bd234b3b8a3ed3a71fd4c53b110cf373720` under `patches/mainline/`.
+Its two patches contain only the still-missing TX error/completion behavior and
+TX URB anchoring. `scripts/check-mainline-tx-series.sh` verifies the exact
+two-file GPL baseline, applies both patches with strict whitespace handling,
+and requires the final hashes to match. Rebase again if the submission target
+moves beyond the pinned commit.
+
 Push the annotated tag together with the branch when publishing the repository;
 a branch-only push cannot reproduce the baseline. The synthetic tag is a
 review convenience, not a claim that its generated commit is the original

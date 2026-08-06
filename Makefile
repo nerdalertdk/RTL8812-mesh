@@ -49,6 +49,7 @@ all:
 check-static:
 	./scripts/check-upstream-baseline.sh
 	./scripts/check-upstream-series.sh
+	./scripts/check-mainline-tx-series.sh
 	./scripts/check-hardware-event-classifiers.sh
 	@set -e; for script in scripts/*.sh tests/*.sh; do \
 		sh -n "$$script"; \

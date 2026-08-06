@@ -36,7 +36,7 @@ static void rtw_usb_fill_tx_checksum(struct rtw_usb *rtwusb,
 
 	le32p_replace_bits(&tx_desc->w7, agg_num, RTW_TX_DESC_W7_DMA_TXAGG_NUM);
 	pkt_info.pkt_offset = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_PKT_OFFSET);
-	rtw_tx_fill_txdesc_checksum(rtwdev, &pkt_info, tx_desc);
+	rtw_tx_fill_txdesc_checksum(rtwdev, &pkt_info, skb->data);
 }
 
 static void rtw_usb_reg_sec(struct rtw_dev *rtwdev, u32 addr, __le32 *data)
@@ -69,77 +69,37 @@ static void rtw_usb_reg_sec(struct rtw_dev *rtwdev, u32 addr, __le32 *data)
 			__func__, t_reg, t_len, status);
 }
 
-static bool rtw_usb_ctrl_error_retryable(int error)
-{
-	switch (error) {
-	case -EPROTO:
-	case -EILSEQ:
-	case -ETIME:
-	case -ETIMEDOUT:
-	case -ECOMM:
-		return true;
-	default:
-		return false;
-	}
-}
-
 static u32 rtw_usb_read(struct rtw_dev *rtwdev, u32 addr, u16 len)
 {
 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
 	struct usb_device *udev = rtwusb->udev;
 	__le32 *data;
-	u32 value;
-	int attempt, ret;
+	unsigned long flags;
+	int idx, ret;
+	static int count;
 
-	mutex_lock(&rtwusb->usb_ctrl_mutex);
-	data = rtwusb->usb_data;
+	spin_lock_irqsave(&rtwusb->usb_lock, flags);
 
-	for (attempt = 1; attempt <= RTW_USB_CTRL_READ_MAX_ATTEMPTS; attempt++) {
-		/* Never expose data left by an earlier transfer after an error or
-		 * a short read.
-		 */
-		*data = 0;
-		ret = usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
-				      RTW_USB_CMD_REQ, RTW_USB_CMD_READ, addr,
-				      RTW_USB_VENQT_CMD_IDX, data, len, 1000);
-		if (ret == len)
-			break;
+	idx = rtwusb->usb_data_index;
+	rtwusb->usb_data_index = (idx + 1) & (RTW_USB_MAX_RXTX_COUNT - 1);
 
-		if (ret >= 0)
-			ret = -EIO;
-		if (!rtw_usb_ctrl_error_retryable(ret) ||
-		    attempt == RTW_USB_CTRL_READ_MAX_ATTEMPTS)
-			break;
+	spin_unlock_irqrestore(&rtwusb->usb_lock, flags);
 
-		atomic_inc(&rtwusb->ctrl_retry_count);
-		usleep_range(1000, 2000);
-	}
-	if (ret == len && attempt > 1)
-		dev_warn_ratelimited(rtwdev->dev,
-				     "read register 0x%x recovered after %d attempts, retries=%d\n",
-				     addr, attempt,
-				     atomic_read(&rtwusb->ctrl_retry_count));
+	data = &rtwusb->usb_data[idx];
 
-	if (ret != len) {
-		int errors = atomic_inc_return(&rtwusb->ctrl_error_count);
+	ret = usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
+			      RTW_USB_CMD_REQ, RTW_USB_CMD_READ, addr,
+			      RTW_USB_VENQT_CMD_IDX, data, len, 1000);
+	if (ret < 0 && ret != -ENODEV && count++ < 4)
+		rtw_err(rtwdev, "read register 0x%x failed with %d\n",
+			addr, ret);
 
-		if (ret != -ENODEV)
-			dev_err_ratelimited(rtwdev->dev,
-					    "read register 0x%x failed with %d after %d attempt(s), errors=%d retries=%d\n",
-					    addr, ret, attempt, errors,
-					    atomic_read(&rtwusb->ctrl_retry_count));
-	}
-
-	if (ret == len &&
-	    (rtwdev->chip->id == RTW_CHIP_TYPE_8822C ||
-	     rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
-	     rtwdev->chip->id == RTW_CHIP_TYPE_8821C))
+	if (rtwdev->chip->id == RTW_CHIP_TYPE_8822C ||
+	    rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
+	    rtwdev->chip->id == RTW_CHIP_TYPE_8821C)
 		rtw_usb_reg_sec(rtwdev, addr, data);
 
-	value = le32_to_cpu(*data);
-	mutex_unlock(&rtwusb->usb_ctrl_mutex);
-
-	return value;
+	return le32_to_cpu(*data);
 }
 
 static u8 rtw_usb_read8(struct rtw_dev *rtwdev, u32 addr)
@@ -157,71 +117,52 @@ static u32 rtw_usb_read32(struct rtw_dev *rtwdev, u32 addr)
 	return (u32)rtw_usb_read(rtwdev, addr, 4);
 }
 
-static bool rtw_usb_ctrl_expected_disconnect(int error)
-{
-	return error == -EPROTO || error == -ENODEV || error == -ESHUTDOWN;
-}
-
-static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len,
-			  bool disconnect_expected)
+static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 {
 	struct rtw_usb *rtwusb = (struct rtw_usb *)rtwdev->priv;
 	struct usb_device *udev = rtwusb->udev;
+	unsigned long flags;
 	__le32 *data;
-	int ret;
+	int idx, ret;
+	static int count;
 
-	mutex_lock(&rtwusb->usb_ctrl_mutex);
-	data = rtwusb->usb_data;
+	spin_lock_irqsave(&rtwusb->usb_lock, flags);
+
+	idx = rtwusb->usb_data_index;
+	rtwusb->usb_data_index = (idx + 1) & (RTW_USB_MAX_RXTX_COUNT - 1);
+
+	spin_unlock_irqrestore(&rtwusb->usb_lock, flags);
+
+	data = &rtwusb->usb_data[idx];
 
 	*data = cpu_to_le32(val);
 
-	/* Do not retry writes indiscriminately. A timed-out transfer may have
-	 * reached the device, and repeating command or clear-on-write registers
-	 * can have side effects. Reads are safe to retry and are handled above.
-	 */
 	ret = usb_control_msg(udev, usb_sndctrlpipe(udev, 0),
 			      RTW_USB_CMD_REQ, RTW_USB_CMD_WRITE,
 			      addr, 0, data, len, 500);
-	if (ret >= 0 && ret != len)
-		ret = -EIO;
-
-	if (ret != len &&
-	    !(disconnect_expected && rtw_usb_ctrl_expected_disconnect(ret))) {
-		int errors = atomic_inc_return(&rtwusb->ctrl_error_count);
-
-		if (ret != -ENODEV)
-			dev_err_ratelimited(rtwdev->dev,
-					    "write register 0x%x failed with %d, errors=%d read_retries=%d\n",
-					    addr, ret, errors,
-					    atomic_read(&rtwusb->ctrl_retry_count));
-	} else if (ret != len) {
-		rtw_dbg(rtwdev, RTW_DBG_USB,
-			"USB mode switch disconnected during register 0x%x write (%d)\n",
+	if (ret < 0 && ret != -ENODEV && count++ < 4)
+		rtw_err(rtwdev, "write register 0x%x failed with %d\n",
 			addr, ret);
-	}
 
-	if (ret == len &&
-	    (rtwdev->chip->id == RTW_CHIP_TYPE_8822C ||
-	     rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
-	     rtwdev->chip->id == RTW_CHIP_TYPE_8821C))
+	if (rtwdev->chip->id == RTW_CHIP_TYPE_8822C ||
+	    rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
+	    rtwdev->chip->id == RTW_CHIP_TYPE_8821C)
 		rtw_usb_reg_sec(rtwdev, addr, data);
-
-	mutex_unlock(&rtwusb->usb_ctrl_mutex);
 }
 
 static void rtw_usb_write8(struct rtw_dev *rtwdev, u32 addr, u8 val)
 {
-	rtw_usb_write(rtwdev, addr, val, 1, false);
+	rtw_usb_write(rtwdev, addr, val, 1);
 }
 
 static void rtw_usb_write16(struct rtw_dev *rtwdev, u32 addr, u16 val)
 {
-	rtw_usb_write(rtwdev, addr, val, 2, false);
+	rtw_usb_write(rtwdev, addr, val, 2);
 }
 
 static void rtw_usb_write32(struct rtw_dev *rtwdev, u32 addr, u32 val)
 {
-	rtw_usb_write(rtwdev, addr, val, 4, false);
+	rtw_usb_write(rtwdev, addr, val, 4);
 }
 
 static void rtw_usb_write_firmware_page(struct rtw_dev *rtwdev, u32 page,
@@ -375,26 +316,11 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
 	return 0;
 }
 
-static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
+static void rtw_usb_write_port_tx_complete(struct urb *urb)
 {
-	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
-
-	if (status && status != -ENOENT && status != -ENODEV &&
-	    status != -ESHUTDOWN) {
-		int errors = atomic_inc_return(&rtwusb->tx_urb_error_count);
-
-		dev_warn_ratelimited(rtwdev->dev,
-				     "USB TX URB error %d, errors=%d\n", status,
-				     errors);
-	}
-}
-
-static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
-{
+	struct rtw_usb_txcb *txcb = urb->context;
 	struct rtw_dev *rtwdev = txcb->rtwdev;
 	struct ieee80211_hw *hw = rtwdev->hw;
-
-	rtw_usb_record_tx_error(rtwdev, status);
 
 	while (true) {
 		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);
@@ -408,18 +334,6 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
 		tx_data = rtw_usb_get_tx_data(skb);
 
 		skb_pull(skb, rtwdev->chip->tx_pkt_desc_sz);
-
-		/* A failed USB transfer cannot be treated as successfully delivered
-		 * to the WLAN firmware. Report it without ACK rather than leaking the
-		 * skb or claiming transmission. Do not retry here: a completion error
-		 * does not prove that no bytes reached the device, so replay could
-		 * duplicate an 802.11 frame.
-		 */
-		if (status) {
-			ieee80211_tx_info_clear_status(info);
-			ieee80211_tx_status_irqsafe(hw, skb);
-			continue;
-		}
 
 		/* enqueue to wait for tx report */
 		if (info->flags & IEEE80211_TX_CTL_REQ_TX_STATUS) {
@@ -438,13 +352,6 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
 	}
 
 	kfree(txcb);
-}
-
-static void rtw_usb_write_port_tx_complete(struct urb *urb)
-{
-	struct rtw_usb_txcb *txcb = urb->context;
-
-	rtw_usb_write_port_tx_status(txcb, urb->status);
 }
 
 static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
@@ -475,10 +382,7 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
 
 	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
 	urb->transfer_flags |= URB_ZERO_PACKET;
-	usb_anchor_urb(urb, &rtwusb->tx_anchor);
 	ret = usb_submit_urb(urb, GFP_ATOMIC);
-	if (ret)
-		usb_unanchor_urb(urb);
 
 	usb_free_urb(urb);
 
@@ -493,18 +397,14 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
 	struct sk_buff *skb_head;
 	struct sk_buff *skb_iter;
 	int agg_num = 0;
-	int ret;
 	unsigned int align_next = 0;
 	u8 qsel;
+	int ret;
 
 	if (skb_queue_empty(list))
 		return false;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
 	txcb = kmalloc_obj(*txcb, GFP_ATOMIC);
-#else
-	txcb = kmalloc(sizeof(*txcb), GFP_ATOMIC);
-#endif
 	if (!txcb)
 		return false;
 
@@ -560,10 +460,9 @@ queue:
 	ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
 				 rtw_usb_write_port_tx_complete, txcb);
 	if (ret) {
-		rtw_usb_record_tx_error(rtwdev, ret);
-		while ((skb_iter = skb_dequeue(&txcb->tx_ack_queue)))
-			ieee80211_free_txskb(rtwdev->hw, skb_iter);
+		ieee80211_purge_tx_queue(rtwdev->hw, &txcb->tx_ack_queue);
 		kfree(txcb);
+		return false;
 	}
 
 	return true;
@@ -586,17 +485,11 @@ static void rtw_usb_tx_handler(struct work_struct *work)
 
 static void rtw_usb_tx_queue_purge(struct rtw_usb *rtwusb)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
 	struct rtw_dev *rtwdev = rtwusb->rtwdev;
-#endif
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(rtwusb->tx_queue); i++)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
 		ieee80211_purge_tx_queue(rtwdev->hw, &rtwusb->tx_queue[i]);
-#else
-		skb_queue_purge(&rtwusb->tx_queue[i]);
-#endif
 }
 
 static void rtw_usb_write_port_complete(struct urb *urb)
@@ -611,7 +504,6 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
 			      u8 *buf)
 {
 	const struct rtw_chip_info *chip = rtwdev->chip;
-	struct rtw_tx_desc *pkt_desc;
 	struct sk_buff *skb;
 	unsigned int size;
 	u8 qsel;
@@ -626,17 +518,16 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
 
 	skb_reserve(skb, chip->tx_pkt_desc_sz);
 	skb_put_data(skb, buf, size);
-	pkt_desc = skb_push(skb, chip->tx_pkt_desc_sz);
-	memset(pkt_desc, 0, chip->tx_pkt_desc_sz);
-	rtw_tx_fill_tx_desc(rtwdev, pkt_info, pkt_desc);
-	rtw_tx_fill_txdesc_checksum(rtwdev, pkt_info, pkt_desc);
+	skb_push(skb, chip->tx_pkt_desc_sz);
+	memset(skb->data, 0, chip->tx_pkt_desc_sz);
+	rtw_tx_fill_tx_desc(rtwdev, pkt_info, skb);
+	rtw_tx_fill_txdesc_checksum(rtwdev, pkt_info, skb->data);
 
 	ret = rtw_usb_write_port(rtwdev, qsel, skb,
 				 rtw_usb_write_port_complete, skb);
 	if (unlikely(ret)) {
-		rtw_usb_record_tx_error(rtwdev, ret);
-		dev_kfree_skb_any(skb);
 		rtw_err(rtwdev, "failed to do USB write, ret=%d\n", ret);
+		dev_kfree_skb_any(skb);
 	}
 
 	return ret;
@@ -669,25 +560,15 @@ static int rtw_usb_write_data_h2c(struct rtw_dev *rtwdev, u8 *buf, u32 size)
 static u8 rtw_usb_tx_queue_mapping_to_qsel(struct sk_buff *skb)
 {
 	struct ieee80211_hdr *hdr = (struct ieee80211_hdr *)skb->data;
-	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
 	__le16 fc = hdr->frame_control;
 	u8 qsel;
 
 	if (unlikely(ieee80211_is_mgmt(fc) || ieee80211_is_ctl(fc)))
 		qsel = TX_DESC_QSEL_MGMT;
 	else if (is_broadcast_ether_addr(hdr->addr1) ||
-		 is_multicast_ether_addr(hdr->addr1)) {
-		/* The high queue is used for AP broadcast/multicast delivery
-		 * around DTIM.  Mesh broadcast carries immediately-needed frames
-		 * such as ARP and HWMP path selection, and has no AP DTIM delivery
-		 * context, so send it through its regular access-category queue.
-		 */
-		if (info->control.vif &&
-		    info->control.vif->type == NL80211_IFTYPE_MESH_POINT)
-			qsel = skb->priority;
-		else
-			qsel = TX_DESC_QSEL_HIGH;
-	} else if (skb_get_queue_mapping(skb) <= IEEE80211_AC_BK)
+		 is_multicast_ether_addr(hdr->addr1))
+		qsel = TX_DESC_QSEL_HIGH;
+	else if (skb_get_queue_mapping(skb) <= IEEE80211_AC_BK)
 		qsel = skb->priority;
 	else
 		qsel = TX_DESC_QSEL_BEACON;
@@ -702,15 +583,15 @@ static int rtw_usb_tx_write(struct rtw_dev *rtwdev,
 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
 	const struct rtw_chip_info *chip = rtwdev->chip;
 	struct rtw_usb_tx_data *tx_data;
-	struct rtw_tx_desc *pkt_desc;
+	u8 *pkt_desc;
 	int ep;
 
 	pkt_info->qsel = rtw_usb_tx_queue_mapping_to_qsel(skb);
 	pkt_desc = skb_push(skb, chip->tx_pkt_desc_sz);
 	memset(pkt_desc, 0, chip->tx_pkt_desc_sz);
 	ep = qsel_to_ep(rtwusb, pkt_info->qsel);
-	rtw_tx_fill_tx_desc(rtwdev, pkt_info, pkt_desc);
-	rtw_tx_fill_txdesc_checksum(rtwdev, pkt_info, pkt_desc);
+	rtw_tx_fill_tx_desc(rtwdev, pkt_info, skb);
+	rtw_tx_fill_txdesc_checksum(rtwdev, pkt_info, skb->data);
 	tx_data = rtw_usb_get_tx_data(skb);
 	tx_data->sn = pkt_info->sn;
 
@@ -726,15 +607,9 @@ static void rtw_usb_tx_kick_off(struct rtw_dev *rtwdev)
 	queue_work(rtwusb->txwq, &rtwusb->tx_work);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
 static void rtw_usb_rx_handler(struct work_struct *work)
 {
 	struct rtw_usb *rtwusb = container_of(work, struct rtw_usb, rx_work);
-#else
-static void rtw_usb_rx_handler(unsigned long shut_up_gcc)
-{
-	struct rtw_usb *rtwusb = (struct rtw_usb *)shut_up_gcc;
-#endif
 	struct rtw_dev *rtwdev = rtwusb->rtwdev;
 	struct ieee80211_rx_status rx_status;
 	struct rtw_rx_pkt_stat pkt_stat;
@@ -744,9 +619,8 @@ static void rtw_usb_rx_handler(unsigned long shut_up_gcc)
 	u32 max_skb_len = pkt_desc_sz + PHY_STATUS_SIZE * 8 +
 			  IEEE80211_MAX_MPDU_LEN_VHT_11454;
 	u32 pkt_offset, next_pkt, skb_len;
+	int limit, ret;
 	u8 *rx_desc;
-	u8 *rx_buf;
-	int limit;
 
 	for (limit = 0; limit < 200; limit++) {
 		rx_skb = skb_dequeue(&rtwusb->rx_queue);
@@ -762,9 +636,11 @@ static void rtw_usb_rx_handler(unsigned long shut_up_gcc)
 		rx_desc = rx_skb->data;
 
 		do {
-			rx_buf = rx_desc + pkt_desc_sz;
-			rtw_rx_query_rx_desc(rtwdev, rx_desc, rx_buf,
-					     &pkt_stat, &rx_status);
+			ret = rtw_rx_query_rx_desc(rtwdev, rx_desc,
+						   &pkt_stat, &rx_status);
+			if (ret)
+				break;
+
 			pkt_offset = pkt_desc_sz + pkt_stat.drv_info_sz +
 				     pkt_stat.shift;
 
@@ -773,13 +649,6 @@ static void rtw_usb_rx_handler(unsigned long shut_up_gcc)
 				rtw_dbg(rtwdev, RTW_DBG_USB,
 					"skipping too big packet: %u\n",
 					skb_len);
-				goto skip_packet;
-			}
-
-			if (pkt_stat.pkt_len <= FCS_LEN && !pkt_stat.is_c2h) {
-				rtw_dbg(rtwdev, RTW_DBG_USB,
-					"skipping too small packet: %u + %u\n",
-					pkt_offset, pkt_stat.pkt_len);
 				goto skip_packet;
 			}
 
@@ -819,31 +688,6 @@ skip_packet:
 
 static void rtw_usb_read_port_complete(struct urb *urb);
 
-static bool rtw_usb_rx_submit_error_retryable(int error)
-{
-	switch (error) {
-	case -ENOMEM:
-	case -ENOSPC:
-	case -EAGAIN:
-	case -EPROTO:
-	case -EILSEQ:
-	case -ETIME:
-	case -ECOMM:
-		return true;
-	default:
-		return false;
-	}
-}
-
-static void rtw_usb_rx_retry_later(struct rtw_usb *rtwusb)
-{
-	/* mod_delayed_work() also guarantees another run when called from the
-	 * resubmit worker itself; queue_work() can lose that self-requeue.
-	 */
-	mod_delayed_work(rtwusb->rxwq, &rtwusb->rx_urb_work,
-			 msecs_to_jiffies(10));
-}
-
 static void rtw_usb_rx_resubmit(struct rtw_usb *rtwusb,
 				struct rx_usb_ctrl_block *rxcb,
 				gfp_t gfp)
@@ -871,33 +715,26 @@ static void rtw_usb_rx_resubmit(struct rtw_usb *rtwusb,
 
 	error = usb_submit_urb(rxcb->rx_urb, gfp);
 	if (error) {
-		bool retryable = rtw_usb_rx_submit_error_retryable(error);
-
 		skb_queue_tail(&rtwusb->rx_free_queue, rxcb->rx_skb);
-		rxcb->rx_skb = NULL;
 
-		if (retryable) {
-			dev_warn_ratelimited(rtwdev->dev,
-					     "transient RX URB submit error %d; retrying\n",
-					     error);
-			rtw_usb_rx_retry_later(rtwusb);
-		} else if (error != -ENODEV && error != -ESHUTDOWN &&
-			   error != -ENOENT) {
-			rtw_err(rtwdev, "Err sending rx data urb %d\n", error);
-		}
+		if (error != -ENODEV)
+			rtw_err(rtwdev, "Err sending rx data urb %d\n",
+				error);
+
+		if (error == -ENOMEM)
+			goto try_later;
 	}
 
 	return;
 
 try_later:
 	rxcb->rx_skb = NULL;
-	rtw_usb_rx_retry_later(rtwusb);
+	queue_work(rtwusb->rxwq, &rtwusb->rx_urb_work);
 }
 
 static void rtw_usb_rx_resubmit_work(struct work_struct *work)
 {
-	struct rtw_usb *rtwusb =
-		container_of(to_delayed_work(work), struct rtw_usb, rx_urb_work);
+	struct rtw_usb *rtwusb = container_of(work, struct rtw_usb, rx_urb_work);
 	struct rx_usb_ctrl_block *rxcb;
 	int i;
 
@@ -925,11 +762,7 @@ static void rtw_usb_read_port_complete(struct urb *urb)
 		} else {
 			skb_put(skb, urb->actual_length);
 			skb_queue_tail(&rtwusb->rx_queue, skb);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
 			queue_work(rtwusb->rxwq, &rtwusb->rx_work);
-#else
-			tasklet_schedule(&rtwusb->rx_tasklet);
-#endif
 		}
 		rtw_usb_rx_resubmit(rtwusb, rxcb, GFP_ATOMIC);
 	} else {
@@ -941,18 +774,12 @@ static void rtw_usb_read_port_complete(struct urb *urb)
 		case -ENODEV:
 		case -ESHUTDOWN:
 		case -ENOENT:
-		case -EINPROGRESS:
-			break;
 		case -EPROTO:
 		case -EILSEQ:
 		case -ETIME:
 		case -ECOMM:
 		case -EOVERFLOW:
-			dev_warn_ratelimited(rtwdev->dev,
-					     "recoverable RX URB error %d, errors=%d; resubmitting\n",
-					     urb->status,
-					     atomic_inc_return(&rtwusb->rx_urb_error_count));
-			rtw_usb_rx_resubmit(rtwusb, rxcb, GFP_ATOMIC);
+		case -EINPROGRESS:
 			break;
 		default:
 			rtw_err(rtwdev, "status %d\n", urb->status);
@@ -966,21 +793,10 @@ static void rtw_usb_cancel_rx_bufs(struct rtw_usb *rtwusb)
 	struct rx_usb_ctrl_block *rxcb;
 	int i;
 
-	/* Prevent a pending allocation/submit retry from repopulating an URB
-	 * after the disconnect path has killed it.
-	 */
-	cancel_delayed_work_sync(&rtwusb->rx_urb_work);
-
 	for (i = 0; i < RTW_USB_RXCB_NUM; i++) {
 		rxcb = &rtwusb->rx_cb[i];
 		usb_kill_urb(rxcb->rx_urb);
 	}
-
-	/* A completion that raced with the first cancellation can have queued a
-	 * retry before usb_kill_urb() quiesced it. With every callback now done,
-	 * cancel once more so no retry can run after teardown proceeds.
-	 */
-	cancel_delayed_work_sync(&rtwusb->rx_urb_work);
 }
 
 static void rtw_usb_free_rx_bufs(struct rtw_usb *rtwusb)
@@ -1161,17 +977,8 @@ static int rtw_usb_init_rx(struct rtw_dev *rtwdev)
 	struct sk_buff *rx_skb;
 	int i;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
 	rtwusb->rxwq = alloc_workqueue("rtw88_usb: rx wq", WQ_BH | WQ_PERCPU,
 				       0);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
-	rtwusb->rxwq = alloc_workqueue("rtw88_usb: rx wq", WQ_BH, 0);
-#else
-	tasklet_init(&rtwusb->rx_tasklet, rtw_usb_rx_handler,
-		     (unsigned long)rtwusb);
-
-	rtwusb->rxwq = create_singlethread_workqueue("rtw88_usb: rx wq");
-#endif
 	if (!rtwusb->rxwq) {
 		rtw_err(rtwdev, "failed to create RX work queue\n");
 		return -ENOMEM;
@@ -1180,10 +987,8 @@ static int rtw_usb_init_rx(struct rtw_dev *rtwdev)
 	skb_queue_head_init(&rtwusb->rx_queue);
 	skb_queue_head_init(&rtwusb->rx_free_queue);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
 	INIT_WORK(&rtwusb->rx_work, rtw_usb_rx_handler);
-#endif
-	INIT_DELAYED_WORK(&rtwusb->rx_urb_work, rtw_usb_rx_resubmit_work);
+	INIT_WORK(&rtwusb->rx_urb_work, rtw_usb_rx_resubmit_work);
 
 	for (i = 0; i < RTW_USB_RX_SKB_NUM; i++) {
 		rx_skb = alloc_skb(RTW_USB_MAX_RECVBUF_SZ, GFP_KERNEL);
@@ -1212,7 +1017,6 @@ static void rtw_usb_deinit_rx(struct rtw_dev *rtwdev)
 
 	skb_queue_purge(&rtwusb->rx_queue);
 
-	cancel_delayed_work_sync(&rtwusb->rx_urb_work);
 	destroy_workqueue(rtwusb->rxwq);
 
 	skb_queue_purge(&rtwusb->rx_free_queue);
@@ -1222,8 +1026,6 @@ static int rtw_usb_init_tx(struct rtw_dev *rtwdev)
 {
 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
 	int i;
-
-	init_usb_anchor(&rtwusb->tx_anchor);
 
 	rtwusb->txwq = create_singlethread_workqueue("rtw88_usb: tx wq");
 	if (!rtwusb->txwq) {
@@ -1243,14 +1045,8 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
 {
 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0)
-	rtw_usb_tx_queue_purge(rtwusb);
-#endif
 	destroy_workqueue(rtwusb->txwq);
-	usb_kill_anchored_urbs(&rtwusb->tx_anchor);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
 	rtw_usb_tx_queue_purge(rtwusb);
-#endif
 }
 
 static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
@@ -1265,18 +1061,15 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
 	if (ret)
 		return ret;
 
-	rtwusb->usb_data = kmalloc(sizeof(*rtwusb->usb_data), GFP_KERNEL);
+	rtwusb->usb_data = kcalloc(RTW_USB_MAX_RXTX_COUNT, sizeof(u32),
+				   GFP_KERNEL);
 	if (!rtwusb->usb_data)
 		return -ENOMEM;
 
 	usb_set_intfdata(intf, rtwdev->hw);
 
 	SET_IEEE80211_DEV(rtwdev->hw, &intf->dev);
-	mutex_init(&rtwusb->usb_ctrl_mutex);
-	atomic_set(&rtwusb->ctrl_error_count, 0);
-	atomic_set(&rtwusb->ctrl_retry_count, 0);
-	atomic_set(&rtwusb->rx_urb_error_count, 0);
-	atomic_set(&rtwusb->tx_urb_error_count, 0);
+	spin_lock_init(&rtwusb->usb_lock);
 
 	return 0;
 }
@@ -1305,7 +1098,7 @@ static int rtw_usb_switch_mode_old(struct rtw_dev *rtwdev)
 			rtw_write8(rtwdev, REG_ACLK_MON, 0x1);
 			rtw_write8(rtwdev, 0x3d, 0x3);
 			/* usb disconnect */
-			rtw_usb_write(rtwdev, REG_SYS_PW_CTRL + 1, 0x80, 1, true);
+			rtw_write8(rtwdev, REG_SYS_PW_CTRL + 1, 0x80);
 			return 1;
 		}
 	} else if (cur_speed == USB_SPEED_SUPER) {

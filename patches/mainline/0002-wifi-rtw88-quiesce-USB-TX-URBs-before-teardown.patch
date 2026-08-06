@@ -1,6 +1,6 @@
-From 5646feaecd2739e39f5d4f883697a225d75daebf Mon Sep 17 00:00:00 2001
+From b69846177d9701bad20758f3d47a55a7dc9d44d8 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
-Date: Thu, 6 Aug 2026 21:41:28 +0200
+Date: Thu, 6 Aug 2026 21:39:48 +0200
 Subject: [PATCH] wifi: rtw88: quiesce USB TX URBs before teardown
 
 rtw_usb_write_port() drops the driver's URB reference immediately after a
@@ -12,15 +12,15 @@ Anchor every TX URB before submission and remove it from the anchor after a
 synchronous submission failure. Stop and drain the TX workqueue, then kill
 anchored URBs synchronously so every completion finishes before teardown.
 ---
- usb.c | 6 ++++++
- usb.h | 1 +
+ drivers/net/wireless/realtek/rtw88/usb.c | 6 ++++++
+ drivers/net/wireless/realtek/rtw88/usb.h | 1 +
  2 files changed, 7 insertions(+)
 
-diff --git a/usb.c b/usb.c
-index db73f46..029766e 100644
---- a/usb.c
-+++ b/usb.c
-@@ -475,7 +475,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+index eb1eda7..356d0b7 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.c
++++ b/drivers/net/wireless/realtek/rtw88/usb.c
+@@ -416,7 +416,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
  
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
@@ -31,7 +31,7 @@ index db73f46..029766e 100644
  
  	usb_free_urb(urb);
  
-@@ -1220,6 +1223,8 @@ static int rtw_usb_init_tx(struct rtw_dev *rtwdev)
+@@ -1063,6 +1066,8 @@ static int rtw_usb_init_tx(struct rtw_dev *rtwdev)
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
  	int i;
  
@@ -40,26 +40,26 @@ index db73f46..029766e 100644
  	rtwusb->txwq = create_singlethread_workqueue("rtw88_usb: tx wq");
  	if (!rtwusb->txwq) {
  		rtw_err(rtwdev, "failed to create TX work queue\n");
-@@ -1242,6 +1247,7 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
- 	rtw_usb_tx_queue_purge(rtwusb);
- #endif
+@@ -1082,6 +1087,7 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+ 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+ 
  	destroy_workqueue(rtwusb->txwq);
 +	usb_kill_anchored_urbs(&rtwusb->tx_anchor);
- #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
  	rtw_usb_tx_queue_purge(rtwusb);
- #endif
-diff --git a/usb.h b/usb.h
-index 4c61018..fe288b6 100644
---- a/usb.h
-+++ b/usb.h
-@@ -83,6 +83,7 @@ struct rtw_usb {
+ }
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.h b/drivers/net/wireless/realtek/rtw88/usb.h
+index fedd413..be42f4c 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.h
++++ b/drivers/net/wireless/realtek/rtw88/usb.h
+@@ -77,6 +77,7 @@ struct rtw_usb {
  	int qsel_to_ep[TX_DESC_QSEL_MAX];
  
  	struct workqueue_struct *txwq, *rxwq;
 +	struct usb_anchor tx_anchor;
- #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)
- 	struct tasklet_struct rx_tasklet; // Can't use BH workqueue
- #endif
+ 
+ 	struct sk_buff_head tx_queue[RTW_USB_EP_MAX];
+ 	struct work_struct tx_work;
 -- 
 2.54.0
 

@@ -1,6 +1,6 @@
-From 0a04046d45c126a067e55aebccc6fee74a025190 Mon Sep 17 00:00:00 2001
+From 63a5743eb9c60f82f38743c1f915d27b55203e42 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
-Date: Thu, 6 Aug 2026 21:25:23 +0200
+Date: Thu, 6 Aug 2026 21:41:28 +0200
 Subject: [PATCH] wifi: rtw88: handle USB TX failures without leaks
 
 USB TX submission failures leave callback-owned state behind because no
@@ -16,12 +16,12 @@ and rate-limit diagnostics for non-teardown TX transport errors.
 Do not replay failed TX URBs: completion errors cannot prove how much of an
 ambiguously submitted frame reached the device.
 ---
- usb.c | 53 +++++++++++++++++++++++++++++++++++++++++++++++++----
+ usb.c | 54 ++++++++++++++++++++++++++++++++++++++++++++++++++----
  usb.h |  1 +
- 2 files changed, 50 insertions(+), 4 deletions(-)
+ 2 files changed, 51 insertions(+), 4 deletions(-)
 
 diff --git a/usb.c b/usb.c
-index d9e319c..5499f17 100644
+index d9e319c..db73f46 100644
 --- a/usb.c
 +++ b/usb.c
 @@ -375,12 +375,27 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
@@ -111,19 +111,20 @@ index d9e319c..5499f17 100644
  
  	return true;
  }
-@@ -588,8 +630,10 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
+@@ -588,8 +630,11 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
  
  	ret = rtw_usb_write_port(rtwdev, qsel, skb,
  				 rtw_usb_write_port_complete, skb);
 -	if (unlikely(ret))
 +	if (unlikely(ret)) {
++		rtw_usb_record_tx_error(rtwdev, ret);
 +		dev_kfree_skb_any(skb);
  		rtw_err(rtwdev, "failed to do USB write, ret=%d\n", ret);
 +	}
  
  	return ret;
  }
-@@ -1225,6 +1269,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
+@@ -1225,6 +1270,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
  	atomic_set(&rtwusb->ctrl_error_count, 0);
  	atomic_set(&rtwusb->ctrl_retry_count, 0);
  	atomic_set(&rtwusb->rx_urb_error_count, 0);
