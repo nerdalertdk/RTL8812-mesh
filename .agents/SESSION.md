@@ -48,7 +48,7 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   per requested rejection, and thereby proves split aggregate/original cleanup
   instead of assuming a generic injected submission happened to aggregate.
   Its deployed SHA-256 is
-  `8bbabd617b9892b3e470a366f6ab5e72c087b0bce38d4754cebe36db02c0e749`.
+  `026d7e14e05df7935c7e33fe703442a2502d46a0fe6401f5799015ea775ef44a`.
   Against the currently loaded
   uninstrumented 0.1.4 module
   it exited 2 at the required-parameter preflight, before taking the hardware
@@ -61,6 +61,13 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   rejection; otherwise mainline's false return stops the worker at the first
   recoverable transport error. Patches 7/8 must omit cleanup already landed
   before an actual upstream submission.
+  The aggregate-only gate now also requires one post-cleanup marker per
+  rejection and at least two original frames in every marker. Injection only
+  records the expected frame count; both frees remain in the unchanged
+  production error path, and the marker is emitted after the synthetic
+  transfer skb is freed and the original-frame queue is drained. This closes
+  the earlier gap where reaching the rejection branch did not itself prove
+  runtime cleanup execution.
   A TX-only two-patch rebase is now pinned under `patches/mainline/` to Linux
   commit `315f4bd234b3b8a3ed3a71fd4c53b110cf373720`. Its offline verifier checks
   both exact baseline files, strict patch application, and both final hashes;
@@ -85,7 +92,7 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   preflight were rechecked after deployment. Its SHA-256 is
   `f9430642110a5937739f8dc96f81118c7fd2e064bd44effc446e2b077c51e6a0`;
   the deployed injector patch SHA-256 is
-  `a43938ff6e30fb98e063fecfc4bc734acdfd89f8a026a60b4616d27a61fa09a7`;
+  `69f7a8be35d69dce1c84a191489fc7357795f6f1500e7e77201c3a4787326316`;
   it passes exact pinned Linux strict checkpatch with 0/0/0.
 - An eight-hour two-RTL8812AU functional endurance run started at
   2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected

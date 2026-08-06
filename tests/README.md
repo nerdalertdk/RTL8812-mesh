@@ -173,6 +173,10 @@ Required evidence:
 - all requested failure counts return to zero under sustained traffic;
 - every requested aggregate-only rejection has a matching test marker, proving
   that an actual synthetic buffer and original-frame queue reached cleanup;
+- every aggregate rejection has a post-cleanup marker reporting at least two
+  original frames; the marker is emitted only after the unchanged production
+  error path frees the synthetic transfer skb and drains the original-frame
+  queue;
 - each requested failure count is fully consumed; at least one rate-limited
   `USB TX URB error -71` diagnostic is retained for each injection phase, and
   displayed driver-counter values are positive and nonduplicated per adapter;
@@ -190,8 +194,8 @@ replayed because the real transfer's device-side progress is ambiguous.
 `pi_usb_tx_failure_test.sh` runs all three phases under the shared hardware lock.
 It requires two RTL8812AU peers already in the open topology and fails closed
 unless the test-only parameters exist. It drives traffic until all requested
-counts reach zero, retains phase diagnostics, requires an exact marker for each
-aggregate-only rejection, and requires positive,
+counts reach zero, retains phase diagnostics, requires exact rejection and
+post-cleanup markers for each aggregate-only failure, and requires positive,
 nonduplicated cumulative counter values per adapter without imposing a global
 order on messages from two devices or CPUs. It revalidates bilateral `ESTAB`,
 traffic, and HWMP, and

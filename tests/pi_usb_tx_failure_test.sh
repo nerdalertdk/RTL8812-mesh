@@ -179,13 +179,27 @@ counter_values_valid=$(printf '%s\n' "$tx_events" | awk '
 ')
 event_count=$(printf '%s\n' "$tx_events" | sed '/^$/d' | awk 'END { print NR + 0 }')
 aggregate_events=$(grep -c 'test: rejecting aggregate USB TX' "$kernel_log" || true)
+aggregate_cleanups=$(grep -c 'test: cleaned rejected aggregate USB TX' \
+	"$kernel_log" || true)
+aggregate_cleanup_values_valid=$(grep 'test: cleaned rejected aggregate USB TX' \
+	"$kernel_log" | awk '
+	match($0, /originals=[0-9]+/) {
+		value = substr($0, RSTART + 10, RLENGTH - 10) + 0;
+		if (value < 2) bad = 1;
+		seen++;
+	}
+	END { print (seen > 0 && !bad ? 1 : 0) }
+')
 unexpected_count=$(printf '%s\n' "$unexpected" | sed '/^$/d' |
 	awk 'END { print NR + 0 }')
-printf 'result=complete tx_diagnostics=%s aggregate_rejections=%s counter_values_valid=%s unexpected_events=%s root_paths=%s peer_paths=%s\n' \
-	"$event_count" "$aggregate_events" "$counter_values_valid" "$unexpected_count" \
-	"$root_paths" "$peer_paths"
+printf 'result=complete tx_diagnostics=%s aggregate_rejections=%s aggregate_cleanups=%s aggregate_cleanup_values_valid=%s counter_values_valid=%s unexpected_events=%s root_paths=%s peer_paths=%s\n' \
+	"$event_count" "$aggregate_events" "$aggregate_cleanups" \
+	"$aggregate_cleanup_values_valid" "$counter_values_valid" \
+	"$unexpected_count" "$root_paths" "$peer_paths"
 printf '%s\n' "$unexpected" | sed '/^$/d'
 
 [ "$event_count" -ge 3 ] && [ "$aggregate_events" -eq "$FAILURES" ] &&
+	[ "$aggregate_cleanups" -eq "$FAILURES" ] &&
+	[ "$aggregate_cleanup_values_valid" -eq 1 ] &&
 	[ "$counter_values_valid" -eq 1 ] &&
 	[ "$unexpected_count" -eq 0 ]

@@ -20,4 +20,11 @@ check_patch()
 check_patch "$repo_dir/tests/usb_rx_submit_failure.patch"
 check_patch "$repo_dir/tests/usb_tx_failure_injection.patch"
 
-echo "test_instrumentation=2 production_source=match whitespace=clean"
+grep -q 'test: cleaned rejected aggregate USB TX originals=%u' \
+	"$tmp_dir/usb.c"
+grep -q '\[ "$aggregate_cleanups" -eq "$FAILURES" \]' \
+	"$repo_dir/tests/pi_usb_tx_failure_test.sh"
+grep -q '\[ "$aggregate_cleanup_values_valid" -eq 1 \]' \
+	"$repo_dir/tests/pi_usb_tx_failure_test.sh"
+
+echo "test_instrumentation=2 production_source=match whitespace=clean aggregate_cleanup_gate=matched"

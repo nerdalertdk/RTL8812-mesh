@@ -90,7 +90,15 @@ index 07d3fc0..f4767da 100644
  	if (ret)
  		usb_unanchor_urb(urb);
  
-@@ -563,8 +618,16 @@ queue:
+@@ -496,6 +551,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list)
+ 	struct sk_buff *skb_iter;
+ 	int agg_num = 0;
+ 	int ret;
++	unsigned int test_agg_originals = 0;
+ 	unsigned int align_next = 0;
+ 	u8 qsel;
+ 
+@@ -563,14 +619,28 @@ queue:
  	tx_desc = (struct rtw_tx_desc *)skb_head->data;
  	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
  
@@ -98,9 +106,11 @@ index 07d3fc0..f4767da 100644
 -				 rtw_usb_write_port_tx_complete, txcb);
 +	if (txcb->agg_skb && skb_queue_len(&txcb->tx_ack_queue) > 1 &&
 +	    unlikely(rtw_usb_test_take(&rtw_usb_test_tx_agg_submit))) {
++		test_agg_originals = skb_queue_len(&txcb->tx_ack_queue);
++
 +		rtw_info(rtwdev,
 +			 "test: rejecting aggregate USB TX originals=%u bytes=%u\n",
-+			 skb_queue_len(&txcb->tx_ack_queue), skb_head->len);
++			 test_agg_originals, skb_head->len);
 +		ret = -EPROTO;
 +	} else {
 +		ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
@@ -109,7 +119,17 @@ index 07d3fc0..f4767da 100644
  	if (ret) {
  		rtw_usb_record_tx_error(rtwdev, ret);
  		if (txcb->agg_skb)
-@@ -1255,7 +1318,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+ 			dev_kfree_skb_any(txcb->agg_skb);
+ 		while ((skb_iter = skb_dequeue(&txcb->tx_ack_queue)))
+ 			ieee80211_free_txskb(rtwdev->hw, skb_iter);
++		if (test_agg_originals)
++			rtw_info(rtwdev,
++				 "test: cleaned rejected aggregate USB TX originals=%u\n",
++				 test_agg_originals);
+ 		kfree(txcb);
+ 	}
+ 
+@@ -1255,7 +1325,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
  	rtw_usb_tx_queue_purge(rtwusb);
  #endif
  	destroy_workqueue(rtwusb->txwq);

@@ -81,7 +81,9 @@ remaining anchored URBs.
   It can inject a safe generic pre-submit `-EPROTO`, reject only a populated
   multi-frame aggregate before submission, or substitute `-EPROTO` at the
   driver's completion entry without shipping instrumentation. Each targeted
-  aggregate rejection records its original-frame count and byte length,
+  aggregate rejection records its original-frame count and byte length. A
+  corresponding marker is emitted only after the unchanged production error
+  path frees the synthetic transfer skb and drains all original frames,
   proving that the corrected split-ownership cleanup ran. It also records
   queued-URB and active-callback anchor state immediately before and after the
   test build kills it during teardown.
@@ -99,7 +101,8 @@ After the active DKMS 0.1.4 endurance run releases the serialized fixture:
    and loaded source versions.
 2. Apply the disposable TX injector and consume generic submission,
    aggregate-only submission, and completion failures under sustained
-   bilateral traffic. Require one aggregate marker per targeted failure.
+   bilateral traffic. Require one rejection and one post-cleanup marker per
+   targeted aggregate failure, with at least two original frames in each.
 3. Run `pi_usb_tx_teardown_test.sh`; require a deliberately delayed callback
    to be active at unbind, zero queued URBs and callbacks after the kill,
    synchronous unbind inside the configured wall-clock bound, successful
