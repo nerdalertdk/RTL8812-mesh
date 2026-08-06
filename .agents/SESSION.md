@@ -43,7 +43,13 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   The serialized `pi_usb_tx_failure_test.sh` harness is deployed for the
   disposable build. Its counter validator now keys values per USB adapter,
   allowing legitimate equal values from two device-local counters while still
-  rejecting duplicates for one adapter. Against the currently loaded
+  rejecting duplicates for one adapter. A third deterministic phase now
+  rejects only a populated multi-frame aggregate, requires exactly one marker
+  per requested rejection, and thereby proves split aggregate/original cleanup
+  instead of assuming a generic injected submission happened to aggregate.
+  Its deployed SHA-256 is
+  `8bbabd617b9892b3e470a366f6ab5e72c087b0bce38d4754cebe36db02c0e749`.
+  Against the currently loaded
   uninstrumented 0.1.4 module
   it exited 2 at the required-parameter preflight, before taking the hardware
   lock or disturbing either active endurance service.
@@ -76,7 +82,7 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   0.1.4 while the soak remained active. Its deployed SHA-256 is
   `df6e2cb063361f835e3abeec03d3e841069c604bd2a136cb3ed56b44b9a7e421`;
   the deployed injector patch SHA-256 is
-  `880046e12205ea09828308429fbf7f67b0ce475ee567b24cd2ecdbf23f4f9073`;
+  `a43938ff6e30fb98e063fecfc4bc734acdfd89f8a026a60b4616d27a61fa09a7`;
   it passes exact pinned Linux strict checkpatch with 0/0/0.
 - An eight-hour two-RTL8812AU functional endurance run started at
   2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected
