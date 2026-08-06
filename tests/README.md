@@ -55,6 +55,17 @@ hard-killed run cannot inherit an older clean verdict. This also avoids relying
 on `After=` to wait for a service that was already active when a dependent unit
 was queued.
 
+`pi_post_soak_dkms_build.sh` is a build-only continuation gate. Before waiting,
+it requires an exact finalizer invocation, an empty dedicated transfer-result
+directory, an unchanged source manifest, and an absent DKMS target version.
+After that exact finalizer succeeds, it independently revalidates the clean
+soak summary and bidirectional final transfer, reruns the source manifest, then
+performs an exact-kernel `W=1` build and rejects compiler diagnostics. Only
+after those gates pass does it register and build the five DKMS artifacts and
+record their source versions, vermagic, and SHA-256. It never installs or loads
+the result. `PREFLIGHT_ONLY=1` validates the queued operation without waiting or
+writing DKMS state.
+
 `pi_mesh_recover.sh` accepts recovery only after exact provenance for all five
 RTL8812AU modules, expected root/peer drivers, bilateral `ESTAB`, successful
 traffic in both directions, and nonempty HWMP tables at both peers. Its unit's
