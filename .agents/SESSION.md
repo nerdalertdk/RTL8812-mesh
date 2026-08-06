@@ -10,6 +10,15 @@ The default 2.4 GHz deployment profile is now USB2 with
 `rtw_usb.switch_usb_mode=N` after the pending physical USB2 gates pass; USB3
 remains an explicit required regression profile.
 
+The live 0.1.4 symmetric soak is still loaded with the upstream default
+`switch_usb_mode=Y`, and the Pi currently has no persistent rtw88 modprobe
+option. Before the post-soak 0.1.5 production load, install
+`options rtw_usb switch_usb_mode=N`; otherwise an automatic recovery after a
+future device re-enumeration can silently return to the default policy. The
+option prevents a USB2-to-USB3 switch and does not downshift an adapter already
+enumerated at USB3, so the current mixed-speed regression fixture can be
+retained for the 0.1.5 gates.
+
 The deployment requirement is now also recorded: multinational, off-grid
 mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
