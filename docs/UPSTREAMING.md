@@ -35,6 +35,15 @@ this repository. They must not be sent upstream unchanged: the actual
 submitter must regenerate or amend the mail headers, add their real Developer
 Certificate of Origin sign-off, and retain the verified patch content.
 
+Patch 7 is a complete fix relative to the repository's exact downstream
+baseline, not a mail file that can be sent unchanged to current Linux
+mainline. As checked on 2026-08-06, mainline already purges aggregate ownership
+after synchronous submission failure and frees reserved/H2C skbs. It still
+ignores TX completion status and does not anchor TX URBs. Rebase patches 7/8 on
+the intended upstream tree, omit cleanup already present there, and retain the
+completion-status/error-observability and anchored-teardown deltas. Re-run
+strict checkpatch and hardware evidence against that rebased series.
+
 Push the annotated tag together with the branch when publishing the repository;
 a branch-only push cannot reproduce the baseline. The synthetic tag is a
 review convenience, not a claim that its generated commit is the original

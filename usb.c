@@ -375,11 +375,9 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
 	return 0;
 }
 
-static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
 {
-	struct rtw_dev *rtwdev = txcb->rtwdev;
 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
-	struct ieee80211_hw *hw = rtwdev->hw;
 
 	if (status && status != -ENOENT && status != -ENODEV &&
 	    status != -ESHUTDOWN) {
@@ -389,6 +387,14 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
 				     "USB TX URB error %d, errors=%d\n", status,
 				     errors);
 	}
+}
+
+static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+{
+	struct rtw_dev *rtwdev = txcb->rtwdev;
+	struct ieee80211_hw *hw = rtwdev->hw;
+
+	rtw_usb_record_tx_error(rtwdev, status);
 
 	while (true) {
 		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);
@@ -553,8 +559,12 @@ queue:
 
 	ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
 				 rtw_usb_write_port_tx_complete, txcb);
-	if (ret)
-		rtw_usb_write_port_tx_status(txcb, ret);
+	if (ret) {
+		rtw_usb_record_tx_error(rtwdev, ret);
+		while ((skb_iter = skb_dequeue(&txcb->tx_ack_queue)))
+			ieee80211_free_txskb(rtwdev->hw, skb_iter);
+		kfree(txcb);
+	}
 
 	return true;
 }

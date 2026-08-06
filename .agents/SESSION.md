@@ -36,6 +36,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   disposable build. Against the currently loaded uninstrumented 0.1.4 module
   it exited 2 at the required-parameter preflight, before taking the hardware
   lock or disturbing either active endurance service.
+  Current Linux mainline independently contains synchronous aggregate and
+  reserved/H2C submission cleanup, but still lacks completion-status handling
+  and TX URB anchoring. Production 0.1.5 now follows mainline's
+  mac80211-aware purge semantics; patches 7/8 must be rebased and omit the
+  already-landed cleanup before an actual upstream submission.
 - An eight-hour two-RTL8812AU functional endurance run started at
   2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected
   completion around 2026-08-07 04:34 CEST. Its first bilateral `ESTAB`/HWMP

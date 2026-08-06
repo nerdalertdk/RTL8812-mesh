@@ -1,5 +1,5 @@
 diff --git a/usb.c b/usb.c
-index 9964bb5..fb8841a 100644
+index e3f4c1d..78fc606 100644
 --- a/usb.c
 +++ b/usb.c
 @@ -375,6 +375,33 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
@@ -33,10 +33,10 @@ index 9964bb5..fb8841a 100644
 +	return true;
 +}
 +
- static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+ static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
  {
- 	struct rtw_dev *rtwdev = txcb->rtwdev;
-@@ -434,8 +461,13 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+ 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+@@ -443,8 +470,13 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
  static void rtw_usb_write_port_tx_complete(struct urb *urb)
  {
  	struct rtw_usb_txcb *txcb = urb->context;
@@ -51,7 +51,7 @@ index 9964bb5..fb8841a 100644
  }
  
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
-@@ -467,7 +499,11 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+@@ -476,7 +508,11 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
  	usb_anchor_urb(urb, &rtwusb->tx_anchor);
