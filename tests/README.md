@@ -152,7 +152,7 @@ Required evidence:
 - both requested failure counts return to zero under sustained traffic;
 - each requested failure count is fully consumed; at least one rate-limited
   `USB TX URB error -71` diagnostic is retained for each injection phase, and
-  displayed driver-counter values are positive and nonduplicated;
+  displayed driver-counter values are positive and nonduplicated per adapter;
 - bilateral mesh traffic resumes after submission injection and remains live
   after completion-status injection;
 - strict churn and a bidirectional checksummed transfer pass after the
@@ -167,9 +167,10 @@ replayed because the real transfer's device-side progress is ambiguous.
 `pi_usb_tx_failure_test.sh` runs both phases under the shared hardware lock.
 It requires two RTL8812AU peers already in the open topology and fails closed
 unless the test-only parameters exist. It drives traffic until both requested
-counts reach zero, retains phase diagnostics, requires positive, nonduplicated
-cumulative counter values without assuming cross-CPU printk order, revalidates
-bilateral `ESTAB`, traffic, and HWMP, and
+counts reach zero, retains phase diagnostics, and requires positive,
+nonduplicated cumulative counter values per adapter without imposing a global
+order on messages from two devices or CPUs. It revalidates bilateral `ESTAB`,
+traffic, and HWMP, and
 rejects any kernel transport event other than its expected injected TX
 `-EPROTO`. The script intentionally does not accept installed-module
 provenance: the instrumented `rtw_usb` cannot match the production artifact.

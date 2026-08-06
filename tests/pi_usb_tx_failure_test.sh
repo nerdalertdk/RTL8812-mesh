@@ -150,11 +150,16 @@ unexpected=$(grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disco
 	"$kernel_log" | grep -v 'USB TX URB error -71' || true)
 counter_values_valid=$(printf '%s\n' "$tx_events" | awk '
 	match($0, /errors=[0-9]+/) {
+		prefix = substr($0, 1, RSTART - 1);
+		kernel_at = index(prefix, "kernel: ");
+		if (kernel_at)
+			prefix = substr(prefix, kernel_at + 8);
+		sub(/USB TX URB error -71, $/, "", prefix);
 		value = substr($0, RSTART + 7, RLENGTH - 7) + 0;
-		if (value <= 0 || values[value]++) bad = 1;
+		if (value <= 0 || values[prefix SUBSEP value]++) bad = 1;
 		seen++;
 	}
-	END { print seen > 0 && !bad ? 1 : 0 }
+	END { print (seen > 0 && !bad ? 1 : 0) }
 ')
 event_count=$(printf '%s\n' "$tx_events" | sed '/^$/d' | awk 'END { print NR + 0 }')
 unexpected_count=$(printf '%s\n' "$unexpected" | sed '/^$/d' |

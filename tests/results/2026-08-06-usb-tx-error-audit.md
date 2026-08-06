@@ -26,6 +26,9 @@ release their caller-owned objects, completion errors are reported to
 mac80211 without ACK, and non-teardown TX URB errors have a cumulative,
 rate-limited diagnostic. TX is not blindly replayed: an error completion does
 not prove how much of an ambiguously submitted frame reached the adapter.
+The injection harness validates counter uniqueness per adapter because each
+`struct rtw_usb` owns its own counter and journal messages from the two devices
+can interleave.
 
 Item 4 is fixed by patch 8. Every TX URB is anchored before submission,
 synchronously rejected URBs are unanchored, the TX producer is drained, and
