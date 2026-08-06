@@ -57,6 +57,16 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   `614d2c1f1c5444ca805fe0d8e08e0258`. It replaces an invalid `After=` attempt
   that started immediately, found the held test lock, and performed no
   transfer.
+  Its first hourly checkpoint at 21:35 CEST passed 77/77 bilateral
+  established/HWMP states, 152/152 directional ping batches, and 4/4 total
+  checksummed transfers. The new 10 MiB pair matched SHA-256 at 4,708,318 B/s
+  root-to-peer and 4,878,524 B/s peer-to-root; post-transfer state remained
+  bilateral with reciprocal paths, temperature was 77.9 C, and the complete
+  kernel interval contained no USB or power event.
+- The exact mainline-aligned source 0.1.5 tree is staged without build artifacts
+  or private agent context at
+  `/var/tmp/rtl8812au-mesh/source-0.1.5-93103a0/` on the Pi. The earlier
+  `source-0.1.5-29f0a15/` staging directory is superseded and must not be used.
 - Two RTL8812AU adapters now form the production test fixture, one at USB3
   `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
   capability. Open recovery validates bilateral traffic and reciprocal HWMP.
