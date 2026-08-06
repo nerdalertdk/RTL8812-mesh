@@ -43,10 +43,13 @@ correctly against hosts that still have an older deployed soak script whose
 summary symlink points at a previous run.
 
 `pi_mesh_soak_finalize.sh` waits for a detached systemd soak to exit, validates
-the matching summary's completion, state, ping, transfer, invalidation,
-recovery, and kernel-event counters, and only then executes a configured final
-integrity transfer. This avoids relying on `After=` to wait for a service that
-was already active when a dependent unit was queued.
+the exact `SOAK_RUN_ID` summary's header, completion, state, ping, transfer,
+invalidation, recovery, and kernel-event counters, and only then executes a
+configured final integrity transfer. It opens
+`soak-$SOAK_RUN_ID-summary.log` directly rather than following `latest`, so a
+hard-killed run cannot inherit an older clean verdict. This also avoids relying
+on `After=` to wait for a service that was already active when a dependent unit
+was queued.
 
 `pi_mesh_recover.sh` accepts recovery only after exact provenance for all five
 RTL8812AU modules, expected root/peer drivers, bilateral `ESTAB`, successful

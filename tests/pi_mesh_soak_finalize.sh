@@ -5,6 +5,7 @@ set -eu
 
 SOAK_UNIT=${SOAK_UNIT:?set the active systemd soak unit name}
 SOAK_LOG_DIR=${SOAK_LOG_DIR:?set the soak LOG_DIR}
+SOAK_RUN_ID=${SOAK_RUN_ID:?set the exact soak run ID}
 TRANSFER_TEST=${TRANSFER_TEST:?set the absolute pi_mesh_transfer.sh path}
 WAIT_SECONDS=${WAIT_SECONDS:-30}
 MAX_WAIT_SECONDS=${MAX_WAIT_SECONDS:-32400}
@@ -13,6 +14,9 @@ MAX_WAIT_SECONDS=${MAX_WAIT_SECONDS:-32400}
 [ -x "$TRANSFER_TEST" ] || { echo "not executable: $TRANSFER_TEST" >&2; exit 2; }
 case $WAIT_SECONDS:$MAX_WAIT_SECONDS in
 	*[!0-9:]*|0:*|*:0) echo "wait intervals must be positive integers" >&2; exit 2 ;;
+esac
+case $SOAK_RUN_ID in
+	*[!0-9TZ]*) echo "invalid soak run ID: $SOAK_RUN_ID" >&2; exit 2 ;;
 esac
 
 elapsed=0
@@ -25,11 +29,16 @@ while systemctl is-active --quiet "$SOAK_UNIT"; do
 	elapsed=$((elapsed + WAIT_SECONDS))
 done
 
-summary=$(readlink -f "$SOAK_LOG_DIR/latest-summary.log" 2>/dev/null || true)
-[ -n "$summary" ] && [ -r "$summary" ] || {
+summary=$SOAK_LOG_DIR/soak-$SOAK_RUN_ID-summary.log
+[ -r "$summary" ] || {
 	echo "matching soak summary is unavailable" >&2
 	exit 1
 }
+expected_header="mesh_soak_summary run_id=$SOAK_RUN_ID "
+case $(sed -n '1p' "$summary") in
+	"$expected_header"*) ;;
+	*) echo "soak summary run ID mismatch: $summary" >&2; exit 1 ;;
+esac
 
 field()
 {

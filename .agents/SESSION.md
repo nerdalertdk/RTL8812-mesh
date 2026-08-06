@@ -25,8 +25,12 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   repetition; the live 85 C cutoff remains enforced.
   A detached `pi_mesh_soak_finalize.sh` service waits for this exact soak,
   validates its matching clean summary, and then runs the bidirectional 512 MiB
-  integrity gate. It replaces an invalid `After=` attempt that started
-  immediately, found the held test lock, and performed no transfer.
+  integrity gate. The finalizer is bound to run ID `20260806T183421Z` and opens
+  that summary directly, so a hard-killed run cannot inherit an older clean
+  `latest-summary.log` verdict. Its replacement invocation ID is
+  `614d2c1f1c5444ca805fe0d8e08e0258`. It replaces an invalid `After=` attempt
+  that started immediately, found the held test lock, and performed no
+  transfer.
 - Two RTL8812AU adapters now form the production test fixture, one at USB3
   `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
   capability. Open recovery validates bilateral traffic and reciprocal HWMP.
