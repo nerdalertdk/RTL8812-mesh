@@ -41,10 +41,19 @@ rtw_8812a-objs := rtw8812a.o rtw8812a_table.o
 obj-m += rtw_8812au.o
 rtw_8812au-objs := rtw8812au.o
 
-.PHONY: all clean preflight install install_fw uninstall
+.PHONY: all check-static clean preflight install install_fw uninstall
 
 all:
 	$(MAKE) -j$(JOBS) -C $(KSRC) M=$$PWD modules
+
+check-static:
+	./scripts/check-upstream-baseline.sh
+	./scripts/check-upstream-series.sh
+	./scripts/check-hardware-event-classifiers.sh
+	@set -e; for script in scripts/*.sh tests/*.sh; do \
+		sh -n "$$script"; \
+	done
+	@echo "shell_syntax=clean"
 
 clean:
 	$(MAKE) -C $(KSRC) M=$$PWD clean

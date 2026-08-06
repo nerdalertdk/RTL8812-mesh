@@ -61,6 +61,13 @@ The RTL8192FU test peer is experimental and is not part of this driver package.
 
 ## Debian prerequisites
 
+Run the source-only reproducibility, event-classifier, and POSIX shell gates
+without touching hardware:
+
+```sh
+make check-static
+```
+
 ```sh
 sudo apt update
 sudo apt install build-essential dkms kmod linux-headers-$(uname -r) \
