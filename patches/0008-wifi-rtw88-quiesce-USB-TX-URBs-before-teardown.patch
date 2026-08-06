@@ -1,0 +1,65 @@
+From 8fce79a27981d8d493ec1c0c641c8bd43a66784f Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 21:01:14 +0200
+Subject: [PATCH] wifi: rtw88: quiesce USB TX URBs before teardown
+
+rtw_usb_write_port() drops the driver's URB reference immediately after a
+successful submission and retains no handle for teardown. A completion may
+therefore still dereference its skb or rtwdev context after unbind has
+destroyed the TX workqueue and continued freeing driver state.
+
+Anchor every TX URB before submission and remove it from the anchor after a
+synchronous submission failure. Stop and drain the TX workqueue, then kill
+anchored URBs synchronously so every completion finishes before teardown.
+---
+ usb.c | 6 ++++++
+ usb.h | 1 +
+ 2 files changed, 7 insertions(+)
+
+diff --git a/usb.c b/usb.c
+index 1ffb067..9964bb5 100644
+--- a/usb.c
++++ b/usb.c
+@@ -466,7 +466,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+ 
+ 	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
+ 	urb->transfer_flags |= URB_ZERO_PACKET;
++	usb_anchor_urb(urb, &rtwusb->tx_anchor);
+ 	ret = usb_submit_urb(urb, GFP_ATOMIC);
++	if (ret)
++		usb_unanchor_urb(urb);
+ 
+ 	usb_free_urb(urb);
+ 
+@@ -1206,6 +1209,8 @@ static int rtw_usb_init_tx(struct rtw_dev *rtwdev)
+ 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+ 	int i;
+ 
++	init_usb_anchor(&rtwusb->tx_anchor);
++
+ 	rtwusb->txwq = create_singlethread_workqueue("rtw88_usb: tx wq");
+ 	if (!rtwusb->txwq) {
+ 		rtw_err(rtwdev, "failed to create TX work queue\n");
+@@ -1228,6 +1233,7 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+ 	rtw_usb_tx_queue_purge(rtwusb);
+ #endif
+ 	destroy_workqueue(rtwusb->txwq);
++	usb_kill_anchored_urbs(&rtwusb->tx_anchor);
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
+ 	rtw_usb_tx_queue_purge(rtwusb);
+ #endif
+diff --git a/usb.h b/usb.h
+index 4c61018..fe288b6 100644
+--- a/usb.h
++++ b/usb.h
+@@ -83,6 +83,7 @@ struct rtw_usb {
+ 	int qsel_to_ep[TX_DESC_QSEL_MAX];
+ 
+ 	struct workqueue_struct *txwq, *rxwq;
++	struct usb_anchor tx_anchor;
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)
+ 	struct tasklet_struct rx_tasklet; // Can't use BH workqueue
+ #endif
+-- 
+2.54.0
+

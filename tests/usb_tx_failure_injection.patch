@@ -1,5 +1,5 @@
 diff --git a/usb.c b/usb.c
-index 1ffb067..ceafa4a 100644
+index 9964bb5..fb8841a 100644
 --- a/usb.c
 +++ b/usb.c
 @@ -375,6 +375,33 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
@@ -51,16 +51,16 @@ index 1ffb067..ceafa4a 100644
  }
  
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
-@@ -466,7 +498,11 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
- 
+@@ -467,7 +499,11 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
+ 	usb_anchor_urb(urb, &rtwusb->tx_anchor);
 -	ret = usb_submit_urb(urb, GFP_ATOMIC);
 +	if (unlikely(rtw_usb_test_consume_tx_failure(
 +			     &rtw_usb_test_tx_submit_failures)))
 +		ret = -EPROTO;
 +	else
 +		ret = usb_submit_urb(urb, GFP_ATOMIC);
- 
- 	usb_free_urb(urb);
+ 	if (ret)
+ 		usb_unanchor_urb(urb);
  

@@ -466,7 +466,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
 
 	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
 	urb->transfer_flags |= URB_ZERO_PACKET;
+	usb_anchor_urb(urb, &rtwusb->tx_anchor);
 	ret = usb_submit_urb(urb, GFP_ATOMIC);
+	if (ret)
+		usb_unanchor_urb(urb);
 
 	usb_free_urb(urb);
 
@@ -1206,6 +1209,8 @@ static int rtw_usb_init_tx(struct rtw_dev *rtwdev)
 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
 	int i;
 
+	init_usb_anchor(&rtwusb->tx_anchor);
+
 	rtwusb->txwq = create_singlethread_workqueue("rtw88_usb: tx wq");
 	if (!rtwusb->txwq) {
 		rtw_err(rtwdev, "failed to create TX work queue\n");
@@ -1228,6 +1233,7 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
 	rtw_usb_tx_queue_purge(rtwusb);
 #endif
 	destroy_workqueue(rtwusb->txwq);
+	usb_kill_anchored_urbs(&rtwusb->tx_anchor);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
 	rtw_usb_tx_queue_purge(rtwusb);
 #endif

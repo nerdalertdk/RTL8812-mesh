@@ -83,6 +83,7 @@ struct rtw_usb {
 	int qsel_to_ep[TX_DESC_QSEL_MAX];
 
 	struct workqueue_struct *txwq, *rxwq;
+	struct usb_anchor tx_anchor;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 9, 0)
 	struct tasklet_struct rx_tasklet; // Can't use BH workqueue
 #endif

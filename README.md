@@ -47,8 +47,10 @@ build has demonstrated:
   complete synchronous USB control transactions and passed exact-kernel
   build, injection, churn, transfer, and bounded-soak validation. Source 0.1.5
   additionally releases every skb after a failed USB TX submission and reports
-  failed TX completions to mac80211 without a false ACK; exact-kernel build and
-  hardware fault-injection validation remain pending.
+  failed TX completions to mac80211 without a false ACK. It also anchors TX
+  URBs and kills them synchronously after draining their producer during
+  teardown; exact-kernel build and hardware fault-injection validation remain
+  pending.
 
 Still required before production claims:
 

@@ -13,8 +13,8 @@ trap 'rm -rf -- "$tmp_dir"' EXIT INT TERM
 "$script_dir/check-upstream-baseline.sh" "$tag" >/dev/null
 
 set -- "$patch_dir"/000*.patch
-[ "$#" -eq 7 ] || {
-	echo "expected seven ordered patches, found $#" >&2
+[ "$#" -eq 8 ] || {
+	echo "expected eight ordered patches, found $#" >&2
 	exit 1
 }
 
@@ -33,4 +33,4 @@ for path in main.c mac80211.c usb.c usb.h; do
 	}
 done
 
-echo "baseline=$tag patches=7 final_tree=production-match whitespace=clean"
+echo "baseline=$tag patches=8 final_tree=production-match whitespace=clean"
