@@ -11,7 +11,7 @@ trap 'rm -rf -- "$tmp_dir"' EXIT INT TERM
 
 baseline_usb_c=64d44452d287386bdb0de219c6a53ab288aec7762983df6929e798b2bc610a3b
 baseline_usb_h=eb30ffd421bbc4e8bc4234dc094a2f3fc9156dfd3e7f8027cb1116a51693797e
-final_usb_c=db1b16ab08d67417f2784854bf162d3957b3b80b367bf4af64afdde57c08fb93
+final_usb_c=3808e0e06703bbbcf9988ded191b745fc187f53786f30b6bd1533f47db45a117
 final_usb_h=9a95181908d1c1bf5aafea5dd42accbe5725f6318375e3e2da7cbf1123617a0b
 
 hash_file()

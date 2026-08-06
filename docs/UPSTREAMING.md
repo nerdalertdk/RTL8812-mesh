@@ -39,9 +39,11 @@ Patch 7 is a complete fix relative to the repository's exact downstream
 baseline, not a mail file that can be sent unchanged to current Linux
 mainline. As checked on 2026-08-06, mainline already purges aggregate ownership
 after synchronous submission failure and frees reserved/H2C skbs. It still
-ignores TX completion status and does not anchor TX URBs. Rebase patches 7/8 on
-the intended upstream tree, omit cleanup already present there, and retain the
-completion-status/error-observability and anchored-teardown deltas. Re-run
+ignores TX completion status, stops draining the software queue after a
+synchronous submission failure, and does not anchor TX URBs. Rebase patches
+7/8 on the intended upstream tree, omit cleanup already present there, and
+retain the queue-draining, completion-status/error-observability, and
+anchored-teardown deltas. Re-run
 strict checkpatch and hardware evidence against that rebased series.
 
 That rebase is materialized for pinned Linux commit

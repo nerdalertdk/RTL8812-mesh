@@ -9,7 +9,8 @@ submission failure and frees reserved-page/H2C skbs. The two patches here do
 not resend that work. They add only the missing behavior:
 
 1. account and diagnose TX submission/completion errors, report failed
-   completions without ACK, and avoid a firmware-report wait;
+   completions without ACK, avoid a firmware-report wait, and continue draining
+   frames already queued after a synchronous submission failure;
 2. anchor submitted TX URBs and synchronously quiesce callbacks after draining
    the TX producer during teardown.
 

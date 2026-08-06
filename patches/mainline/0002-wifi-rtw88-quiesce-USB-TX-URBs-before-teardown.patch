@@ -1,6 +1,6 @@
-From b69846177d9701bad20758f3d47a55a7dc9d44d8 Mon Sep 17 00:00:00 2001
+From e470cbef963504056673cbf2c9c7c40e04541acc Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
-Date: Thu, 6 Aug 2026 21:39:48 +0200
+Date: Thu, 6 Aug 2026 21:48:20 +0200
 Subject: [PATCH] wifi: rtw88: quiesce USB TX URBs before teardown
 
 rtw_usb_write_port() drops the driver's URB reference immediately after a
@@ -17,7 +17,7 @@ anchored URBs synchronously so every completion finishes before teardown.
  2 files changed, 7 insertions(+)
 
 diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
-index eb1eda7..356d0b7 100644
+index b4d5f6a..eee55ca 100644
 --- a/drivers/net/wireless/realtek/rtw88/usb.c
 +++ b/drivers/net/wireless/realtek/rtw88/usb.c
 @@ -416,7 +416,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s

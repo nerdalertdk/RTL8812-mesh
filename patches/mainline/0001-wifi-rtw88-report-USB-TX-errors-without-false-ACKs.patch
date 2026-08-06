@@ -1,7 +1,7 @@
-From a3952c6e0b425076178d70a5d38a7d982bfa8445 Mon Sep 17 00:00:00 2001
+From 8b2c3189df4679cdc0a0545a7fcb93c8ed77283d Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
-Date: Thu, 6 Aug 2026 21:39:10 +0200
-Subject: [PATCH] wifi: rtw88: report USB TX errors without false ACKs
+Date: Thu, 6 Aug 2026 21:48:20 +0200
+Subject: [PATCH 1/2] wifi: rtw88: report USB TX errors without false ACKs
 
 The USB TX completion path ignores urb->status. It can therefore enqueue a
 firmware TX-report wait or report ACK after a failed host transfer. USB TX
@@ -11,13 +11,15 @@ Report failed completions without ACK and do not enqueue a firmware report.
 Do not replay an errored completion because it does not
 prove how much of the frame reached the device. Count every non-teardown TX
 submission or completion error and retain a rate-limited diagnostic.
+After rejecting a synchronous submission, keep draining frames already queued
+by mac80211 instead of stopping the worker at the first transport error.
 ---
- drivers/net/wireless/realtek/rtw88/usb.c | 41 ++++++++++++++++++++++--
+ drivers/net/wireless/realtek/rtw88/usb.c | 43 ++++++++++++++++++++++--
  drivers/net/wireless/realtek/rtw88/usb.h |  1 +
- 2 files changed, 40 insertions(+), 2 deletions(-)
+ 2 files changed, 41 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
-index 64e1c34..eb1eda7 100644
+index 64e1c34..b4d5f6a 100644
 --- a/drivers/net/wireless/realtek/rtw88/usb.c
 +++ b/drivers/net/wireless/realtek/rtw88/usb.c
 @@ -316,12 +316,27 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
@@ -83,14 +85,18 @@ index 64e1c34..eb1eda7 100644
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
  {
  	if (qsel >= ARRAY_SIZE(rtwusb->qsel_to_ep))
-@@ -460,6 +494,7 @@ queue:
+@@ -460,9 +494,10 @@ queue:
  	ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
  				 rtw_usb_write_port_tx_complete, txcb);
  	if (ret) {
 +		rtw_usb_record_tx_error(rtwdev, ret);
  		ieee80211_purge_tx_queue(rtwdev->hw, &txcb->tx_ack_queue);
  		kfree(txcb);
- 		return false;
+-		return false;
++		return true;
+ 	}
+ 
+ 	return true;
 @@ -526,6 +561,7 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
  	ret = rtw_usb_write_port(rtwdev, qsel, skb,
  				 rtw_usb_write_port_complete, skb);
