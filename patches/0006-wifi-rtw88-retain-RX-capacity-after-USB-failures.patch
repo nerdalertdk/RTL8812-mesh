@@ -1,17 +1,17 @@
 From 15b75125cdac57fbc89fb23c7fbf3318a36a1b98 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 20:12:13 +0200
-Subject: [PATCH 6/6] wifi: rtw88: retain RX capacity after USB failures
+Subject: [PATCH 6/8] wifi: rtw88: retain RX capacity after USB failures
 
-A transient RX completion or submission failure permanently removes one entry
-from the small RX URB pool. Repeated errors can therefore drain receive
-capacity even after the USB transport becomes healthy.
+A transient RX completion or submission failure permanently removes an
+entry from the small RX URB pool. Repeated errors can drain capacity even
+after the USB transport becomes healthy.
 
-Resubmit recoverable completions and use delayed work for transient submission
-or allocation failures. Clear skb ownership when submission fails, and use
-mod_delayed_work() so a running worker cannot lose its own requeue. Cancel the
-retry before killing URBs and again after callbacks are quiesced to close the
-completion-versus-teardown race.
+Resubmit recoverable completions. Use delayed work for transient submission
+or allocation failures. Clear skb ownership when submission fails. Use
+mod_delayed_work() so a running worker cannot lose its own requeue. Cancel
+the retry before killing URBs and again after callbacks are quiesced. This
+closes the completion-versus-teardown race.
 
 ---
  usb.c | 73 ++++++++++++++++++++++++++++++++++++++++++++++++++---------

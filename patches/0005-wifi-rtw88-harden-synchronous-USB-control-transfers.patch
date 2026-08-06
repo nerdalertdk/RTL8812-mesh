@@ -1,18 +1,18 @@
 From d15ba60a81a8049ac7ec59e6090be05140a392ef Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 20:11:30 +0200
-Subject: [PATCH 5/6] wifi: rtw88: harden synchronous USB control transfers
+Subject: [PATCH 5/8] wifi: rtw88: harden synchronous USB control transfers
 
 The rotating control-buffer index is released before usb_control_msg() uses
 the selected entry. Enough concurrent transactions can therefore wrap the
 ring and overwrite a buffer still owned by an in-flight request.
 
-Use one mutex-protected buffer for the complete synchronous transaction. Clear
-reads before each attempt, reject short transfers, and retry only idempotent
-reads for a bounded set of transient USB errors. Never retry writes because
-device-side completion is ambiguous. Classify only the deliberate old-chip
-USB2-to-USB3 disconnect write as expected, and retain rate-limited counters for
-all other failures.
+Use one mutex-protected buffer for the complete synchronous transaction.
+Clear reads before each attempt and reject short transfers. Retry only
+idempotent reads for a bounded set of transient USB errors. Never retry
+writes because device-side completion is ambiguous. Classify only the
+deliberate old-chip USB2-to-USB3 disconnect write as expected. Retain
+rate-limited counters for all other failures.
 
 ---
  usb.c | 146 +++++++++++++++++++++++++++++++++++++++++-----------------

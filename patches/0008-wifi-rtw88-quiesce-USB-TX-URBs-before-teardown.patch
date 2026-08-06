@@ -1,7 +1,7 @@
 From 4e6558f509b6f0ce1937b0d935238c6c2a711e05 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 22:22:48 +0200
-Subject: [PATCH 2/2] wifi: rtw88: quiesce USB TX URBs before teardown
+Subject: [PATCH 8/8] wifi: rtw88: quiesce USB TX URBs before teardown
 
 rtw_usb_write_port() drops the driver's URB reference immediately after a
 successful submission and retains no handle for teardown. A completion may
@@ -62,4 +62,3 @@ index 4c61018..fe288b6 100644
  #endif
 -- 
 2.54.0
-

@@ -184,6 +184,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   under `patches/`. `scripts/check-upstream-series.sh` reapplies them from the
   tagged baseline with strict whitespace handling and requires all four final
   files to match the validated production tree byte-for-byte.
+  Their downstream mail metadata is now one coherent `1/8` through `8/8`
+  sequence, patch 7's filename matches its corrected aggregate-ownership
+  subject, and the verifier rejects incoherent numbering or filenames. All
+  eight pass Linux v6.12 strict checkpatch with 0/0/0 when the intentionally
+  absent private sign-off is excluded.
 - Physical USB trial preflight now rejects a pre-existing Raspberry Pi bit 19
   soft-temperature history. Once that bit is already set, a brief recurrence
   cannot be inferred from the post-run mask after the current bit clears, so a

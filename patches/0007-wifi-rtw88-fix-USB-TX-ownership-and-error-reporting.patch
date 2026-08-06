@@ -1,7 +1,7 @@
 From fd58ebc1e172e574c39d796746e3fdb9c04b1e3c Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 22:18:43 +0200
-Subject: [PATCH 1/2] wifi: rtw88: fix USB TX ownership and error reporting
+Subject: [PATCH 7/8] wifi: rtw88: fix USB TX ownership and error reporting
 
 USB aggregation copies mac80211 frames into a driver-allocated transfer
 skb, then puts that synthetic buffer on the mac80211 TX-status queue.
@@ -187,4 +187,3 @@ index 683219f..4c61018 100644
  	u8 pipe_in;
 -- 
 2.54.0
-

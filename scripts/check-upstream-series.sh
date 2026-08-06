@@ -21,9 +21,22 @@ set -- "$patch_dir"/000*.patch
 git -C "$repo_dir" archive "$tag" | tar -x -C "$tmp_dir"
 git -C "$tmp_dir" init -q
 
+index=1
 for patch in "$@"; do
+	number=$(printf '%04d' "$index")
+	case $(basename "$patch") in
+		"$number-"*) ;;
+		*) echo "patch $index has an incoherent filename: $patch" >&2; exit 1 ;;
+	esac
+	subject=$(grep -m1 '^Subject:' "$patch" || true)
+	expected="Subject: [PATCH $index/8] "
+	case $subject in
+		"$expected"*) ;;
+		*) echo "patch $index has an incoherent mail subject: $subject" >&2; exit 1 ;;
+	esac
 	git -C "$tmp_dir" apply --check --whitespace=error-all "$patch"
 	git -C "$tmp_dir" apply --whitespace=error-all "$patch"
+	index=$((index + 1))
 done
 
 for path in main.c mac80211.c usb.c usb.h; do
@@ -33,4 +46,4 @@ for path in main.c mac80211.c usb.c usb.h; do
 	}
 done
 
-echo "baseline=$tag patches=8 final_tree=production-match whitespace=clean"
+echo "baseline=$tag patches=8 mail_headers=coherent final_tree=production-match whitespace=clean"

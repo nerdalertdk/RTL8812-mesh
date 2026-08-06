@@ -21,12 +21,18 @@ git diff upstream-baseline-a56bcd2 -- main.c mac80211.c usb.c usb.h
 ```
 
 The materialized eight-patch mail series is under `patches/`. Verify that it
-applies in order with strict whitespace handling and reproduces the validated
-production files byte-for-byte with:
+has coherent `1/8` through `8/8` subjects and filenames, applies in order with
+strict whitespace handling, and reproduces the validated production files
+byte-for-byte with:
 
 ```sh
 ./scripts/check-upstream-series.sh
 ```
+
+The coherent downstream series passes Linux v6.12
+`checkpatch.pl --strict --no-tree --no-signoff` with zero errors, warnings, or
+checks for every patch. Sign-off is deliberately evaluated separately as
+described below.
 
 The stored mail files intentionally use the neutral
 `RTL8812AU Mesh Project <noreply@example.invalid>` identity and omit
