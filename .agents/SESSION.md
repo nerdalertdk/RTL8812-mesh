@@ -32,6 +32,14 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   0.1.4 soak releases the Pi. Static findings, Linux USB-anchor contract, and
   the pending evidence boundary are recorded in
   `tests/results/2026-08-06-usb-tx-error-audit.md`.
+  A further ownership audit found that inherited aggregation put the
+  driver-allocated transfer skb into mac80211's TX-status queue alongside the
+  original frames. Normal completion reported that synthetic buffer with an
+  invalid control block, and submission rejection passed it to mac80211's
+  free path. Source 0.1.5 now tracks and frees the aggregate buffer separately;
+  only original frames enter status or purge paths. Both downstream and pinned
+  mainline patch series reproduce this corrected production source and pass
+  strict checkpatch 0/0/0.
   The serialized `pi_usb_tx_failure_test.sh` harness is deployed for the
   disposable build. Its counter validator now keys values per USB adapter,
   allowing legitimate equal values from two device-local counters while still
@@ -92,11 +100,13 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   root-to-peer and 4,878,524 B/s peer-to-root; post-transfer state remained
   bilateral with reciprocal paths, temperature was 77.9 C, and the complete
   kernel interval contained no USB or power event.
-- The exact mainline-aligned source 0.1.5 tree is staged without build artifacts
-  or private agent context at
-  `/var/tmp/rtl8812au-mesh/source-0.1.5-9fbffb3/` on the Pi. The earlier
-  `source-0.1.5-29f0a15/` and `source-0.1.5-93103a0/` staging directories are
-  superseded and must not be used.
+- The exact aggregate-ownership-corrected source 0.1.5 tree is staged without
+  build artifacts or private agent context at
+  `/var/tmp/rtl8812au-mesh/source-0.1.5-0ee949f/` on the Pi. Its root build-input
+  manifest is `d42cf46e688f738674fc7d1d56d1a2e05c221cc6f046bc0e30d3e590459263a3`
+  and matches the repository exactly. The earlier `source-0.1.5-29f0a15/`,
+  `source-0.1.5-93103a0/`, and `source-0.1.5-9fbffb3/` directories are
+  superseded and must not be built.
 - Two RTL8812AU adapters now form the production test fixture, one at USB3
   `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
   capability. Open recovery validates bilateral traffic and reciprocal HWMP.
