@@ -51,19 +51,24 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   commit `315f4bd234b3b8a3ed3a71fd4c53b110cf373720`. Its offline verifier checks
   both exact baseline files, strict patch application, and both final hashes;
   the rebased patches pass strict v6.12 checkpatch 0/0/0.
-  Disposable TX instrumentation now logs whether the anchor is nonempty just
-  before it is synchronously killed. The serialized
-  `pi_usb_tx_teardown_test.sh` drives large concurrent TX, unbinds one adapter,
-  requires that nonempty-anchor marker, rejects fault/transport signatures,
-  and requires a successful rebind. Both disposable USB patches are now
+  Exact pinned Linux USB-core review confirms that giveback suspends anchor
+  wakeups before unanchoring, invokes the driver callback, then resumes anchor
+  wakeups; the kill waits for both the URB list and that active-callback count.
+  Disposable TX instrumentation deterministically delays one completion for a
+  selected USB interface by five seconds and logs queued-URB and callback counts
+  before and after the kill. The serialized `pi_usb_tx_teardown_test.sh` starts
+  that callback, unbinds the same adapter, requires in-flight state before and
+  zero state after the kill, rejects fault/transport signatures, stops the
+  udev-queued recovery unit while holding the lock, and requires a successful
+  rebind. Both disposable USB patches are now
   apply-checked against exact production `usb.c` by
   `scripts/check-test-instrumentation.sh`. The teardown harness fails before
-  acquiring the hardware lock or unbinding unless both disposable module
-  parameters exist; this preflight returned exit 2 against live uninstrumented
+  acquiring the hardware lock or unbinding unless all disposable module
+  parameters exist; an earlier preflight returned exit 2 against uninstrumented
   0.1.4 while the soak remained active. Its deployed SHA-256 is
-  `8c14e9e356b3aaa441952c91c75642cbc65114f69ecfca3457408b2c3215553e`;
+  `df6e2cb063361f835e3abeec03d3e841069c604bd2a136cb3ed56b44b9a7e421`;
   the deployed injector patch SHA-256 is
-  `0975e80b3522ebbe3193da16cdf5772cf5fc737f56e94a7adcca18a2114d966b`.
+  `f8cfb41c9e5943fcb5fbacbef7375bc7bb88d3b651194a5983430dea301ba7ee`.
 - An eight-hour two-RTL8812AU functional endurance run started at
   2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected
   completion around 2026-08-07 04:34 CEST. Its first bilateral `ESTAB`/HWMP
