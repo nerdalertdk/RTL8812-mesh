@@ -194,7 +194,9 @@ one completion for the selected USB interface by five seconds. The harness
 drives concurrent large pings, waits until that callback enters its delay, then
 unbinds the same RTL8812AU interface. It requires the pre-kill marker to show a
 queued URB or active callback, the post-kill marker to show both counts at zero,
-no kernel fault or transport signature, and a usable rebound netdev. It fails
+the synchronous unbind to finish inside an explicit wall-clock bound, no kernel
+fault or transport signature, and a usable rebound netdev. The result records
+unbind elapsed time. It fails
 before taking the hardware lock or unbinding unless all disposable TX test
 parameters are present and writable. Rebind queues the udev recovery service;
 the harness stops that waiting unit before releasing its lock so the mesh

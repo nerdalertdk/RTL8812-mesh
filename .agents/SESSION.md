@@ -79,8 +79,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   `scripts/check-test-instrumentation.sh`. The teardown harness fails before
   acquiring the hardware lock or unbinding unless all disposable module
   parameters exist; an earlier preflight returned exit 2 against uninstrumented
-  0.1.4 while the soak remained active. Its deployed SHA-256 is
-  `df6e2cb063361f835e3abeec03d3e841069c604bd2a136cb3ed56b44b9a7e421`;
+  0.1.4 while the soak remained active. Synchronous sysfs unbind is guarded by
+  an explicit 20-second timeout plus five-second kill grace, and successful
+  results record elapsed unbind time. Pi coreutils support and the fail-closed
+  preflight were rechecked after deployment. Its SHA-256 is
+  `f9430642110a5937739f8dc96f81118c7fd2e064bd44effc446e2b077c51e6a0`;
   the deployed injector patch SHA-256 is
   `a43938ff6e30fb98e063fecfc4bc734acdfd89f8a026a60b4616d27a61fa09a7`;
   it passes exact pinned Linux strict checkpatch with 0/0/0.

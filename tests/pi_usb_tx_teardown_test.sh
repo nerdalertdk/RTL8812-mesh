@@ -16,6 +16,7 @@ RECOVERY_UNIT=${RECOVERY_UNIT:-rtw88-mesh-recover.service}
 FLOODERS=${FLOODERS:-8}
 REBIND_POLLS=${REBIND_POLLS:-100}
 DELAY_POLLS=${DELAY_POLLS:-200}
+UNBIND_TIMEOUT_SECONDS=${UNBIND_TIMEOUT_SECONDS:-20}
 LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/usb-tx-teardown}
 submit_param=/sys/module/rtw_usb/parameters/test_tx_submit_failures
 completion_param=/sys/module/rtw_usb/parameters/test_tx_completion_failures
@@ -23,13 +24,15 @@ delay_param=/sys/module/rtw_usb/parameters/test_tx_completion_delays
 delay_device_param=/sys/module/rtw_usb/parameters/test_tx_completion_delay_device
 
 [ "$(id -u)" -eq 0 ] || { echo "run this hardware test as root" >&2; exit 2; }
-for value in "$FLOODERS" "$REBIND_POLLS" "$DELAY_POLLS"; do
+for value in "$FLOODERS" "$REBIND_POLLS" "$DELAY_POLLS" \
+	"$UNBIND_TIMEOUT_SECONDS"; do
 	case $value in *[!0-9]*|''|0) echo "counts must be positive integers" >&2; exit 2 ;; esac
 done
 [ -x "$IW" ] || { echo "iw is required at $IW" >&2; exit 2; }
 command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
 command -v journalctl >/dev/null 2>&1 || { echo "journalctl is required" >&2; exit 2; }
 command -v systemctl >/dev/null 2>&1 || { echo "systemctl is required" >&2; exit 2; }
+command -v timeout >/dev/null 2>&1 || { echo "timeout is required" >&2; exit 2; }
 [ -w "$submit_param" ] && [ -w "$completion_param" ] &&
    [ -w "$delay_param" ] && [ -w "$delay_device_param" ] || {
 	echo "test-only TX failure parameters are unavailable" >&2
@@ -146,7 +149,13 @@ done
 }
 
 bound=0
-printf '%s' "$driver_id" >"$unbind_path"
+unbind_start=$(date +%s)
+if ! timeout --foreground -k 5 "$UNBIND_TIMEOUT_SECONDS" \
+	sh -c 'printf "%s" "$1" >"$2"' sh "$driver_id" "$unbind_path"; then
+	echo "RTL8812AU unbind exceeded ${UNBIND_TIMEOUT_SECONDS}s or failed" >&2
+	exit 1
+fi
+unbind_elapsed=$(( $(date +%s) - unbind_start ))
 stop_flood
 printf '%s' "$driver_id" >"$bind_path"
 bound=1
@@ -179,8 +188,9 @@ quiesced=$(grep -c 'test: USB TX anchor after kill pending_urbs=0 active_callbac
 faults=$(grep -Ei 'BUG:|WARNING:|Oops:|KASAN|UBSAN|use-after-free|general protection fault|kernel NULL pointer|refcount_t:|error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' \
 	"$kernel_log" || true)
 fault_count=$(printf '%s\n' "$faults" | sed '/^$/d' | awk 'END { print NR + 0 }')
-printf 'result=complete driver_id=%s pre_kill_inflight=%s post_kill_quiesced=%s fault_events=%s rebind_polls=%s root_if=%s\n' \
-	"$driver_id" "$inflight" "$quiesced" "$fault_count" "$poll" "$ROOT_IF"
+printf 'result=complete driver_id=%s unbind_elapsed_s=%s pre_kill_inflight=%s post_kill_quiesced=%s fault_events=%s rebind_polls=%s root_if=%s\n' \
+	"$driver_id" "$unbind_elapsed" "$inflight" "$quiesced" \
+	"$fault_count" "$poll" "$ROOT_IF"
 printf '%s\n' "$faults" | sed '/^$/d'
 
 # Rebinding proves the interface driver remains usable. The stopped recovery

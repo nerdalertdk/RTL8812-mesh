@@ -102,8 +102,9 @@ After the active DKMS 0.1.4 endurance run releases the serialized fixture:
    bilateral traffic. Require one aggregate marker per targeted failure.
 3. Run `pi_usb_tx_teardown_test.sh`; require a deliberately delayed callback
    to be active at unbind, zero queued URBs and callbacks after the kill,
-   bounded completion, successful rebind, and no warning, Oops, use-after-free,
-   stale callback, transport fault, or leaked-work symptom.
+   synchronous unbind inside the configured wall-clock bound, successful
+   rebind, and no warning, Oops, use-after-free, stale callback, transport
+   fault, or leaked-work symptom.
 4. Restore exact production 0.1.5 and repeat strict two-RTL8812AU churn plus
    the bidirectional checksummed transfer gate.
 5. Keep synthetic results separate from the thermally clean physical USB path
