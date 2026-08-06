@@ -35,6 +35,14 @@ synchronously rejected URBs are unanchored, the TX producer is drained, and
 `usb_kill_anchored_urbs()` completes every remaining callback before teardown
 continues.
 
+The callback guarantee also covers an URB that USB core has already removed
+from the anchor list. In pinned Linux `315f4bd234b3`,
+`__usb_hcd_giveback_urb()` suspends anchor wakeups before unanchoring, calls the
+driver completion, then resumes wakeups. `usb_kill_anchored_urbs()` returns only
+after both the URB list is empty and that suspended-wakeup count reaches zero.
+The disposable test delays one selected-device completion for five seconds and
+records both states immediately before and after the production kill call.
+
 This lifetime design follows Linux v6.12
 `Documentation/driver-api/usb/anchors.rst`: a USB driver must track submitted
 URBs to cease interface I/O, successful completion automatically removes an
@@ -67,8 +75,8 @@ remaining anchored URBs.
 - `tests/usb_tx_failure_injection.patch` applies exactly to production 0.1.5.
   It can inject a safe pre-submit `-EPROTO` or substitute `-EPROTO` at the
   driver's completion entry without shipping instrumentation. It also records
-  whether the TX anchor was populated just before the test build kills it
-  during teardown.
+  queued-URB and active-callback anchor state immediately before and after the
+  test build kills it during teardown.
 - Every hardware gate's kernel-event classifier recognizes
   `USB TX URB error`, so a functionally recovered interval cannot be accepted
   as transport-clean.
@@ -81,9 +89,10 @@ After the active DKMS 0.1.4 endurance run releases the serialized fixture:
    and loaded source versions.
 2. Apply the disposable TX injector and consume both submission and completion
    failures under sustained bilateral traffic.
-3. Run `pi_usb_tx_teardown_test.sh`; require an observed nonempty TX anchor at
-   unbind, bounded completion, successful rebind, and no warning, Oops,
-   use-after-free, stale callback, transport fault, or leaked-work symptom.
+3. Run `pi_usb_tx_teardown_test.sh`; require a deliberately delayed callback
+   to be active at unbind, zero queued URBs and callbacks after the kill,
+   bounded completion, successful rebind, and no warning, Oops, use-after-free,
+   stale callback, transport fault, or leaked-work symptom.
 4. Restore exact production 0.1.5 and repeat strict two-RTL8812AU churn plus
    the bidirectional checksummed transfer gate.
 5. Keep synthetic results separate from the thermally clean physical USB path

@@ -176,15 +176,19 @@ rejects any kernel transport event other than its expected injected TX
 provenance: the instrumented `rtw_usb` cannot match the production artifact.
 
 `pi_usb_tx_teardown_test.sh` uses the same disposable build to prove TX
-teardown against an actually populated USB anchor. It drives concurrent large
-pings, unbinds one RTL8812AU interface, requires the test-only pre-kill marker
-to report at least one anchored URB, rejects kernel fault and transport
-signatures, then requires the device to bind and expose a usable netdev again.
-It fails before taking the hardware lock or unbinding unless both disposable
-TX-injection parameters are present and writable.
-It deliberately does not reconstruct the mesh with the instrumented module;
-replace that module with exact production 0.1.5 before running recovery and
-subsequent behavioral gates.
+teardown against an actually active USB anchor. The test patch delays exactly
+one completion for the selected USB interface by five seconds. The harness
+drives concurrent large pings, waits until that callback enters its delay, then
+unbinds the same RTL8812AU interface. It requires the pre-kill marker to show a
+queued URB or active callback, the post-kill marker to show both counts at zero,
+no kernel fault or transport signature, and a usable rebound netdev. It fails
+before taking the hardware lock or unbinding unless all disposable TX test
+parameters are present and writable. Rebind queues the udev recovery service;
+the harness stops that waiting unit before releasing its lock so the mesh
+cannot be reconstructed with disposable code.
+It deliberately does not reconstruct the mesh with the instrumented module.
+Replace that module with exact production 0.1.5, then explicitly start recovery
+before subsequent behavioral gates.
 
 `scripts/check-test-instrumentation.sh` applies both disposable USB patches to
 the exact production `usb.c` with strict whitespace handling. This prevents a

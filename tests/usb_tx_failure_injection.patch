@@ -1,8 +1,16 @@
 diff --git a/usb.c b/usb.c
-index 029766e..22f923d 100644
+index 029766e..feee262 100644
 --- a/usb.c
 +++ b/usb.c
-@@ -375,6 +375,33 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+@@ -5,6 +5,7 @@
+ #include <linux/module.h>
+ #include <linux/usb.h>
+ #include <linux/mutex.h>
++#include <linux/delay.h>
+ #include "main.h"
+ #include "debug.h"
+ #include "mac.h"
+@@ -375,6 +376,38 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
  	return 0;
  }
  
@@ -11,24 +19,29 @@ index 029766e..22f923d 100644
 + */
 +static int rtw_usb_test_tx_submit_failures;
 +static int rtw_usb_test_tx_completion_failures;
++static int rtw_usb_test_tx_completion_delays;
 +module_param_named(test_tx_submit_failures,
 +		   rtw_usb_test_tx_submit_failures, int, 0600);
 +module_param_named(test_tx_completion_failures,
 +		   rtw_usb_test_tx_completion_failures, int, 0600);
++module_param_named(test_tx_completion_delays,
++		   rtw_usb_test_tx_completion_delays, int, 0600);
 +MODULE_PARM_DESC(test_tx_submit_failures,
 +		 "number of RTL88 USB TX submissions to fail with -EPROTO");
 +MODULE_PARM_DESC(test_tx_completion_failures,
 +		 "number of RTL88 USB TX completions to report as -EPROTO");
++MODULE_PARM_DESC(test_tx_completion_delays,
++		 "number of RTL88 USB TX completions to delay by five seconds");
 +
-+static bool rtw_usb_test_consume_tx_failure(int *failures)
++static bool rtw_usb_test_consume(int *remaining_count)
 +{
 +	int remaining;
 +
 +	do {
-+		remaining = READ_ONCE(*failures);
++		remaining = READ_ONCE(*remaining_count);
 +		if (remaining <= 0)
 +			return false;
-+	} while (cmpxchg(failures, remaining, remaining - 1) != remaining);
++	} while (cmpxchg(remaining_count, remaining, remaining - 1) != remaining);
 +
 +	return true;
 +}
@@ -36,27 +49,31 @@ index 029766e..22f923d 100644
  static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
  {
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
-@@ -443,8 +470,13 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+@@ -443,8 +476,17 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
  static void rtw_usb_write_port_tx_complete(struct urb *urb)
  {
  	struct rtw_usb_txcb *txcb = urb->context;
 +	int status = urb->status;
 +
-+	if (unlikely(rtw_usb_test_consume_tx_failure(
-+			     &rtw_usb_test_tx_completion_failures)))
-+		status = -EPROTO;
++	if (unlikely(rtw_usb_test_consume(
++			     &rtw_usb_test_tx_completion_delays)))
++		mdelay(5000);
  
 -	rtw_usb_write_port_tx_status(txcb, urb->status);
++	if (unlikely(rtw_usb_test_consume(
++			     &rtw_usb_test_tx_completion_failures)))
++		status = -EPROTO;
++
 +	rtw_usb_write_port_tx_status(txcb, status);
  }
  
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
-@@ -476,7 +508,11 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+@@ -476,7 +518,11 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
  	usb_anchor_urb(urb, &rtwusb->tx_anchor);
 -	ret = usb_submit_urb(urb, GFP_ATOMIC);
-+	if (unlikely(rtw_usb_test_consume_tx_failure(
++	if (unlikely(rtw_usb_test_consume(
 +			     &rtw_usb_test_tx_submit_failures)))
 +		ret = -EPROTO;
 +	else
@@ -64,12 +81,19 @@ index 029766e..22f923d 100644
  	if (ret)
  		usb_unanchor_urb(urb);
  
-@@ -1247,6 +1283,8 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+@@ -1247,7 +1293,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
  	rtw_usb_tx_queue_purge(rtwusb);
  #endif
  	destroy_workqueue(rtwusb->txwq);
-+	rtw_info(rtwdev, "test: USB TX anchor pending before kill=%d\n",
-+		 !usb_anchor_empty(&rtwusb->tx_anchor));
++	rtw_info(rtwdev,
++		 "test: USB TX anchor before kill pending_urbs=%d active_callbacks=%d\n",
++		 !usb_anchor_empty(&rtwusb->tx_anchor),
++		 atomic_read(&rtwusb->tx_anchor.suspend_wakeups));
  	usb_kill_anchored_urbs(&rtwusb->tx_anchor);
++	rtw_info(rtwdev,
++		 "test: USB TX anchor after kill pending_urbs=%d active_callbacks=%d\n",
++		 !usb_anchor_empty(&rtwusb->tx_anchor),
++		 atomic_read(&rtwusb->tx_anchor.suspend_wakeups));
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
  	rtw_usb_tx_queue_purge(rtwusb);
+ #endif
