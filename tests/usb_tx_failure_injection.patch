@@ -1,5 +1,5 @@
 diff --git a/usb.c b/usb.c
-index e3f4c1d..78fc606 100644
+index 029766e..22f923d 100644
 --- a/usb.c
 +++ b/usb.c
 @@ -375,6 +375,33 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
@@ -64,3 +64,12 @@ index e3f4c1d..78fc606 100644
  	if (ret)
  		usb_unanchor_urb(urb);
  
+@@ -1247,6 +1283,8 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+ 	rtw_usb_tx_queue_purge(rtwusb);
+ #endif
+ 	destroy_workqueue(rtwusb->txwq);
++	rtw_info(rtwdev, "test: USB TX anchor pending before kill=%d\n",
++		 !usb_anchor_empty(&rtwusb->tx_anchor));
+ 	usb_kill_anchored_urbs(&rtwusb->tx_anchor);
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
+ 	rtw_usb_tx_queue_purge(rtwusb);

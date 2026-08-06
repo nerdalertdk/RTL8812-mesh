@@ -174,6 +174,19 @@ traffic, and HWMP, and
 rejects any kernel transport event other than its expected injected TX
 `-EPROTO`. The script intentionally does not accept installed-module
 provenance: the instrumented `rtw_usb` cannot match the production artifact.
+
+`pi_usb_tx_teardown_test.sh` uses the same disposable build to prove TX
+teardown against an actually populated USB anchor. It drives concurrent large
+pings, unbinds one RTL8812AU interface, requires the test-only pre-kill marker
+to report at least one anchored URB, rejects kernel fault and transport
+signatures, then requires the device to bind and expose a usable netdev again.
+It deliberately does not reconstruct the mesh with the instrumented module;
+replace that module with exact production 0.1.5 before running recovery and
+subsequent behavioral gates.
+
+`scripts/check-test-instrumentation.sh` applies both disposable USB patches to
+the exact production `usb.c` with strict whitespace handling. This prevents a
+stale test patch from being mistaken for buildable current-source evidence.
 Restore and provenance-check all five production modules before running churn
 or transfer release gates.
 

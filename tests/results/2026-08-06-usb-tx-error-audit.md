@@ -66,7 +66,9 @@ remaining anchored URBs.
   `usb.h` byte-for-byte.
 - `tests/usb_tx_failure_injection.patch` applies exactly to production 0.1.5.
   It can inject a safe pre-submit `-EPROTO` or substitute `-EPROTO` at the
-  driver's completion entry without shipping instrumentation.
+  driver's completion entry without shipping instrumentation. It also records
+  whether the TX anchor was populated just before the test build kills it
+  during teardown.
 - Every hardware gate's kernel-event classifier recognizes
   `USB TX URB error`, so a functionally recovered interval cannot be accepted
   as transport-clean.
@@ -79,8 +81,9 @@ After the active DKMS 0.1.4 endurance run releases the serialized fixture:
    and loaded source versions.
 2. Apply the disposable TX injector and consume both submission and completion
    failures under sustained bilateral traffic.
-3. Unbind/unload with TX URBs active and require bounded completion with no
-   warning, Oops, use-after-free, stale callback, or leaked-work symptom.
+3. Run `pi_usb_tx_teardown_test.sh`; require an observed nonempty TX anchor at
+   unbind, bounded completion, successful rebind, and no warning, Oops,
+   use-after-free, stale callback, transport fault, or leaked-work symptom.
 4. Restore exact production 0.1.5 and repeat strict two-RTL8812AU churn plus
    the bidirectional checksummed transfer gate.
 5. Keep synthetic results separate from the thermally clean physical USB path

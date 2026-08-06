@@ -15,6 +15,7 @@ pi_mesh_soak_status.sh
 pi_mesh_transfer.sh
 pi_secure_mesh.sh
 pi_usb_ctrl_stress.sh
+pi_usb_tx_teardown_test.sh
 pi_usb_tx_failure_test.sh'
 
 required_patterns='error -71
@@ -56,4 +57,4 @@ for pattern in 'USB TX URB error' 'recoverable RX URB' \
 done
 
 [ "$failed" -eq 0 ] || exit 1
-echo "functional_gates=9 transport_and_power_signatures=complete matrix_classification=complete"
+echo "functional_gates=10 transport_and_power_signatures=complete matrix_classification=complete"
