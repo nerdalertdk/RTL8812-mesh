@@ -13,10 +13,11 @@ not resend that work. They add only the missing behavior:
 2. anchor submitted TX URBs and synchronously quiesce callbacks after draining
    the TX producer during teardown.
 
-`baseline/usb.c` and `baseline/usb.h` are the exact GPL-2.0-or-later rtw88
-files from the pinned Linux commit. They make verification independent of a
-moving network branch; their SHA-256 values and the two final patched hashes
-are enforced by `scripts/check-mainline-tx-series.sh`.
+`baseline/usb.c` and `baseline/usb.h` are the exact
+`GPL-2.0 OR BSD-3-Clause` rtw88 files from the pinned Linux commit. They make
+verification independent of a moving network branch; their SHA-256 values and
+the two final patched hashes are enforced by
+`scripts/check-mainline-tx-series.sh`.
 
 The stored mail uses a neutral privacy identity and intentionally has no
 `Signed-off-by`. Before submission, apply the patches to the intended current

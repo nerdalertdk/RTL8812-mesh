@@ -8,6 +8,13 @@ of the four production-file blobs from that revision so the focused delta can
 be reproduced without importing unrelated source history. Its integrity is
 checked by `scripts/check-upstream-baseline.sh`.
 
+`patches/mainline/baseline/usb.c` and `usb.h` are exact copies from the
+official Linux tree at commit
+`315f4bd234b3b8a3ed3a71fd4c53b110cf373720`. They retain their
+`GPL-2.0 OR BSD-3-Clause` SPDX identifiers and exist only to verify the pinned
+two-patch TX upstream delta offline. Their exact and final patched hashes are
+checked by `scripts/check-mainline-tx-series.sh`.
+
 Every C/header file retains its original SPDX identifier and copyright notice.
 The binary firmware is the matching `rtw8812a_fw.bin` distributed by that
 source tree. Its required Realtek binary redistribution notice is included as
