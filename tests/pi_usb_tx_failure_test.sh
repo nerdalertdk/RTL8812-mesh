@@ -16,6 +16,7 @@ FAILURES=${FAILURES:-32}
 PHASE_TIMEOUT_SECONDS=${PHASE_TIMEOUT_SECONDS:-30}
 LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/usb-tx-failure}
 submit_param=/sys/module/rtw_usb/parameters/test_tx_submit_failures
+agg_submit_param=/sys/module/rtw_usb/parameters/test_tx_agg_submit_failures
 completion_param=/sys/module/rtw_usb/parameters/test_tx_completion_failures
 
 [ "$(id -u)" -eq 0 ] || { echo "run this hardware test as root" >&2; exit 2; }
@@ -25,7 +26,8 @@ case $FAILURES:$PHASE_TIMEOUT_SECONDS in
 	*[!0-9:]*|0:*|*:0) echo "failure count and timeout must be positive integers" >&2; exit 2 ;;
 esac
 [ -x "$IW" ] || { echo "iw is required at $IW" >&2; exit 2; }
-[ -w "$submit_param" ] && [ -w "$completion_param" ] || {
+[ -w "$submit_param" ] && [ -w "$agg_submit_param" ] &&
+   [ -w "$completion_param" ] || {
 	echo "test-only TX failure parameters are unavailable" >&2
 	exit 2
 }
@@ -78,6 +80,7 @@ exec >"$log" 2>&1
 cleanup()
 {
 	printf '0\n' >"$submit_param" 2>/dev/null || true
+	printf '0\n' >"$agg_submit_param" 2>/dev/null || true
 	printf '0\n' >"$completion_param" 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -111,23 +114,33 @@ drive_phase()
 {
 	label=$1
 	param=$2
+	marker=${3:-}
 	phase_start=$(date +%s)
 	deadline=$((phase_start + PHASE_TIMEOUT_SECONDS))
 
 	printf '%s\n' "$FAILURES" >"$param"
 	while [ "$(cat "$param")" -gt 0 ] && [ "$(date +%s)" -lt "$deadline" ]; do
-		ping -I "$ROOT_IF" -c 8 -i 0.02 -W 1 "$PEER_IP" >/dev/null 2>&1 || true
-		ns ping -I "$PEER_IF" -c 8 -i 0.02 -W 1 "$ROOT_IP" >/dev/null 2>&1 || true
+		ping -I "$ROOT_IF" -c 64 -s 1400 -i 0.001 -W 1 \
+			"$PEER_IP" >/dev/null 2>&1 || true
+		ns ping -I "$PEER_IF" -c 64 -s 1400 -i 0.001 -W 1 \
+			"$ROOT_IP" >/dev/null 2>&1 || true
 	done
 	remaining=$(cat "$param")
 	phase_events=$(journalctl -k --since "@$phase_start" --no-pager 2>/dev/null |
 		grep -c 'USB TX URB error -71' || true)
-	printf 'phase=%s requested=%s remaining=%s diagnostics=%s\n' \
-		"$label" "$FAILURES" "$remaining" "$phase_events"
-	[ "$remaining" -eq 0 ] && [ "$phase_events" -gt 0 ]
+	marker_events=0
+	if [ -n "$marker" ]; then
+		marker_events=$(journalctl -k --since "@$phase_start" --no-pager 2>/dev/null |
+			grep -c "$marker" || true)
+	fi
+	printf 'phase=%s requested=%s remaining=%s diagnostics=%s markers=%s\n' \
+		"$label" "$FAILURES" "$remaining" "$phase_events" "$marker_events"
+	[ "$remaining" -eq 0 ] && [ "$phase_events" -gt 0 ] &&
+		{ [ -z "$marker" ] || [ "$marker_events" -eq "$FAILURES" ]; }
 }
 
 printf '0\n' >"$submit_param"
+printf '0\n' >"$agg_submit_param"
 printf '0\n' >"$completion_param"
 mesh_valid && traffic_valid && paths_valid || {
 	echo "baseline mesh validation failed" >&2
@@ -136,7 +149,10 @@ mesh_valid && traffic_valid && paths_valid || {
 
 start_epoch=$(date +%s)
 drive_phase submission "$submit_param" || exit 1
-# Reset the printk ratelimit window so the completion phase retains evidence.
+# Reset the printk ratelimit window so each phase retains evidence.
+sleep 6
+drive_phase aggregate-submission "$agg_submit_param" \
+	'test: rejecting aggregate USB TX' || exit 1
 sleep 6
 drive_phase completion "$completion_param" || exit 1
 traffic_valid && mesh_valid && paths_valid || {
@@ -162,12 +178,14 @@ counter_values_valid=$(printf '%s\n' "$tx_events" | awk '
 	END { print (seen > 0 && !bad ? 1 : 0) }
 ')
 event_count=$(printf '%s\n' "$tx_events" | sed '/^$/d' | awk 'END { print NR + 0 }')
+aggregate_events=$(grep -c 'test: rejecting aggregate USB TX' "$kernel_log" || true)
 unexpected_count=$(printf '%s\n' "$unexpected" | sed '/^$/d' |
 	awk 'END { print NR + 0 }')
-printf 'result=complete tx_diagnostics=%s counter_values_valid=%s unexpected_events=%s root_paths=%s peer_paths=%s\n' \
-	"$event_count" "$counter_values_valid" "$unexpected_count" \
+printf 'result=complete tx_diagnostics=%s aggregate_rejections=%s counter_values_valid=%s unexpected_events=%s root_paths=%s peer_paths=%s\n' \
+	"$event_count" "$aggregate_events" "$counter_values_valid" "$unexpected_count" \
 	"$root_paths" "$peer_paths"
 printf '%s\n' "$unexpected" | sed '/^$/d'
 
-[ "$event_count" -ge 2 ] && [ "$counter_values_valid" -eq 1 ] &&
+[ "$event_count" -ge 3 ] && [ "$aggregate_events" -eq "$FAILURES" ] &&
+	[ "$counter_values_valid" -eq 1 ] &&
 	[ "$unexpected_count" -eq 0 ]

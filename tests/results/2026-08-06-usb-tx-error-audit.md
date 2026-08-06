@@ -78,8 +78,11 @@ remaining anchored URBs.
   whitespace handling and reproduce `main.c`, `mac80211.c`, `usb.c`, and
   `usb.h` byte-for-byte.
 - `tests/usb_tx_failure_injection.patch` applies exactly to production 0.1.5.
-  It can inject a safe pre-submit `-EPROTO` or substitute `-EPROTO` at the
-  driver's completion entry without shipping instrumentation. It also records
+  It can inject a safe generic pre-submit `-EPROTO`, reject only a populated
+  multi-frame aggregate before submission, or substitute `-EPROTO` at the
+  driver's completion entry without shipping instrumentation. Each targeted
+  aggregate rejection records its original-frame count and byte length,
+  proving that the corrected split-ownership cleanup ran. It also records
   queued-URB and active-callback anchor state immediately before and after the
   test build kills it during teardown.
 - The exact pinned Linux `315f4bd234b3` `checkpatch.pl --strict` reports zero
@@ -94,8 +97,9 @@ After the active DKMS 0.1.4 endurance run releases the serialized fixture:
 
 1. Build DKMS 0.1.5 against the exact Pi kernel and verify all five installed
    and loaded source versions.
-2. Apply the disposable TX injector and consume both submission and completion
-   failures under sustained bilateral traffic.
+2. Apply the disposable TX injector and consume generic submission,
+   aggregate-only submission, and completion failures under sustained
+   bilateral traffic. Require one aggregate marker per targeted failure.
 3. Run `pi_usb_tx_teardown_test.sh`; require a deliberately delayed callback
    to be active at unbind, zero queued URBs and callbacks after the kill,
    bounded completion, successful rebind, and no warning, Oops, use-after-free,

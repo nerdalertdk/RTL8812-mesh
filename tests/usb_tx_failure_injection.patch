@@ -1,5 +1,5 @@
 diff --git a/usb.c b/usb.c
-index 029766e..d821630 100644
+index 07d3fc0..f4767da 100644
 --- a/usb.c
 +++ b/usb.c
 @@ -5,6 +5,7 @@
@@ -10,7 +10,7 @@ index 029766e..d821630 100644
  #include "main.h"
  #include "debug.h"
  #include "mac.h"
-@@ -375,6 +376,43 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+@@ -376,6 +377,48 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
  	return 0;
  }
  
@@ -18,11 +18,14 @@ index 029766e..d821630 100644
 + * an isolated hardware-in-loop build; do not submit it with the driver.
 + */
 +static int rtw_usb_test_tx_submit;
++static int rtw_usb_test_tx_agg_submit;
 +static int rtw_usb_test_tx_complete;
 +static int rtw_usb_test_tx_delays;
 +static char rtw_usb_test_dev[32];
 +module_param_named(test_tx_submit_failures,
 +		   rtw_usb_test_tx_submit, int, 0600);
++module_param_named(test_tx_agg_submit_failures,
++		   rtw_usb_test_tx_agg_submit, int, 0600);
 +module_param_named(test_tx_completion_failures,
 +		   rtw_usb_test_tx_complete, int, 0600);
 +module_param_named(test_tx_completion_delays,
@@ -31,6 +34,8 @@ index 029766e..d821630 100644
 +		    rtw_usb_test_dev, sizeof(rtw_usb_test_dev), 0600);
 +MODULE_PARM_DESC(test_tx_submit_failures,
 +		 "number of RTL88 USB TX submissions to fail with -EPROTO");
++MODULE_PARM_DESC(test_tx_agg_submit_failures,
++		 "number of aggregated RTL88 USB TX submissions to reject");
 +MODULE_PARM_DESC(test_tx_completion_failures,
 +		 "number of RTL88 USB TX completions to report as -EPROTO");
 +MODULE_PARM_DESC(test_tx_completion_delays,
@@ -54,18 +59,18 @@ index 029766e..d821630 100644
  static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
  {
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
-@@ -443,8 +481,17 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+@@ -446,8 +489,17 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
  static void rtw_usb_write_port_tx_complete(struct urb *urb)
  {
  	struct rtw_usb_txcb *txcb = urb->context;
 +	int status = urb->status;
 +	bool delay;
-+
+ 
+-	rtw_usb_write_port_tx_status(txcb, urb->status);
 +	delay = sysfs_streq(rtw_usb_test_dev, dev_name(txcb->rtwdev->dev));
 +	if (unlikely(delay && rtw_usb_test_take(&rtw_usb_test_tx_delays)))
 +		mdelay(5000);
- 
--	rtw_usb_write_port_tx_status(txcb, urb->status);
++
 +	if (unlikely(rtw_usb_test_take(&rtw_usb_test_tx_complete)))
 +		status = -EPROTO;
 +
@@ -73,7 +78,7 @@ index 029766e..d821630 100644
  }
  
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
-@@ -476,7 +523,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+@@ -479,7 +531,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
  	usb_anchor_urb(urb, &rtwusb->tx_anchor);
@@ -85,7 +90,26 @@ index 029766e..d821630 100644
  	if (ret)
  		usb_unanchor_urb(urb);
  
-@@ -1247,7 +1297,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+@@ -563,8 +618,16 @@ queue:
+ 	tx_desc = (struct rtw_tx_desc *)skb_head->data;
+ 	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
+ 
+-	ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
+-				 rtw_usb_write_port_tx_complete, txcb);
++	if (txcb->agg_skb && skb_queue_len(&txcb->tx_ack_queue) > 1 &&
++	    unlikely(rtw_usb_test_take(&rtw_usb_test_tx_agg_submit))) {
++		rtw_info(rtwdev,
++			 "test: rejecting aggregate USB TX originals=%u bytes=%u\n",
++			 skb_queue_len(&txcb->tx_ack_queue), skb_head->len);
++		ret = -EPROTO;
++	} else {
++		ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
++					 rtw_usb_write_port_tx_complete, txcb);
++	}
+ 	if (ret) {
+ 		rtw_usb_record_tx_error(rtwdev, ret);
+ 		if (txcb->agg_skb)
+@@ -1255,7 +1318,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
  	rtw_usb_tx_queue_purge(rtwusb);
  #endif
  	destroy_workqueue(rtwusb->txwq);

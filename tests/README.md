@@ -140,16 +140,21 @@ The first completed run is recorded in
 
 `usb_tx_failure_injection.patch` is test-only instrumentation for source 0.1.5
 or an exact matching disposable copy. It adds root-writable
-`rtw_usb.test_tx_submit_failures` and
+`rtw_usb.test_tx_submit_failures`,
+`rtw_usb.test_tx_agg_submit_failures`, and
 `rtw_usb.test_tx_completion_failures` parameters. The first fails a TX URB
-before USB core sees it, proving synchronous submission-error ownership. The
-second changes only the status delivered to the driver's TX completion path;
+before USB core sees it, proving generic synchronous submission ownership. The
+second rejects only a real multi-frame aggregate and records its original-frame
+count, proving the synthetic aggregate buffer follows the driver-owned cleanup
+path. The third changes only the status delivered to the completion path;
 the test frame may already have reached the adapter, so this is evidence for
 status/cleanup handling and must not be interpreted as a physical USB fault.
 
 Required evidence:
 
-- both requested failure counts return to zero under sustained traffic;
+- all requested failure counts return to zero under sustained traffic;
+- every requested aggregate-only rejection has a matching test marker, proving
+  that an actual synthetic buffer and original-frame queue reached cleanup;
 - each requested failure count is fully consumed; at least one rate-limited
   `USB TX URB error -71` diagnostic is retained for each injection phase, and
   displayed driver-counter values are positive and nonduplicated per adapter;
@@ -164,10 +169,11 @@ Never ship or submit the instrumented source. A pre-submit injection is safe
 because no URB was queued. A completion-status injection is deliberately not
 replayed because the real transfer's device-side progress is ambiguous.
 
-`pi_usb_tx_failure_test.sh` runs both phases under the shared hardware lock.
+`pi_usb_tx_failure_test.sh` runs all three phases under the shared hardware lock.
 It requires two RTL8812AU peers already in the open topology and fails closed
-unless the test-only parameters exist. It drives traffic until both requested
-counts reach zero, retains phase diagnostics, and requires positive,
+unless the test-only parameters exist. It drives traffic until all requested
+counts reach zero, retains phase diagnostics, requires an exact marker for each
+aggregate-only rejection, and requires positive,
 nonduplicated cumulative counter values per adapter without imposing a global
 order on messages from two devices or CPUs. It revalidates bilateral `ESTAB`,
 traffic, and HWMP, and
