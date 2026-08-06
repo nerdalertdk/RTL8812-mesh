@@ -2,6 +2,9 @@
 
 ## In progress
 
+- [ ] Complete the active eight-hour two-RTL8812AU functional endurance run
+  started 2026-08-06 20:34 CEST. It passed preflight, first bilateral state,
+  both initial ping batches, and both initial checksummed transfers.
 - [x] Make the four-file upstream production baseline reproducible with an
   exact-blob annotated tag and a deterministic verifier.
 - [x] Materialize the six logical upstream patches and verify that applying

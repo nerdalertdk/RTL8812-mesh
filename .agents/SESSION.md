@@ -15,6 +15,14 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 ## Current status
 
+- An eight-hour two-RTL8812AU functional endurance run started at
+  2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected
+  completion around 2026-08-07 04:34 CEST. Its first bilateral `ESTAB`/HWMP
+  state, 10/10 ping batches in both directions, and bidirectional checksummed
+  10 MiB transfers passed. The live log is under
+  `/var/tmp/rtl8812au-mesh/two-rtl8812au-soak/` on the Pi. Historical thermal
+  bit 19 means this is functional endurance, not a clean physical-path matrix
+  repetition; the live 85 C cutoff remains enforced.
 - Two RTL8812AU adapters now form the production test fixture, one at USB3
   `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
   capability. Open recovery validates bilateral traffic and reciprocal HWMP.
