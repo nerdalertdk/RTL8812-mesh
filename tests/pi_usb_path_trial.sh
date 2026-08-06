@@ -165,6 +165,29 @@ if [ "$pre_provenance_mismatches" -ne 0 ]; then
 	exit 2
 fi
 
+# A pre-existing soft-temperature history bit makes a recurrence during this
+# trial unobservable once the current condition clears. Require a reboot and
+# adequate cooling before starting attribution work. Other historical upper
+# bits remain evidence but do not by themselves invalidate a new interval.
+pre_environment_fault=0
+case $pre_throttle in
+	0x*)
+		pre_throttle_num=$((pre_throttle))
+		[ $((pre_throttle_num & 0xf)) -eq 0 ] || pre_environment_fault=1
+		[ $((pre_throttle_num & 0x80000)) -eq 0 ] || pre_environment_fault=1
+		;;
+	*) pre_environment_fault=1 ;;
+esac
+if [ "$pre_environment_fault" -ne 0 ]; then
+	{
+		echo "result=invalid"
+		echo "classification=invalid-pre-run-environment-state"
+		echo "pre_throttled=${pre_throttle:-unavailable}"
+		echo "trial_dir=$trial"
+	} | tee "$trial/result.log"
+	exit 2
+fi
+
 soak_status=0
 LOCK_FD_INHERITED=9 LOG_DIR="$trial/soak" \
 	DURATION_SECONDS="$DURATION_SECONDS" ROOT_MAC="$ROOT_MAC" \

@@ -45,6 +45,13 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   under `patches/`. `scripts/check-upstream-series.sh` reapplies them from the
   tagged baseline with strict whitespace handling and requires all four final
   files to match the validated production tree byte-for-byte.
+- Physical USB trial preflight now rejects a pre-existing Raspberry Pi bit 19
+  soft-temperature history. Once that bit is already set, a brief recurrence
+  cannot be inferred from the post-run mask after the current bit clears, so a
+  reboot and adequate cooling are mandatory before attribution.
+  A Pi row-A dry preflight returned exit 2 with
+  `invalid-pre-run-environment-state` for `0x80000` and created no soak
+  directory, proving rejection occurs before workload launch.
 
 - DKMS 0.1.4 built and installed exactly five modules for
   `6.12.47+rpt-rpi-v8`; all loaded and installed source versions match. An

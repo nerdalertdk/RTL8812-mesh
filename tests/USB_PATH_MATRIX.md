@@ -65,8 +65,11 @@ Also record:
 - kernel boot ID (`cat /proc/sys/kernel/random/boot_id`).
 
 Clear historical Raspberry Pi throttle evidence only by rebooting; do not
-reinterpret a nonzero historical mask as a current fault. Preserve both the
-pre-run and post-run masks.
+reinterpret a nonzero historical mask as a current fault. Bit 19 (historical
+soft-temperature limiting) must be clear before a physical attribution trial:
+if it is already set, a brief recurrence could be hidden after the current bit
+clears. Other pre-existing historical upper bits remain recorded but do not by
+themselves invalidate a new interval. Preserve both pre-run and post-run masks.
 
 ## Workload
 
@@ -90,10 +93,11 @@ small-transfer count.
 required pre/post provenance, runs the soak and final checksummed transfer
 under one inherited test lock, and retains the complete kernel journal. Set
 the row, repetition, physical descriptions, DUT identity, MAC addresses, and
-absolute test-script paths explicitly. A current Raspberry Pi throttle bit, a
-new historical power bit, or a kernel under-voltage/over-current event makes
-the trial invalid rather than a driver failure. Pre-existing historical upper
-bits remain recorded but do not invalidate an otherwise controlled run.
+absolute test-script paths explicitly. A current Raspberry Pi throttle bit,
+pre-existing historical soft-temperature bit, new historical environment bit,
+or kernel under-voltage/over-current event makes the trial invalid rather than
+a driver failure. Other pre-existing historical upper bits remain recorded but
+do not invalidate an otherwise controlled run.
 
 The runner verifies the expected negotiated speed (5000 Mbit/s for rows A/C
 and 480 Mbit/s for B/D), checks the RTL8812AU driver and all five loaded module

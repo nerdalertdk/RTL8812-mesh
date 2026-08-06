@@ -146,3 +146,6 @@ temperature, and boot provenance, and preserves the complete kernel journal.
 It returns 2 for invalid environmental or provenance evidence, 1 for a
 valid-path workload/topology failure, 4 when a transport event requires causal
 review, and 0 only when both workload stages pass without a transport event.
+It rejects a pre-run historical soft-temperature bit because an already-set
+bit cannot reveal a brief recurrence during the trial; reboot and establish
+adequate cooling before starting physical attribution.

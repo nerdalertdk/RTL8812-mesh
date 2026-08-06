@@ -77,6 +77,12 @@ temperature limit occurred; no undervoltage bit was present. Temperatures near
 the final tests were 79.8--80.8 C. Long endurance should use active cooling so
 thermal limiting cannot confound USB-path attribution.
 
+The hardened physical-path runner was then deployed and invoked as an isolated
+row-A preflight with a separate non-matrix log root. It returned exit 2 with
+`classification=invalid-pre-run-environment-state` and
+`pre_throttled=0x80000`; no soak directory was created. This proves the current
+thermal history cannot accidentally start or count as an attribution run.
+
 ## Remaining scope
 
 This closes the symmetric open multicast, SAE/AMPE, and channels 1--13 HT20

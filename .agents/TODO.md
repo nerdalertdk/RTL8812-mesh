@@ -6,6 +6,9 @@
   exact-blob annotated tag and a deterministic verifier.
 - [x] Materialize the six logical upstream patches and verify that applying
   them in order reproduces all four validated production files byte-for-byte.
+- [x] Make physical USB trials fail preflight when historical soft-temperature
+  limiting is already set, preventing an undetectable thermal recurrence from
+  being accepted as clean attribution evidence.
 
 - [x] Build, install, and regression-test DKMS `0.1.4`, including exact
   five-module provenance, parallel control-read stress, control-read injection,
