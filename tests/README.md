@@ -66,8 +66,11 @@ record their source versions, vermagic, and SHA-256. It never installs or loads
 the result. `PREFLIGHT_ONLY=1` validates the queued operation without waiting or
 writing DKMS state.
 
-`pi_mesh_recover.sh` accepts recovery only after exact provenance for all five
-RTL8812AU modules, expected root/peer drivers, bilateral `ESTAB`, successful
+`pi_mesh_recover.sh` requires `EXPECTED_VERSION` and accepts recovery only
+after `pi_module_provenance.sh` proves that exact DKMS package, all five loaded
+`updates/dkms` modules, matching source versions/vermagic, and no unrelated
+shared-core consumer. It then requires expected root/peer drivers, bilateral
+`ESTAB`, successful
 traffic in both directions, and nonempty HWMP tables at both peers. Its unit's
 240-second start timeout covers the configured 90-second test-lock wait plus
 the device enumeration and peering windows. Missing mesh-point capability or

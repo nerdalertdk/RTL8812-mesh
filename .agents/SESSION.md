@@ -132,6 +132,17 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   and matches the repository exactly. The earlier `source-0.1.5-29f0a15/`,
   `source-0.1.5-93103a0/`, and `source-0.1.5-9fbffb3/` directories are
   superseded and must not be built.
+- Automatic recovery now fails closed through the exact five-module provenance
+  gate before it changes topology. `EXPECTED_VERSION` is mandatory; the gate
+  requires the exact DKMS kernel/architecture installation, all five loaded
+  `updates/dkms` artifacts with matching source versions and vermagic, and no
+  unrelated shared-core consumer. The Pi currently pins recovery to live
+  0.1.4 and the deployed helper SHA-256 is
+  `d54ea6a5ae7879f8d7e638457d2ff8b834c0a130c00e49fc1bb4a9162567573c`.
+  Missing-version preflight returned 2, a deliberately wrong version returned
+  1 before topology mutation, exact 0.1.4 provenance passed five modules with
+  zero conflicts, and the soak continued bilateral traffic. Change the
+  environment pin to 0.1.5 atomically with the post-soak production load.
 - Two RTL8812AU adapters now form the production test fixture, one at USB3
   `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
   capability. Open recovery validates bilateral traffic and reciprocal HWMP.

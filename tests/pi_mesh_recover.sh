@@ -19,15 +19,24 @@ LOCK_WAIT=${LOCK_WAIT:-90}
 ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
 PEER_DRIVER=${PEER_DRIVER:-}
 PING_COUNT=${PING_COUNT:-5}
-MODINFO=${MODINFO:-/sbin/modinfo}
+EXPECTED_VERSION=${EXPECTED_VERSION:-}
+PROVENANCE_TEST=${PROVENANCE_TEST:-/usr/local/libexec/rtw88-qualification/pi_module_provenance.sh}
 start_epoch=$(date +%s)
 
 [ "$(id -u)" -eq 0 ] || { echo "run mesh recovery as root" >&2; exit 2; }
+[ -n "$EXPECTED_VERSION" ] || {
+	echo "set EXPECTED_VERSION to the DKMS package version" >&2
+	exit 2
+}
 for value in "$DEVICE_POLLS" "$ESTAB_POLLS" "$LOCK_WAIT" "$PING_COUNT"; do
 	case $value in *[!0-9]*|''|0) echo "poll, wait, and ping counts must be positive integers" >&2; exit 2 ;; esac
 done
 [ "$ROOT_MAC" != "$PEER_MAC" ] || { echo "ROOT_MAC and PEER_MAC must differ" >&2; exit 2; }
-[ -x "$IW" ] && [ -x "$MODINFO" ] || { echo "iw and modinfo are required" >&2; exit 2; }
+[ -x "$IW" ] || { echo "iw is required at $IW" >&2; exit 2; }
+[ -x "$PROVENANCE_TEST" ] || {
+	echo "module provenance gate is required at $PROVENANCE_TEST" >&2
+	exit 2
+}
 command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
 
 exec 9>"$LOCK_FILE"
@@ -101,14 +110,7 @@ if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 	exit 78
 fi
 
-for module in rtw_core rtw_usb rtw_88xxa rtw_8812a rtw_8812au; do
-	installed=$($MODINFO -F srcversion "$module" 2>/dev/null || true)
-	loaded=$(cat "/sys/module/$module/srcversion" 2>/dev/null || true)
-	if [ -z "$installed" ] || [ "$installed" != "$loaded" ]; then
-		echo "module provenance mismatch: $module installed=${installed:-unavailable} loaded=${loaded:-unavailable}" >&2
-		exit 1
-	fi
-done
+EXPECTED_VERSION="$EXPECTED_VERSION" "$PROVENANCE_TEST"
 
 root_phy=$($IW dev "$root_if" info | awk '/wiphy/ { print "phy" $2; exit }')
 [ -n "$root_phy" ] || { echo "cannot resolve root wiphy" >&2; exit 1; }
