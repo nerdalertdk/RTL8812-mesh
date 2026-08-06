@@ -189,6 +189,15 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   subject, and the verifier rejects incoherent numbering or filenames. All
   eight pass Linux v6.12 strict checkpatch with 0/0/0 when the intentionally
   absent private sign-off is excluded.
+  A full wireless-next applicability audit at head `ca800a930276` found that
+  downstream patches 1, 3, and 5 apply mechanically; patch 2 must omit an
+  already-landed independent `FIF_OTHER_BSS` implementation and rebase only
+  mesh admission; patch 4's key fallback applies but its wiphy flag follows
+  that admission block; and patch 6 needs only a modern initializer-context
+  adaptation after its other hunks apply. The existing independent TX
+  two-patch rebase still matches current `usb.c`/`usb.h` byte-for-byte. These
+  boundaries are recorded in `docs/UPSTREAMING.md` to prevent redundant or
+  compatibility-only downstream code from entering an upstream submission.
 - Physical USB trial preflight now rejects a pre-existing Raspberry Pi bit 19
   soft-temperature history. Once that bit is already set, a brief recurrence
   cannot be inferred from the post-run mask after the current bit clears, so a

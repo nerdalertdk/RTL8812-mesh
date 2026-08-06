@@ -61,6 +61,34 @@ two-file GPL baseline, applies both patches with strict whitespace handling,
 and requires the final hashes to match. Rebase again if the submission target
 moves beyond the pinned commit.
 
+## Current wireless-next audit
+
+The four authoritative rtw88 files were rechecked at wireless-next head
+`ca800a9302764c445de0da0e84d2252400a770ee` on 2026-08-06. Its `usb.c` and
+`usb.h` remain byte-identical to the pinned TX baseline. The other production
+patches have these exact rebase boundaries:
+
+- Patch 1 (CAM bound), patch 3 (mesh group queue), and patch 5 (control
+  hardening) apply mechanically with strict whitespace handling.
+- Current wireless-next already handles `FIF_OTHER_BSS` independently through
+  `BIT_AAP`. Patch 2 must omit the downstream receive-filter hunk and add only
+  the RTL8812A USB standalone mesh-mode advertisement. The downstream
+  concurrency comment is also unnecessary because current combinations are
+  installed only for RTL8822C.
+- Patch 4's mesh `SET_KEY`/`DISABLE_KEY` behavior applies mechanically. Its
+  `WIPHY_FLAG_IBSS_RSN` addition must be rebased onto patch 2's new
+  mesh-admission block.
+- Patch 6's RX ownership, retry, completion, and teardown hunks apply. Only its
+  work initializer needs a current-tree context update because wireless-next
+  no longer carries the downstream pre-6.9 compatibility conditional.
+- The independent two-patch TX series under `patches/mainline/` already targets
+  the exact current USB blobs. If all USB changes are submitted as one series,
+  regenerate its context after the rebased control and RX patches rather than
+  reintroducing cleanup that current wireless-next already contains.
+
+This audit is source applicability, not a replacement for regenerating mail
+files on the eventual submission head and rebuilding/testing that exact tree.
+
 Push the annotated tag together with the branch when publishing the repository;
 a branch-only push cannot reproduce the baseline. The synthetic tag is a
 review convenience, not a claim that its generated commit is the original
