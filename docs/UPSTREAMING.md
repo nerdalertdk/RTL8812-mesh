@@ -61,12 +61,15 @@ two-file GPL baseline, applies both patches with strict whitespace handling,
 and requires the final hashes to match. Rebase again if the submission target
 moves beyond the pinned commit.
 
-## Current wireless-next audit
+## Current wireless-next series
 
-The four authoritative rtw88 files were rechecked at wireless-next head
-`ca800a9302764c445de0da0e84d2252400a770ee` on 2026-08-06. Its `usb.c` and
-`usb.h` remain byte-identical to the pinned TX baseline. The other production
-patches have these exact rebase boundaries:
+The complete eight-patch rebase is materialized under
+`patches/wireless-next/` at wireless-next head
+`ca800a9302764c445de0da0e84d2252400a770ee`, inspected on 2026-08-06.
+`scripts/check-wireless-next-series.sh` verifies the four exact baseline blobs,
+coherent mail metadata, strict application, and all four final hashes. Its
+`usb.c` and `usb.h` baseline remain byte-identical to the pinned TX baseline.
+The series uses these exact rebase boundaries:
 
 - Patch 1 (CAM bound), patch 3 (mesh group queue), and patch 5 (control
   hardening) apply mechanically with strict whitespace handling.
@@ -86,8 +89,9 @@ patches have these exact rebase boundaries:
   regenerate its context after the rebased control and RX patches rather than
   reintroducing cleanup that current wireless-next already contains.
 
-This audit is source applicability, not a replacement for regenerating mail
-files on the eventual submission head and rebuilding/testing that exact tree.
+This series is an offline source/applicability artifact, not a replacement for
+regenerating mail files on the eventual submission head and rebuilding/testing
+that exact tree. `patches/mainline/` remains the independent TX-only series.
 
 Push the annotated tag together with the branch when publishing the repository;
 a branch-only push cannot reproduce the baseline. The synthetic tag is a

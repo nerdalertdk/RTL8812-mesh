@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 23:44:02 +0200
+Subject: [PATCH 2/8] wifi: rtw88: admit RTL8812AU USB mesh interfaces
+
+RTL8812AU can operate as a standalone mac80211 mesh point, but rtw88 does
+not advertise that interface type. Enable it only for the tested RTL8812A
+USB path and only when mac80211 mesh support is built.
+
+Current wireless-next already honors FIF_OTHER_BSS independently. It also
+installs interface combinations only for RTL8822C, so no filter or
+combination change is needed here.
+---
+ drivers/net/wireless/realtek/rtw88/main.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index cd92543..8150297 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -2286,6 +2286,10 @@ int rtw_register_hw(struct rtw_dev *rtwdev, struct ieee80211_hw *hw)
+ 	hw->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
+ 				     BIT(NL80211_IFTYPE_AP) |
+ 				     BIT(NL80211_IFTYPE_ADHOC);
++	if (IS_ENABLED(CONFIG_MAC80211_MESH) &&
++	    rtwdev->chip->id == RTW_CHIP_TYPE_8812A &&
++	    rtw_hci_type(rtwdev) == RTW_HCI_TYPE_USB)
++		hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_MESH_POINT);
+ 	hw->wiphy->available_antennas_tx = hal->antenna_tx;
+ 	hw->wiphy->available_antennas_rx = hal->antenna_rx;
+ 

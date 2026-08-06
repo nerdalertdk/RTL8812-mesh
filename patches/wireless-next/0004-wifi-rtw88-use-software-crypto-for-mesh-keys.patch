@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 23:44:47 +0200
+Subject: [PATCH 4/8] wifi: rtw88: use software crypto for mesh keys
+
+The legacy rtw88 CAM path cannot represent per-peer mesh MGTK and IGTK
+state. Advertise the cfg80211 admission flag for non-pairwise peer keys.
+Then reject mesh key installation so mac80211 encrypts in software.
+
+DISABLE_KEY must still succeed for a key that was never uploaded. This
+keeps teardown idempotent and lets SAE/AMPE peers install key material
+without claiming per-station GTK offload.
+---
+ drivers/net/wireless/realtek/rtw88/mac80211.c | 8 ++++++++
+ drivers/net/wireless/realtek/rtw88/main.c     | 8 +++++++-
+ 2 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/mac80211.c b/drivers/net/wireless/realtek/rtw88/mac80211.c
+index 0b622d7..b89103b 100644
+--- a/drivers/net/wireless/realtek/rtw88/mac80211.c
++++ b/drivers/net/wireless/realtek/rtw88/mac80211.c
+@@ -564,6 +564,14 @@ static int rtw_ops_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	u8 hw_key_idx;
+ 	int ret = 0;
+ 
++	/* The legacy CAM/key-selection path does not model mesh per-peer keys.
++	 * Reject installation so mac80211 handles pairwise, MGTK and IGTK crypto
++	 * in software. A key rejected at SET_KEY is never uploaded, but honor the
++	 * mac80211 contract that DISABLE_KEY must succeed.
++	 */
++	if (vif->type == NL80211_IFTYPE_MESH_POINT)
++		return cmd == SET_KEY ? -EOPNOTSUPP : 0;
++
+ 	switch (key->cipher) {
+ 	case WLAN_CIPHER_SUITE_WEP40:
+ 		hw_key_type = RTW_CAM_WEP40;
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index 8150297..d970e91 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -2288,8 +2288,14 @@ int rtw_register_hw(struct rtw_dev *rtwdev, struct ieee80211_hw *hw)
+ 				     BIT(NL80211_IFTYPE_ADHOC);
+ 	if (IS_ENABLED(CONFIG_MAC80211_MESH) &&
+ 	    rtwdev->chip->id == RTW_CHIP_TYPE_8812A &&
+-	    rtw_hci_type(rtwdev) == RTW_HCI_TYPE_USB)
++	    rtw_hci_type(rtwdev) == RTW_HCI_TYPE_USB) {
+ 		hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_MESH_POINT);
++		/* cfg80211 uses this legacy-named flag to admit any per-peer
++		 * non-pairwise key, including mesh MGTK/IGTK. Do not set
++		 * SUPPORTS_PER_STA_GTK: mesh keys remain in mac80211 software.
++		 */
++		hw->wiphy->flags |= WIPHY_FLAG_IBSS_RSN;
++	}
+ 	hw->wiphy->available_antennas_tx = hal->antenna_tx;
+ 	hw->wiphy->available_antennas_rx = hal->antenna_rx;
+ 

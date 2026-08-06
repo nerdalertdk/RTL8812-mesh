@@ -1,0 +1,278 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 23:44:47 +0200
+Subject: [PATCH 5/8] wifi: rtw88: harden synchronous USB control transfers
+
+The rotating control-buffer index is released before usb_control_msg() uses
+the selected entry. Concurrent transactions can therefore wrap the ring and
+overwrite a buffer still owned by an in-flight request.
+
+Serialize each complete synchronous transaction. Reject short transfers,
+retry only idempotent reads for bounded transient errors, and never replay
+ambiguous writes. Classify only the deliberate old-chip USB mode-switch
+disconnect as expected. Keep cumulative rate-limited diagnostics for other
+failures.
+---
+ drivers/net/wireless/realtek/rtw88/usb.c | 146 ++++++++++++++++-------
+ drivers/net/wireless/realtek/rtw88/usb.h |  13 +-
+ 2 files changed, 112 insertions(+), 47 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+index 68d8afa..26dbcbc 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.c
++++ b/drivers/net/wireless/realtek/rtw88/usb.c
+@@ -69,37 +69,77 @@ static void rtw_usb_reg_sec(struct rtw_dev *rtwdev, u32 addr, __le32 *data)
+ 			__func__, t_reg, t_len, status);
+ }
+ 
++static bool rtw_usb_ctrl_error_retryable(int error)
++{
++	switch (error) {
++	case -EPROTO:
++	case -EILSEQ:
++	case -ETIME:
++	case -ETIMEDOUT:
++	case -ECOMM:
++		return true;
++	default:
++		return false;
++	}
++}
++
+ static u32 rtw_usb_read(struct rtw_dev *rtwdev, u32 addr, u16 len)
+ {
+ 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+ 	struct usb_device *udev = rtwusb->udev;
+ 	__le32 *data;
+-	unsigned long flags;
+-	int idx, ret;
+-	static int count;
+-
+-	spin_lock_irqsave(&rtwusb->usb_lock, flags);
++	u32 value;
++	int attempt, ret;
+ 
+-	idx = rtwusb->usb_data_index;
+-	rtwusb->usb_data_index = (idx + 1) & (RTW_USB_MAX_RXTX_COUNT - 1);
++	mutex_lock(&rtwusb->usb_ctrl_mutex);
++	data = rtwusb->usb_data;
+ 
+-	spin_unlock_irqrestore(&rtwusb->usb_lock, flags);
++	for (attempt = 1; attempt <= RTW_USB_CTRL_READ_MAX_ATTEMPTS; attempt++) {
++		/* Never expose data left by an earlier transfer after an error or
++		 * a short read.
++		 */
++		*data = 0;
++		ret = usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
++				      RTW_USB_CMD_REQ, RTW_USB_CMD_READ, addr,
++				      RTW_USB_VENQT_CMD_IDX, data, len, 1000);
++		if (ret == len)
++			break;
+ 
+-	data = &rtwusb->usb_data[idx];
++		if (ret >= 0)
++			ret = -EIO;
++		if (!rtw_usb_ctrl_error_retryable(ret) ||
++		    attempt == RTW_USB_CTRL_READ_MAX_ATTEMPTS)
++			break;
+ 
+-	ret = usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
+-			      RTW_USB_CMD_REQ, RTW_USB_CMD_READ, addr,
+-			      RTW_USB_VENQT_CMD_IDX, data, len, 1000);
+-	if (ret < 0 && ret != -ENODEV && count++ < 4)
+-		rtw_err(rtwdev, "read register 0x%x failed with %d\n",
+-			addr, ret);
++		atomic_inc(&rtwusb->ctrl_retry_count);
++		usleep_range(1000, 2000);
++	}
++	if (ret == len && attempt > 1)
++		dev_warn_ratelimited(rtwdev->dev,
++				     "read register 0x%x recovered after %d attempts, retries=%d\n",
++				     addr, attempt,
++				     atomic_read(&rtwusb->ctrl_retry_count));
++
++	if (ret != len) {
++		int errors = atomic_inc_return(&rtwusb->ctrl_error_count);
++
++		if (ret != -ENODEV)
++			dev_err_ratelimited(rtwdev->dev,
++					    "read register 0x%x failed with %d after %d attempt(s), errors=%d retries=%d\n",
++					    addr, ret, attempt, errors,
++					    atomic_read(&rtwusb->ctrl_retry_count));
++	}
+ 
+-	if (rtwdev->chip->id == RTW_CHIP_TYPE_8822C ||
+-	    rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
+-	    rtwdev->chip->id == RTW_CHIP_TYPE_8821C)
++	if (ret == len &&
++	    (rtwdev->chip->id == RTW_CHIP_TYPE_8822C ||
++	     rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
++	     rtwdev->chip->id == RTW_CHIP_TYPE_8821C))
+ 		rtw_usb_reg_sec(rtwdev, addr, data);
+ 
+-	return le32_to_cpu(*data);
++	value = le32_to_cpu(*data);
++	mutex_unlock(&rtwusb->usb_ctrl_mutex);
++
++	return value;
+ }
+ 
+ static u8 rtw_usb_read8(struct rtw_dev *rtwdev, u32 addr)
+@@ -117,52 +157,71 @@ static u32 rtw_usb_read32(struct rtw_dev *rtwdev, u32 addr)
+ 	return (u32)rtw_usb_read(rtwdev, addr, 4);
+ }
+ 
+-static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
++static bool rtw_usb_ctrl_expected_disconnect(int error)
++{
++	return error == -EPROTO || error == -ENODEV || error == -ESHUTDOWN;
++}
++
++static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len,
++			  bool disconnect_expected)
+ {
+ 	struct rtw_usb *rtwusb = (struct rtw_usb *)rtwdev->priv;
+ 	struct usb_device *udev = rtwusb->udev;
+-	unsigned long flags;
+ 	__le32 *data;
+-	int idx, ret;
+-	static int count;
+-
+-	spin_lock_irqsave(&rtwusb->usb_lock, flags);
+-
+-	idx = rtwusb->usb_data_index;
+-	rtwusb->usb_data_index = (idx + 1) & (RTW_USB_MAX_RXTX_COUNT - 1);
+-
+-	spin_unlock_irqrestore(&rtwusb->usb_lock, flags);
++	int ret;
+ 
+-	data = &rtwusb->usb_data[idx];
++	mutex_lock(&rtwusb->usb_ctrl_mutex);
++	data = rtwusb->usb_data;
+ 
+ 	*data = cpu_to_le32(val);
+ 
++	/* Do not retry writes indiscriminately. A timed-out transfer may have
++	 * reached the device, and repeating command or clear-on-write registers
++	 * can have side effects. Reads are safe to retry and are handled above.
++	 */
+ 	ret = usb_control_msg(udev, usb_sndctrlpipe(udev, 0),
+ 			      RTW_USB_CMD_REQ, RTW_USB_CMD_WRITE,
+ 			      addr, 0, data, len, 500);
+-	if (ret < 0 && ret != -ENODEV && count++ < 4)
+-		rtw_err(rtwdev, "write register 0x%x failed with %d\n",
++	if (ret >= 0 && ret != len)
++		ret = -EIO;
++
++	if (ret != len &&
++	    !(disconnect_expected && rtw_usb_ctrl_expected_disconnect(ret))) {
++		int errors = atomic_inc_return(&rtwusb->ctrl_error_count);
++
++		if (ret != -ENODEV)
++			dev_err_ratelimited(rtwdev->dev,
++					    "write register 0x%x failed with %d, errors=%d read_retries=%d\n",
++					    addr, ret, errors,
++					    atomic_read(&rtwusb->ctrl_retry_count));
++	} else if (ret != len) {
++		rtw_dbg(rtwdev, RTW_DBG_USB,
++			"USB mode switch disconnected during register 0x%x write (%d)\n",
+ 			addr, ret);
++	}
+ 
+-	if (rtwdev->chip->id == RTW_CHIP_TYPE_8822C ||
+-	    rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
+-	    rtwdev->chip->id == RTW_CHIP_TYPE_8821C)
++	if (ret == len &&
++	    (rtwdev->chip->id == RTW_CHIP_TYPE_8822C ||
++	     rtwdev->chip->id == RTW_CHIP_TYPE_8822B ||
++	     rtwdev->chip->id == RTW_CHIP_TYPE_8821C))
+ 		rtw_usb_reg_sec(rtwdev, addr, data);
++
++	mutex_unlock(&rtwusb->usb_ctrl_mutex);
+ }
+ 
+ static void rtw_usb_write8(struct rtw_dev *rtwdev, u32 addr, u8 val)
+ {
+-	rtw_usb_write(rtwdev, addr, val, 1);
++	rtw_usb_write(rtwdev, addr, val, 1, false);
+ }
+ 
+ static void rtw_usb_write16(struct rtw_dev *rtwdev, u32 addr, u16 val)
+ {
+-	rtw_usb_write(rtwdev, addr, val, 2);
++	rtw_usb_write(rtwdev, addr, val, 2, false);
+ }
+ 
+ static void rtw_usb_write32(struct rtw_dev *rtwdev, u32 addr, u32 val)
+ {
+-	rtw_usb_write(rtwdev, addr, val, 4);
++	rtw_usb_write(rtwdev, addr, val, 4, false);
+ }
+ 
+ static void rtw_usb_write_firmware_page(struct rtw_dev *rtwdev, u32 page,
+@@ -1071,15 +1130,16 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
+ 	if (ret)
+ 		return ret;
+ 
+-	rtwusb->usb_data = kcalloc(RTW_USB_MAX_RXTX_COUNT, sizeof(u32),
+-				   GFP_KERNEL);
++	rtwusb->usb_data = kmalloc(sizeof(*rtwusb->usb_data), GFP_KERNEL);
+ 	if (!rtwusb->usb_data)
+ 		return -ENOMEM;
+ 
+ 	usb_set_intfdata(intf, rtwdev->hw);
+ 
+ 	SET_IEEE80211_DEV(rtwdev->hw, &intf->dev);
+-	spin_lock_init(&rtwusb->usb_lock);
++	mutex_init(&rtwusb->usb_ctrl_mutex);
++	atomic_set(&rtwusb->ctrl_error_count, 0);
++	atomic_set(&rtwusb->ctrl_retry_count, 0);
+ 
+ 	return 0;
+ }
+@@ -1108,7 +1168,7 @@ static int rtw_usb_switch_mode_old(struct rtw_dev *rtwdev)
+ 			rtw_write8(rtwdev, REG_ACLK_MON, 0x1);
+ 			rtw_write8(rtwdev, 0x3d, 0x3);
+ 			/* usb disconnect */
+-			rtw_write8(rtwdev, REG_SYS_PW_CTRL + 1, 0x80);
++			rtw_usb_write(rtwdev, REG_SYS_PW_CTRL + 1, 0x80, 1, true);
+ 			return 1;
+ 		}
+ 	} else if (cur_speed == USB_SPEED_SUPER) {
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.h b/drivers/net/wireless/realtek/rtw88/usb.h
+index 9b695b6..432a5a3 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.h
++++ b/drivers/net/wireless/realtek/rtw88/usb.h
+@@ -5,12 +5,14 @@
+ #ifndef __RTW_USB_H_
+ #define __RTW_USB_H_
+ 
++#include <linux/mutex.h>
++
+ #define FW_8192C_START_ADDRESS		0x1000
+ #define FW_8192C_END_ADDRESS		0x5fff
+ 
+-#define RTW_USB_MAX_RXTX_COUNT		128
+ #define RTW_USB_VENQT_MAX_BUF_SIZE	254
+ #define MAX_USBCTRL_VENDORREQ_TIMES	10
++#define RTW_USB_CTRL_READ_MAX_ATTEMPTS	3
+ 
+ #define RTW_USB_CMD_READ		0xc0
+ #define RTW_USB_CMD_WRITE		0x40
+@@ -65,10 +67,13 @@ struct rtw_usb {
+ 	struct rtw_dev *rtwdev;
+ 	struct usb_device *udev;
+ 
+-	/* protects usb_data_index */
+-	spinlock_t usb_lock;
++	/* Protects usb_data for the complete synchronous control transaction,
++	 * including bounded read retries.
++	 */
++	struct mutex usb_ctrl_mutex;
+ 	__le32 *usb_data;
+-	unsigned int usb_data_index;
++	atomic_t ctrl_error_count;
++	atomic_t ctrl_retry_count;
+ 
+ 	u8 pipe_interrupt;
+ 	u8 pipe_in;

@@ -1,0 +1,163 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 23:45:53 +0200
+Subject: [PATCH 7/8] wifi: rtw88: fix USB TX ownership and error reporting
+
+USB aggregation puts its synthetic skb on mac80211's TX-status queue with
+original frames. Completion can therefore report a non-frame with an
+invalid control block, while synchronous rejection sends driver-owned data
+through mac80211's free path.
+
+Track and free the synthetic buffer separately. Release every caller-owned
+object on synchronous failure and continue draining queued frames. Report
+completion errors without ACK. Do not replay ambiguously submitted frames.
+Keep cumulative rate-limited transport diagnostics.
+---
+ drivers/net/wireless/realtek/rtw88/usb.c | 53 ++++++++++++++++++++++--
+ drivers/net/wireless/realtek/rtw88/usb.h |  1 +
+ 2 files changed, 50 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+index 54073bf..b72d0dd 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.c
++++ b/drivers/net/wireless/realtek/rtw88/usb.c
+@@ -25,6 +25,7 @@ MODULE_PARM_DESC(switch_usb_mode,
+ struct rtw_usb_txcb {
+ 	struct rtw_dev *rtwdev;
+ 	struct sk_buff_head tx_ack_queue;
++	struct sk_buff *agg_skb;
+ };
+ 
+ static void rtw_usb_fill_tx_checksum(struct rtw_usb *rtwusb,
+@@ -375,12 +376,29 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+ 	return 0;
+ }
+ 
+-static void rtw_usb_write_port_tx_complete(struct urb *urb)
++static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
++{
++	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
++
++	if (status && status != -ENOENT && status != -ENODEV &&
++	    status != -ESHUTDOWN) {
++		int errors = atomic_inc_return(&rtwusb->tx_urb_error_count);
++
++		dev_warn_ratelimited(rtwdev->dev,
++				     "USB TX URB error %d, errors=%d\n", status,
++				     errors);
++	}
++}
++
++static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+ {
+-	struct rtw_usb_txcb *txcb = urb->context;
+ 	struct rtw_dev *rtwdev = txcb->rtwdev;
+ 	struct ieee80211_hw *hw = rtwdev->hw;
+ 
++	rtw_usb_record_tx_error(rtwdev, status);
++	if (txcb->agg_skb)
++		dev_kfree_skb_any(txcb->agg_skb);
++
+ 	while (true) {
+ 		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);
+ 		struct ieee80211_tx_info *info;
+@@ -394,6 +412,18 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+ 
+ 		skb_pull(skb, rtwdev->chip->tx_pkt_desc_sz);
+ 
++		/* A failed USB transfer cannot be treated as successfully delivered
++		 * to the WLAN firmware. Report it without ACK rather than claiming
++		 * transmission. Do not retry here: a completion error does not prove
++		 * that no bytes reached the device, so replay could duplicate an
++		 * 802.11 frame.
++		 */
++		if (status) {
++			ieee80211_tx_info_clear_status(info);
++			ieee80211_tx_status_irqsafe(hw, skb);
++			continue;
++		}
++
+ 		/* enqueue to wait for tx report */
+ 		if (info->flags & IEEE80211_TX_CTL_REQ_TX_STATUS) {
+ 			rtw_tx_report_enqueue(rtwdev, skb, tx_data->sn);
+@@ -413,6 +443,13 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+ 	kfree(txcb);
+ }
+ 
++static void rtw_usb_write_port_tx_complete(struct urb *urb)
++{
++	struct rtw_usb_txcb *txcb = urb->context;
++
++	rtw_usb_write_port_tx_status(txcb, urb->status);
++}
++
+ static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
+ {
+ 	if (qsel >= ARRAY_SIZE(rtwusb->qsel_to_ep))
+@@ -469,6 +506,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
+ 
+ 	txcb->rtwdev = rtwdev;
+ 	skb_queue_head_init(&txcb->tx_ack_queue);
++	txcb->agg_skb = NULL;
+ 
+ 	skb_iter = skb_dequeue(list);
+ 
+@@ -482,6 +520,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
+ 		skb_head = skb_iter;
+ 		goto queue;
+ 	}
++	txcb->agg_skb = skb_head;
+ 
+ 	while (skb_iter) {
+ 		unsigned long flags;
+@@ -512,16 +551,20 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
+ 		rtw_usb_fill_tx_checksum(rtwusb, skb_head, agg_num);
+ 
+ queue:
+-	skb_queue_tail(&txcb->tx_ack_queue, skb_head);
++	if (!txcb->agg_skb)
++		skb_queue_tail(&txcb->tx_ack_queue, skb_head);
+ 	tx_desc = (struct rtw_tx_desc *)skb_head->data;
+ 	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
+ 
+ 	ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
+ 				 rtw_usb_write_port_tx_complete, txcb);
+ 	if (ret) {
++		rtw_usb_record_tx_error(rtwdev, ret);
++		if (txcb->agg_skb)
++			dev_kfree_skb_any(txcb->agg_skb);
+ 		ieee80211_purge_tx_queue(rtwdev->hw, &txcb->tx_ack_queue);
+ 		kfree(txcb);
+-		return false;
++		return true;
+ 	}
+ 
+ 	return true;
+@@ -585,6 +628,7 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
+ 	ret = rtw_usb_write_port(rtwdev, qsel, skb,
+ 				 rtw_usb_write_port_complete, skb);
+ 	if (unlikely(ret)) {
++		rtw_usb_record_tx_error(rtwdev, ret);
+ 		rtw_err(rtwdev, "failed to do USB write, ret=%d\n", ret);
+ 		dev_kfree_skb_any(skb);
+ 	}
+@@ -1191,6 +1235,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
+ 	atomic_set(&rtwusb->ctrl_error_count, 0);
+ 	atomic_set(&rtwusb->ctrl_retry_count, 0);
+ 	atomic_set(&rtwusb->rx_urb_error_count, 0);
++	atomic_set(&rtwusb->tx_urb_error_count, 0);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.h b/drivers/net/wireless/realtek/rtw88/usb.h
+index 4517ed7..cf11525 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.h
++++ b/drivers/net/wireless/realtek/rtw88/usb.h
+@@ -75,6 +75,7 @@ struct rtw_usb {
+ 	atomic_t ctrl_error_count;
+ 	atomic_t ctrl_retry_count;
+ 	atomic_t rx_urb_error_count;
++	atomic_t tx_urb_error_count;
+ 
+ 	u8 pipe_interrupt;
+ 	u8 pipe_in;

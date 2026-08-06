@@ -198,6 +198,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   two-patch rebase still matches current `usb.c`/`usb.h` byte-for-byte. These
   boundaries are recorded in `docs/UPSTREAMING.md` to prevent redundant or
   compatibility-only downstream code from entering an upstream submission.
+  The complete adapted `1/8` through `8/8` series is now materialized under
+  `patches/wireless-next/`. Its verifier reproduces final hashes
+  `868f48d8...` (`main.c`), `ef38cb37...` (`mac80211.c`), `65672441...`
+  (`usb.c`), and `7733a79a...` (`usb.h`) from the exact pinned baseline; the
+  full repository static suite and whitespace check pass.
 - Physical USB trial preflight now rejects a pre-existing Raspberry Pi bit 19
   soft-temperature history. Once that bit is already set, a brief recurrence
   cannot be inferred from the post-run mask after the current bit clears, so a

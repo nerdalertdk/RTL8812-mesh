@@ -15,6 +15,8 @@
   exact-blob annotated tag and a deterministic verifier.
 - [x] Materialize the eight logical upstream patches and verify that applying
   them in order reproduces all four validated production files byte-for-byte.
+- [x] Rebase the complete eight-patch series onto pinned wireless-next commit
+  `ca800a930276`, with exact baseline/final hashes and strict application.
 - [x] Make physical USB trials fail preflight when historical soft-temperature
   limiting is already set, preventing an undetectable thermal recurrence from
   being accepted as clean attribution evidence.

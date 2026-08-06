@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 23:45:54 +0200
+Subject: [PATCH 8/8] wifi: rtw88: quiesce USB TX URBs before teardown
+
+The driver drops its URB reference immediately after TX submission. A
+completion can therefore dereference its skb or rtwdev context after unbind
+has destroyed the TX workqueue and continued freeing driver state.
+
+Anchor every TX URB before submission and unanchor synchronous failures.
+Drain the TX producer and kill the anchor before freeing driver state. This
+quiesces all completion callbacks.
+---
+ drivers/net/wireless/realtek/rtw88/usb.c | 6 ++++++
+ drivers/net/wireless/realtek/rtw88/usb.h | 1 +
+ 2 files changed, 7 insertions(+)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+index b72d0dd..615b562 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.c
++++ b/drivers/net/wireless/realtek/rtw88/usb.c
+@@ -478,7 +478,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+ 
+ 	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
+ 	urb->transfer_flags |= URB_ZERO_PACKET;
++	usb_anchor_urb(urb, &rtwusb->tx_anchor);
+ 	ret = usb_submit_urb(urb, GFP_ATOMIC);
++	if (ret)
++		usb_unanchor_urb(urb);
+ 
+ 	usb_free_urb(urb);
+ 
+@@ -1190,6 +1193,8 @@ static int rtw_usb_init_tx(struct rtw_dev *rtwdev)
+ 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+ 	int i;
+ 
++	init_usb_anchor(&rtwusb->tx_anchor);
++
+ 	rtwusb->txwq = create_singlethread_workqueue("rtw88_usb: tx wq");
+ 	if (!rtwusb->txwq) {
+ 		rtw_err(rtwdev, "failed to create TX work queue\n");
+@@ -1209,6 +1214,7 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+ 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+ 
+ 	destroy_workqueue(rtwusb->txwq);
++	usb_kill_anchored_urbs(&rtwusb->tx_anchor);
+ 	rtw_usb_tx_queue_purge(rtwusb);
+ }
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.h b/drivers/net/wireless/realtek/rtw88/usb.h
+index cf11525..cae70b0 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.h
++++ b/drivers/net/wireless/realtek/rtw88/usb.h
+@@ -83,6 +83,7 @@ struct rtw_usb {
+ 	int qsel_to_ep[TX_DESC_QSEL_MAX];
+ 
+ 	struct workqueue_struct *txwq, *rxwq;
++	struct usb_anchor tx_anchor;
+ 
+ 	struct sk_buff_head tx_queue[RTW_USB_EP_MAX];
+ 	struct work_struct tx_work;

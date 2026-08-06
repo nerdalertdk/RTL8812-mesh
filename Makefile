@@ -49,6 +49,7 @@ all:
 check-static:
 	./scripts/check-upstream-baseline.sh
 	./scripts/check-upstream-series.sh
+	./scripts/check-wireless-next-series.sh
 	./scripts/check-mainline-tx-series.sh
 	./scripts/check-test-instrumentation.sh
 	./scripts/check-hardware-event-classifiers.sh
