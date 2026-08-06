@@ -6,7 +6,7 @@ regression evidence, but cannot substitute for an RTL8812AU-to-RTL8812AU gate.
 
 | Requirement | Required evidence | Current evidence | Status |
 | --- | --- | --- | --- |
-| Exact-kernel Debian package | All five DKMS modules build, install, load, and match installed `srcversion` values | DKMS 0.1.4 passed on `6.12.47+rpt-rpi-v8`; repository source is now 0.1.5 and has not been built or loaded | Pending current-source build |
+| Exact-kernel Debian package | All five DKMS modules build, install, load from `updates/dkms`, match kernel vermagic and installed `srcversion`, and have recorded hashes with no unrelated shared-core consumer | DKMS 0.1.4 passed on `6.12.47+rpt-rpi-v8`; a fail-closed provenance harness now standardizes this evidence, but source 0.1.5 has not been built or loaded | Pending current-source build |
 | Open mesh peering | Repeated fresh joins with both peer links `ESTAB` | DKMS 0.1.4 strict 20-cycle churn passed 20/20; repeat required after loading 0.1.5 | Pass on 0.1.4; 0.1.5 regression pending |
 | Cold HWMP discovery | Bidirectional first contact after path/neighbour flush and paths at both peers | DKMS 0.1.4 strict churn passed 20/20; channel sweep passed channels 1--13; repeat strict churn on 0.1.5 | Pass on 0.1.4; 0.1.5 regression pending |
 | Open unicast integrity | Checksummed large payload in both directions | DKMS 0.1.4 transferred 512 MiB each direction with matching SHA-256 and no kernel event; repeat on 0.1.5 | Pass on 0.1.4; 0.1.5 regression pending |

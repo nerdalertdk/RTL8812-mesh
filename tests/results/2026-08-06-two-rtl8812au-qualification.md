@@ -9,6 +9,19 @@
   `srcversion` matches.
 - 2.4 GHz channel 1, HT20. Adapter MAC addresses are intentionally omitted.
 
+A read-only exact-stack provenance gate was repeated during the active soak.
+It confirmed DKMS 0.1.4 installed for the running kernel/architecture, all five
+modules loaded from `updates/dkms`, matching installed/loaded `srcversion` and
+kernel vermagic, and no unrelated shared-`rtw_*` consumer:
+
+| Module | `srcversion` | Installed module SHA-256 |
+| --- | --- | --- |
+| `rtw_core` | `519328A41F9DC77AF8ACB40` | `3d720020a01a36ef771a6c94c3a2b7335f0ebd2b68b094d416d5a8c9dac4ca72` |
+| `rtw_usb` | `B20A2D6F7E78479AE47E229` | `09b542d60ec49b9d5736bbb402859919957d1d13e29f1b90ecae515e58249e03` |
+| `rtw_88xxa` | `43A42F39AAA3F76EE68B07A` | `f9221ac28c63f29b9d7ec5490322b83ec033bb577ec7239d62e4d6a856cdfe2b` |
+| `rtw_8812a` | `EA09B2EE23466C9723AC5D9` | `bb59884d5dae1c508178851ca54f11551ce3d497538494b0d9db039bca56ee95` |
+| `rtw_8812au` | `FE97105DD75C2E354F298CD` | `363c62010833a35d431ced3f417231b8851821642c841a992a663f32590b7bf1` |
+
 ## Open mesh
 
 The recovery helper established bilateral `ESTAB`, traffic, and reciprocal

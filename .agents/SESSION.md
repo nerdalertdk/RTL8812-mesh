@@ -116,6 +116,13 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 - Two RTL8812AU adapters now form the production test fixture, one at USB3
   `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
   capability. Open recovery validates bilateral traffic and reciprocal HWMP.
+  The new read-only `pi_module_provenance.sh` gate passed against live 0.1.4
+  during the soak: exact DKMS kernel/architecture registration, five loaded
+  `updates/dkms` paths, matching installed/loaded source versions and vermagic,
+  recorded file hashes, and zero unrelated shared-core consumer. Its deployed
+  SHA-256 is
+  `98403c9a7a4edf080ff44cc97b56cb40be198a9280683ff6eb38d6f398ee2256`;
+  the same gate is mandatory before and after disposable 0.1.5 testing.
 - Symmetric multicast passed the sender-captured release gate at 399/400 and
   400/400 delivered frames with zero USB events. A single-frame churn probe
   produced 19/20 twice; a three-frame reachability burst, with the separate

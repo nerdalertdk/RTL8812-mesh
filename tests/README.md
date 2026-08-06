@@ -138,6 +138,13 @@ The first completed run is recorded in
 
 ## TX failure injection
 
+Before any behavioral or injection gate, run `pi_module_provenance.sh` with
+`EXPECTED_VERSION` set to the intended production DKMS version. It requires the
+exact package/kernel/architecture registration, all five modules loaded from
+`updates/dkms`, matching installed and loaded `srcversion`, matching kernel
+vermagic, recorded module-file SHA-256 values, and no unrelated `rtw_*` consumer
+of the shared core namespace. Run it again after replacing disposable modules.
+
 `usb_tx_failure_injection.patch` is test-only instrumentation for source 0.1.5
 or an exact matching disposable copy. It adds root-writable
 `rtw_usb.test_tx_submit_failures`,
