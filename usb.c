@@ -382,10 +382,13 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
 	struct ieee80211_hw *hw = rtwdev->hw;
 
 	if (status && status != -ENOENT && status != -ENODEV &&
-	    status != -ESHUTDOWN)
+	    status != -ESHUTDOWN) {
+		int errors = atomic_inc_return(&rtwusb->tx_urb_error_count);
+
 		dev_warn_ratelimited(rtwdev->dev,
 				     "USB TX URB error %d, errors=%d\n", status,
-				     atomic_inc_return(&rtwusb->tx_urb_error_count));
+				     errors);
+	}
 
 	while (true) {
 		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);

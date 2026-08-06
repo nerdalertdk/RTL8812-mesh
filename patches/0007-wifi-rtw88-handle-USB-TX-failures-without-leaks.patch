@@ -1,6 +1,6 @@
-From 34b7bc7f0c74234a059455f264378fc54c4d7120 Mon Sep 17 00:00:00 2001
+From 29e452e07045dc52b0c0af07086725f11594f0bd Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
-Date: Thu, 6 Aug 2026 20:51:22 +0200
+Date: Thu, 6 Aug 2026 21:06:36 +0200
 Subject: [PATCH] wifi: rtw88: handle USB TX failures without leaks
 
 USB TX submission failures leave callback-owned state behind because no
@@ -16,15 +16,15 @@ rate-limit diagnostics for non-teardown TX transport errors.
 Do not replay failed TX URBs: completion errors cannot prove how much of an
 ambiguously submitted frame reached the device.
 ---
- usb.c | 40 ++++++++++++++++++++++++++++++++++++----
+ usb.c | 43 +++++++++++++++++++++++++++++++++++++++----
  usb.h |  1 +
- 2 files changed, 37 insertions(+), 4 deletions(-)
+ 2 files changed, 40 insertions(+), 4 deletions(-)
 
 diff --git a/usb.c b/usb.c
-index d9e319c..1ffb067 100644
+index d9e319c..b2c20ed 100644
 --- a/usb.c
 +++ b/usb.c
-@@ -375,12 +375,18 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+@@ -375,12 +375,21 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
  	return 0;
  }
  
@@ -37,15 +37,18 @@ index d9e319c..1ffb067 100644
  	struct ieee80211_hw *hw = rtwdev->hw;
  
 +	if (status && status != -ENOENT && status != -ENODEV &&
-+	    status != -ESHUTDOWN)
++	    status != -ESHUTDOWN) {
++		int errors = atomic_inc_return(&rtwusb->tx_urb_error_count);
++
 +		dev_warn_ratelimited(rtwdev->dev,
 +				     "USB TX URB error %d, errors=%d\n", status,
-+				     atomic_inc_return(&rtwusb->tx_urb_error_count));
++				     errors);
++	}
 +
  	while (true) {
  		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);
  		struct ieee80211_tx_info *info;
-@@ -394,6 +400,18 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+@@ -394,6 +403,18 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
  
  		skb_pull(skb, rtwdev->chip->tx_pkt_desc_sz);
  
@@ -64,7 +67,7 @@ index d9e319c..1ffb067 100644
  		/* enqueue to wait for tx report */
  		if (info->flags & IEEE80211_TX_CTL_REQ_TX_STATUS) {
  			rtw_tx_report_enqueue(rtwdev, skb, tx_data->sn);
-@@ -413,6 +431,13 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+@@ -413,6 +434,13 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
  	kfree(txcb);
  }
  
@@ -78,7 +81,7 @@ index d9e319c..1ffb067 100644
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
  {
  	if (qsel >= ARRAY_SIZE(rtwusb->qsel_to_ep))
-@@ -456,6 +481,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
+@@ -456,6 +484,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
  	struct sk_buff *skb_head;
  	struct sk_buff *skb_iter;
  	int agg_num = 0;
@@ -86,7 +89,7 @@ index d9e319c..1ffb067 100644
  	unsigned int align_next = 0;
  	u8 qsel;
  
-@@ -519,7 +545,10 @@ queue:
+@@ -519,7 +548,10 @@ queue:
  	tx_desc = (struct rtw_tx_desc *)skb_head->data;
  	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
  
@@ -98,7 +101,7 @@ index d9e319c..1ffb067 100644
  
  	return true;
  }
-@@ -588,8 +617,10 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
+@@ -588,8 +620,10 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
  
  	ret = rtw_usb_write_port(rtwdev, qsel, skb,
  				 rtw_usb_write_port_complete, skb);
@@ -110,7 +113,7 @@ index d9e319c..1ffb067 100644
  
  	return ret;
  }
-@@ -1225,6 +1256,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
+@@ -1225,6 +1259,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
  	atomic_set(&rtwusb->ctrl_error_count, 0);
  	atomic_set(&rtwusb->ctrl_retry_count, 0);
  	atomic_set(&rtwusb->rx_urb_error_count, 0);

@@ -146,8 +146,9 @@ status/cleanup handling and must not be interpreted as a physical USB fault.
 Required evidence:
 
 - both requested failure counts return to zero under sustained traffic;
-- each injected error emits the rate-limited `USB TX URB error -71`
-  diagnostic, with a monotonically increasing driver counter;
+- each requested failure count is fully consumed; at least one rate-limited
+  `USB TX URB error -71` diagnostic is retained for each injection phase, and
+  displayed driver-counter values increase monotonically across emitted lines;
 - bilateral mesh traffic resumes after submission injection and remains live
   after completion-status injection;
 - strict churn and a bidirectional checksummed transfer pass after the
