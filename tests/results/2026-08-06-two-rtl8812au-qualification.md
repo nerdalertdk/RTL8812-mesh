@@ -83,6 +83,30 @@ row-A preflight with a separate non-matrix log root. It returned exit 2 with
 `pre_throttled=0x80000`; no soak directory was created. This proves the current
 thermal history cannot accidentally start or count as an attribution run.
 
+## Symmetric functional endurance
+
+An eight-hour DKMS 0.1.4 soak started at 2026-08-06 20:34 CEST with exact run
+ID `20260806T183421Z`. It continuously requires bilateral `ESTAB`, reciprocal
+HWMP paths, ten-probe ping batches in both directions, periodic bidirectional
+checksummed transfers, no recovery/invalid environment window, an 85 C live
+cutoff, and a clean USB/power kernel interval.
+
+At the second hourly checkpoint at 22:35 CEST, cumulative evidence was:
+
+- 151/151 bilateral established/HWMP states, zero unavailable or bad states;
+- 302/302 ten-probe directional ping batches, zero failed batches;
+- 6/6 checksummed 10 MiB transfers, with every source/destination SHA-256
+  equal and zero failed transfers;
+- latest root-to-peer speed 4,903,833 B/s and peer-to-root 5,071,523 B/s;
+- temperature range 75.958--79.367 C, historical throttle mask `0x80000`,
+  and no live 85 C invalidation;
+- zero recovery windows, environment invalidations, USB `-71`, reset,
+  disconnect, under/overcurrent, or other classified transport/power events.
+
+The soak and exact-run-bound finalizer remain active. This is valid functional
+endurance evidence under the accepted temperature, but the historical thermal
+bit means it is not a thermally clean physical USB-path matrix repetition.
+
 ## Remaining scope
 
 This closes the symmetric open multicast, SAE/AMPE, and channels 1--13 HT20

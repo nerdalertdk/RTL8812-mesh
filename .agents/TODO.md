@@ -8,9 +8,9 @@
   then repeat strict symmetric churn, a secured SAE/AMPE smoke, and the
   checksummed transfer gate.
 - [ ] Complete the active eight-hour two-RTL8812AU functional endurance run
-  started 2026-08-06 20:34 CEST. At the first hourly checkpoint it had passed
-  77/77 bilateral states, 152/152 directional ping batches, and 4/4
-  checksummed transfers with no USB or power event.
+  started 2026-08-06 20:34 CEST. At the second hourly checkpoint it had passed
+  151/151 bilateral states, 302/302 directional ping batches, and 6/6
+  checksummed transfers with no workload, recovery, USB, or power event.
 - [x] Make the four-file upstream production baseline reproducible with an
   exact-blob annotated tag and a deterministic verifier.
 - [x] Materialize the eight logical upstream patches and verify that applying
