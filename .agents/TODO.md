@@ -33,6 +33,9 @@
 - [x] Run channels 1--13 HT20 sweep on DKMS 0.1.1; all channels passed
   peering, bidirectional unicast, and HWMP, followed by 10/10 complete
   channel-2 fresh-join repetitions.
+- [x] Repeat channels 1--13 HT20 with two RTL8812AU peers; every channel passed
+  bilateral peering, cold unicast, multicast, and reciprocal HWMP with no USB
+  event.
 - [x] Run the sender/receiver multicast probe after the active soak to localize
   the intermittent mixed-adapter multicast miss.
 - [x] Compare multicast delivery with two stable RTL8812AU radios: complete

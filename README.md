@@ -32,6 +32,8 @@ build has demonstrated:
   complete sender capture and no USB event;
 - symmetric SAE/AMPE with peer-specific SAE acceptance, decrypted AMPE,
   bilateral unicast/multicast/HWMP, and checksummed secured payloads;
+- symmetric RTL8812AU channels 1--13 HT20 with fresh peering, bilateral cold
+  unicast/multicast, reciprocal HWMP, and no USB event;
 - bounded recovery from injected USB control and RX `-EPROTO` (`-71`);
 - automatic userspace topology reconstruction after module/USB rebind;
 - a clean thermal-aware 4.5-hour direct-port run with 337/337 established
@@ -47,7 +49,6 @@ build has demonstrated:
 
 Still required before production claims:
 
-- repeat the full channel profile with two stable RTL8812AU peers;
 - original USB2-topology and physical unplug/re-enumeration testing;
 - independently powered USB-path and thermally clean long-duration endurance.
 

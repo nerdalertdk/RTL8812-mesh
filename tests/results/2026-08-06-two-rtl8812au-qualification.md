@@ -61,6 +61,14 @@ wrapper. The launcher now directly `exec`s `ip netns exec`, tracks the actual
 supplicant, and fails closed if an exact test-specific process already exists.
 A subsequent run left no orphan process and released the hardware lock.
 
+## 2.4 GHz HT20 channel profile
+
+Under the active DK regulatory domain, a fresh two-RTL8812AU sweep passed
+channels 1--13. Every channel passed bilateral peering, three-packet cold
+unicast in both directions, three-frame multicast reachability in both
+directions, and reciprocal HWMP paths. The run completed 13/13 in 124 seconds,
+contained zero USB transport events, and restored channel 1 afterward.
+
 ## USB and thermal observations
 
 No `-EPROTO`/`-71`, reset, disconnect, control failure, or RX recovery event
@@ -71,7 +79,6 @@ thermal limiting cannot confound USB-path attribution.
 
 ## Remaining scope
 
-This closes the symmetric open multicast and SAE/AMPE gates on channel 1. It
-does not close the two-RTL8812AU channels 1--13 repeat, the four-row physical
-USB path matrix, powered-path attribution, or a thermally clean long endurance
-run.
+This closes the symmetric open multicast, SAE/AMPE, and channels 1--13 HT20
+gates. It does not close the four-row physical USB path matrix, powered-path
+attribution, or a thermally clean long endurance run.

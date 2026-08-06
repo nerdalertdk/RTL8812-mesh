@@ -30,6 +30,9 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   `wpa_supplicant` 2.10's mesh `key_mgmt=UNKNOWN` status and directly tracks
   the namespace supplicant so cleanup cannot orphan it. See
   `tests/results/2026-08-06-two-rtl8812au-qualification.md`.
+- The two-RTL8812AU channels 1--13 HT20 sweep passed 13/13 under DK, including
+  bilateral fresh peering, cold unicast, multicast reachability, reciprocal
+  HWMP, channel-1 restoration, and a zero-event USB interval.
 - The Pi recorded historical soft-temperature limiting (`0x80000`) at
   79.8--80.8 C, without undervoltage. Use active cooling before long endurance
   or physical USB attribution runs.
@@ -275,8 +278,8 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 - Target countries are not yet enumerated, so no production regulatory/EIRP
   profile has been approved. Denmark/EU is an example profile only.
-- Two-RTL8812AU channels 1--13, the powered/direct USB path matrix, and a
-  thermally clean long endurance run remain open release gates.
+- The powered/direct USB path matrix and a thermally clean long endurance run
+  remain open release gates.
 - Original USB2 and independently powered-path endurance remain unvalidated.
 - The current peer is RTL8192FU using `rtl8xxxu`; its intermittent multicast
   behavior cannot establish whether the remaining miss is in the RTL8192FU
