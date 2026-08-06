@@ -57,8 +57,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   requires that nonempty-anchor marker, rejects fault/transport signatures,
   and requires a successful rebind. Both disposable USB patches are now
   apply-checked against exact production `usb.c` by
-  `scripts/check-test-instrumentation.sh`. The deployed teardown harness SHA-256
-  is `9776027405bf5651a8b619155b1262a0ef9733f981ab8d288831a355e137894b`;
+  `scripts/check-test-instrumentation.sh`. The teardown harness fails before
+  acquiring the hardware lock or unbinding unless both disposable module
+  parameters exist; this preflight returned exit 2 against live uninstrumented
+  0.1.4 while the soak remained active. Its deployed SHA-256 is
+  `8c14e9e356b3aaa441952c91c75642cbc65114f69ecfca3457408b2c3215553e`;
   the deployed injector patch SHA-256 is
   `0975e80b3522ebbe3193da16cdf5772cf5fc737f56e94a7adcca18a2114d966b`.
 - An eight-hour two-RTL8812AU functional endurance run started at
