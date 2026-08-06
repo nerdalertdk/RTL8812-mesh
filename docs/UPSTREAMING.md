@@ -5,6 +5,26 @@ The production delta against source base `a56bcd2` is confined to
 recovery scripts are evidence tooling and must not be included in kernel
 patches.
 
+## Reproducible baseline
+
+The original downstream source commit is
+`a56bcd26e770257612a0803249cbd4095fc6feca`. The focused annotated tag
+`upstream-baseline-a56bcd2` points to a synthetic commit containing only the
+four production files at that exact revision. It deliberately avoids importing
+the unrelated chipset and transport history into this package.
+
+Verify the tag's four exact blob IDs and the current delta with:
+
+```sh
+./scripts/check-upstream-baseline.sh
+git diff upstream-baseline-a56bcd2 -- main.c mac80211.c usb.c usb.h
+```
+
+Push the annotated tag together with the branch when publishing the repository;
+a branch-only push cannot reproduce the baseline. The synthetic tag is a
+review convenience, not a claim that its generated commit is the original
+downstream commit.
+
 ## Proposed patch order
 
 1. **rtw88: correct CAM capacity boundary**

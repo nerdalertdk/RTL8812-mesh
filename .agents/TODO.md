@@ -2,6 +2,9 @@
 
 ## In progress
 
+- [x] Make the four-file upstream production baseline reproducible with an
+  exact-blob annotated tag and a deterministic verifier.
+
 - [x] Build, install, and regression-test DKMS `0.1.4`, including exact
   five-module provenance, parallel control-read stress, control-read injection,
   strict churn, 512 MiB transfer, and controlled unload/reload.

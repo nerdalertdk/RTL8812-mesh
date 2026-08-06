@@ -36,6 +36,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 - The Pi recorded historical soft-temperature limiting (`0x80000`) at
   79.8--80.8 C, without undervoltage. Use active cooling before long endurance
   or physical USB attribution runs.
+- Upstream provenance is now reproducible inside the focused repository. The
+  annotated `upstream-baseline-a56bcd2` tag contains exactly the four original
+  production blobs from full source commit `a56bcd26e770257612a0803249cbd4095fc6feca`;
+  `scripts/check-upstream-baseline.sh` verifies their IDs and the production
+  diff. Publish the tag with the branch.
 
 - DKMS 0.1.4 built and installed exactly five modules for
   `6.12.47+rpt-rpi-v8`; all loaded and installed source versions match. An
