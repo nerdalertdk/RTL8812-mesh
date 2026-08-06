@@ -180,6 +180,8 @@ teardown against an actually populated USB anchor. It drives concurrent large
 pings, unbinds one RTL8812AU interface, requires the test-only pre-kill marker
 to report at least one anchored URB, rejects kernel fault and transport
 signatures, then requires the device to bind and expose a usable netdev again.
+It fails before taking the hardware lock or unbinding unless both disposable
+TX-injection parameters are present and writable.
 It deliberately does not reconstruct the mesh with the instrumented module;
 replace that module with exact production 0.1.5 before running recovery and
 subsequent behavioral gates.

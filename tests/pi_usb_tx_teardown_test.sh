@@ -15,6 +15,8 @@ LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 FLOODERS=${FLOODERS:-8}
 REBIND_POLLS=${REBIND_POLLS:-100}
 LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/usb-tx-teardown}
+submit_param=/sys/module/rtw_usb/parameters/test_tx_submit_failures
+completion_param=/sys/module/rtw_usb/parameters/test_tx_completion_failures
 
 [ "$(id -u)" -eq 0 ] || { echo "run this hardware test as root" >&2; exit 2; }
 for value in "$FLOODERS" "$REBIND_POLLS"; do
@@ -23,6 +25,10 @@ done
 [ -x "$IW" ] || { echo "iw is required at $IW" >&2; exit 2; }
 command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
 command -v journalctl >/dev/null 2>&1 || { echo "journalctl is required" >&2; exit 2; }
+[ -w "$submit_param" ] && [ -w "$completion_param" ] || {
+	echo "test-only TX failure parameters are unavailable" >&2
+	exit 2
+}
 
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
