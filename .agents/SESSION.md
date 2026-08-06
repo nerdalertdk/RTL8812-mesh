@@ -24,7 +24,9 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   the TX producer is drained, closing a completion-after-free window during
   unbind and probe cleanup. Exact-kernel build, targeted fault injection,
   pending-TX unload, and hardware regression are pending until the active
-  0.1.4 soak releases the Pi.
+  0.1.4 soak releases the Pi. Static findings, Linux USB-anchor contract, and
+  the pending evidence boundary are recorded in
+  `tests/results/2026-08-06-usb-tx-error-audit.md`.
 - An eight-hour two-RTL8812AU functional endurance run started at
   2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected
   completion around 2026-08-07 04:34 CEST. Its first bilateral `ESTAB`/HWMP
