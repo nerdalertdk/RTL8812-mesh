@@ -20,14 +20,30 @@ ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
 PEER_DRIVER=${PEER_DRIVER:-}
 PING_COUNT=${PING_COUNT:-5}
 EXPECTED_VERSION=${EXPECTED_VERSION:-}
+RECOVERY_ENV_FILE=${RECOVERY_ENV_FILE:-/etc/default/rtw88-mesh-test}
 PROVENANCE_TEST=${PROVENANCE_TEST:-/usr/local/libexec/rtw88-qualification/pi_module_provenance.sh}
+PREFLIGHT_ONLY=${PREFLIGHT_ONLY:-0}
 start_epoch=$(date +%s)
 
 [ "$(id -u)" -eq 0 ] || { echo "run mesh recovery as root" >&2; exit 2; }
 [ -n "$EXPECTED_VERSION" ] || {
-	echo "set EXPECTED_VERSION to the DKMS package version" >&2
+	if [ -r "$RECOVERY_ENV_FILE" ]; then
+		EXPECTED_VERSION=$(sed -n 's/^EXPECTED_VERSION=//p' \
+			"$RECOVERY_ENV_FILE")
+	fi
+}
+[ -n "$EXPECTED_VERSION" ] || {
+	echo "set EXPECTED_VERSION or provide it in $RECOVERY_ENV_FILE" >&2
 	exit 2
 }
+case $EXPECTED_VERSION in
+	*'
+'*) echo "EXPECTED_VERSION must have exactly one value" >&2; exit 2 ;;
+esac
+case $PREFLIGHT_ONLY in
+	0|1) ;;
+	*) echo "PREFLIGHT_ONLY must be 0 or 1" >&2; exit 2 ;;
+esac
 for value in "$DEVICE_POLLS" "$ESTAB_POLLS" "$LOCK_WAIT" "$PING_COUNT"; do
 	case $value in *[!0-9]*|''|0) echo "poll, wait, and ping counts must be positive integers" >&2; exit 2 ;; esac
 done
@@ -111,6 +127,11 @@ if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 fi
 
 EXPECTED_VERSION="$EXPECTED_VERSION" "$PROVENANCE_TEST"
+if [ "$PREFLIGHT_ONLY" -eq 1 ]; then
+	printf 'result=preflight-pass version=%s root_if=%s peer_driver=%s action=none\n' \
+		"$EXPECTED_VERSION" "$root_if" "$peer_driver"
+	exit 0
+fi
 
 root_phy=$($IW dev "$root_if" info | awk '/wiphy/ { print "phy" $2; exit }')
 [ -n "$root_phy" ] || { echo "cannot resolve root wiphy" >&2; exit 1; }

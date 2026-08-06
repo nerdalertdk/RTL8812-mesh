@@ -66,16 +66,20 @@ record their source versions, vermagic, and SHA-256. It never installs or loads
 the result. `PREFLIGHT_ONLY=1` validates the queued operation without waiting or
 writing DKMS state.
 
-`pi_mesh_recover.sh` requires `EXPECTED_VERSION` and accepts recovery only
+`pi_mesh_recover.sh` requires `EXPECTED_VERSION`, either inherited from the
+caller or read from `/etc/default/rtw88-mesh-test`, and accepts recovery only
 after `pi_module_provenance.sh` proves that exact DKMS package, all five loaded
 `updates/dkms` modules, matching source versions/vermagic, and no unrelated
 shared-core consumer. It then requires expected root/peer drivers, bilateral
-`ESTAB`, successful
-traffic in both directions, and nonempty HWMP tables at both peers. Its unit's
+`ESTAB`, successful traffic in both directions, and nonempty HWMP tables at
+both peers. Its unit's
 240-second start timeout covers the configured 90-second test-lock wait plus
 the device enumeration and peering windows. Missing mesh-point capability or
 an explicitly configured peer-driver mismatch exits 78 before topology
 mutation; systemd does not restart that persistent environmental failure.
+`PREFLIGHT_ONLY=1` validates version resolution, adapter/driver identity, and
+the complete module provenance gate under a selected lock, then exits before
+any namespace, interface, or mesh mutation.
 
 `pi_mesh_transfer.sh` is the standalone large-file integrity gate. Its default
 is one 512 MiB random source transferred in both directions, with source and

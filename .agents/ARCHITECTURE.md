@@ -23,8 +23,9 @@ ABI conflict even though its file remains under `kernel/`.
 The current Pi harness resolves radios by permanent MAC and places the peer in
 the `meshpeer` network namespace. Recovery is handled by udev/systemd tooling in
 `tests/`. Recovery is version-pinned: its environment must set
-`EXPECTED_VERSION`, and the helper runs the exact five-module DKMS provenance
-gate under the hardware lock before changing mesh topology.
+`EXPECTED_VERSION`; direct callers fall back to the same environment file used
+by the systemd unit. The helper runs the exact five-module DKMS provenance gate
+under the hardware lock before changing mesh topology.
 
 For the intended 2.4 GHz deployment profile, load `rtw_usb` with
 `switch_usb_mode=N`; this keeps RTL8812AU at USB2 and avoids its intentional

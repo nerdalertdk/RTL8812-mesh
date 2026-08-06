@@ -138,10 +138,14 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   `updates/dkms` artifacts with matching source versions and vermagic, and no
   unrelated shared-core consumer. The Pi currently pins recovery to live
   0.1.4 and the deployed helper SHA-256 is
-  `d54ea6a5ae7879f8d7e638457d2ff8b834c0a130c00e49fc1bb4a9162567573c`.
+  `444ba26e4fe76d04602198c341d5acb7eba27dbdfb5f48959a229b73b82a0f94`.
   Missing-version preflight returned 2, a deliberately wrong version returned
   1 before topology mutation, exact 0.1.4 provenance passed five modules with
-  zero conflicts, and the soak continued bilateral traffic. Change the
+  zero conflicts, and the soak continued bilateral traffic. Direct callers
+  now fall back to the same root-owned environment file used by systemd; a
+  non-mutating fallback preflight resolved 0.1.4, both expected drivers, five
+  exact modules, and zero conflicts. With both the caller value and environment
+  file absent, the helper returned 2 before taking the hardware path. Change the
   environment pin to 0.1.5 atomically with the post-soak production load.
 - Two RTL8812AU adapters now form the production test fixture, one at USB3
   `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
