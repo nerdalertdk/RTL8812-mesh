@@ -4,6 +4,10 @@ Run the Pi scripts as root. They identify the two test radios by permanent MAC
 and serialize topology changes through `/run/lock/rtw88-mesh-test.lock`.
 Hardware test scripts require `flock` and fail closed if it is unavailable;
 they never proceed with an unserialized radio or topology mutation.
+Run `scripts/check-hardware-event-classifiers.sh` after changing any kernel-log
+filter. It requires every functional gate to recognize the complete USB and
+power signature set and verifies that the physical matrix retains its separate
+transport and environmental-power classifications.
 Set `ROOT_MAC` and `PEER_MAC` explicitly when invoking a script. For systemd
 recovery, copy `rtw88-mesh-test.env.example` to
 `/etc/default/rtw88-mesh-test`, replace both example addresses, and make the

@@ -15,6 +15,11 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 ## Current status
 
+- Hardware event classifiers are now statically verified. The audit found and
+  fixed missing undervoltage detection in the quantitative multicast gate and
+  missing undervoltage/overcurrent detection in the SAE/AMPE gate;
+  `scripts/check-hardware-event-classifiers.sh` reports all nine functional
+  gates and the split physical-matrix classification complete.
 - Source DKMS 0.1.5 fixes a USB TX error-path bug found during the symmetric
   soak: failed aggregate submissions previously leaked the TX context and
   queued skbs, reserved/H2C submission failures leaked their skb, and errored
