@@ -45,7 +45,10 @@ build has demonstrated:
 - an audited DKMS 0.1.2 production build with strict 20-cycle churn and
   pending-RX-retry teardown validation; DKMS 0.1.4 additionally serializes
   complete synchronous USB control transactions and passed exact-kernel
-  build, injection, churn, transfer, and bounded-soak validation.
+  build, injection, churn, transfer, and bounded-soak validation. Source 0.1.5
+  additionally releases every skb after a failed USB TX submission and reports
+  failed TX completions to mac80211 without a false ACK; exact-kernel build and
+  hardware fault-injection validation remain pending.
 
 Still required before production claims:
 
@@ -113,8 +116,8 @@ From the repository root:
 ./scripts/check-loaded-rtw88-conflicts.sh
 sudo make install_fw
 sudo dkms add .
-sudo dkms build rtl8812au-mesh/0.1.4
-sudo dkms install --force rtl8812au-mesh/0.1.4
+sudo dkms build rtl8812au-mesh/0.1.5
+sudo dkms install --force rtl8812au-mesh/0.1.5
 sudo depmod -a
 ```
 
@@ -135,7 +138,7 @@ for a live root and skips it for an explicit `INSTALL_MOD_PATH` staging root.
 Remove the DKMS package with:
 
 ```sh
-sudo dkms remove rtl8812au-mesh/0.1.4 --all
+sudo dkms remove rtl8812au-mesh/0.1.5 --all
 ```
 
 ## Create an open mesh point
@@ -174,6 +177,10 @@ The transport changes distinguish two classes of failure:
 
 - transient control/RX protocol errors are retried or resubmitted with bounded,
   rate-limited diagnostics;
+- failed TX submissions release their skb/context ownership, while TX
+  completion errors are reported to mac80211 without ACK. They are not blindly
+  replayed because a completion error does not prove that the device received
+  none of the frame;
 - with `rtw_usb.switch_usb_mode=Y` (the default), an old-chip RTL8812AU that
   first enumerates at USB2 may deliberately disconnect and re-enumerate at
   USB3. The final write to `REG_SYS_PW_CTRL + 1` can therefore return
@@ -213,8 +220,9 @@ See [tests/README.md](tests/README.md). Hardware scripts require explicit
 `ROOT_MAC` and `PEER_MAC` values and otherwise use the documented test network
 namespace defaults; no development adapter identities are embedded.
 
-Fault-injection modules and `usb_rx_submit_failure.patch` are test-only. Never
-ship an instrumented module as the production driver.
+Fault-injection modules, `usb_rx_submit_failure.patch`, and
+`usb_tx_failure_injection.patch` are test-only. Never ship an instrumented
+module as the production driver.
 
 The requirement-by-requirement release verdict and authoritative evidence are
 tracked in [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md).

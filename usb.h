@@ -75,6 +75,7 @@ struct rtw_usb {
 	atomic_t ctrl_error_count;
 	atomic_t ctrl_retry_count;
 	atomic_t rx_urb_error_count;
+	atomic_t tx_urb_error_count;
 
 	u8 pipe_interrupt;
 	u8 pipe_in;

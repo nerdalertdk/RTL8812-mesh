@@ -240,7 +240,7 @@ transfer_one_way()
 write_summary()
 {
 	kernel_events=$(journalctl -k --since "$kernel_since" --no-pager 2>/dev/null |
-		grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+		grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' || true)
 	kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' |
 		awk 'END { print NR + 0 }')
 	{

@@ -20,7 +20,7 @@ Verify the tag's four exact blob IDs and the current delta with:
 git diff upstream-baseline-a56bcd2 -- main.c mac80211.c usb.c usb.h
 ```
 
-The materialized six-patch mail series is under `patches/`. Verify that it
+The materialized seven-patch mail series is under `patches/`. Verify that it
 applies in order with strict whitespace handling and reproduces the validated
 production files byte-for-byte with:
 
@@ -83,13 +83,19 @@ downstream commit.
    - Cancel retry work before URB teardown and again after callbacks have been
      quiesced, closing the completion-versus-teardown race.
 
+7. **rtw88: handle USB TX failures without leaks or false ACKs**
+   - Release aggregate TX contexts and queued skbs when URB submission fails.
+   - Release reserved-page and H2C skbs when their submission fails.
+   - Report TX completion errors to mac80211 without ACK.
+   - Do not blindly replay an ambiguously submitted frame.
+
 ## Evidence expected with submission
 
 - Exact-kernel clean build and module provenance for all five modules.
 - Open mesh create/remove and strict peer churn.
 - Bidirectional cold HWMP contact, group delivery, and transfer integrity.
 - Software-crypto secured traffic with two stable RTL8812AU peers.
-- Synthetic control-read and RX submit/completion recovery.
+- Synthetic control-read and RX/TX submit/completion error handling.
 - Pending-retry teardown with no post-unregister activity.
 - Physical USB2/USB3 and independently powered-path repetitions separating
   driver recovery from hub, power, cable, and controller failures.

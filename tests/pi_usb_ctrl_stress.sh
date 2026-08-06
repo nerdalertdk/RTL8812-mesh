@@ -140,7 +140,7 @@ peer_paths=$(ns $IW dev "$PEER_IF" mpath dump 2>/dev/null |
 [ "$root_paths" -gt 0 ] && [ "$peer_paths" -gt 0 ] || traffic_failed=1
 
 kernel_events=$(journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
-	grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+	grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' || true)
 kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' |
 	awk 'END { print NR + 0 }')
 

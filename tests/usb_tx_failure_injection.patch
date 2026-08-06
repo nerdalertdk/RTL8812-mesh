@@ -1,0 +1,66 @@
+diff --git a/usb.c b/usb.c
+index 1ffb067..ceafa4a 100644
+--- a/usb.c
++++ b/usb.c
+@@ -375,6 +375,33 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+ 	return 0;
+ }
+ 
++/* Test-only pre-submit and completion fault injection. This belongs only in
++ * an isolated hardware-in-loop build; do not submit it with the driver.
++ */
++static int rtw_usb_test_tx_submit_failures;
++static int rtw_usb_test_tx_completion_failures;
++module_param_named(test_tx_submit_failures,
++		   rtw_usb_test_tx_submit_failures, int, 0600);
++module_param_named(test_tx_completion_failures,
++		   rtw_usb_test_tx_completion_failures, int, 0600);
++MODULE_PARM_DESC(test_tx_submit_failures,
++		 "number of RTL88 USB TX submissions to fail with -EPROTO");
++MODULE_PARM_DESC(test_tx_completion_failures,
++		 "number of RTL88 USB TX completions to report as -EPROTO");
++
++static bool rtw_usb_test_consume_tx_failure(int *failures)
++{
++	int remaining;
++
++	do {
++		remaining = READ_ONCE(*failures);
++		if (remaining <= 0)
++			return false;
++	} while (cmpxchg(failures, remaining, remaining - 1) != remaining);
++
++	return true;
++}
++
+ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+ {
+ 	struct rtw_dev *rtwdev = txcb->rtwdev;
+@@ -434,8 +461,13 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+ {
+ 	struct rtw_usb_txcb *txcb = urb->context;
++	int status = urb->status;
++
++	if (unlikely(rtw_usb_test_consume_tx_failure(
++			     &rtw_usb_test_tx_completion_failures)))
++		status = -EPROTO;
+ 
+-	rtw_usb_write_port_tx_status(txcb, urb->status);
++	rtw_usb_write_port_tx_status(txcb, status);
+ }
+ 
+ static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
+@@ -466,7 +498,11 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+ 
+ 	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
+ 	urb->transfer_flags |= URB_ZERO_PACKET;
+-	ret = usb_submit_urb(urb, GFP_ATOMIC);
++	if (unlikely(rtw_usb_test_consume_tx_failure(
++			     &rtw_usb_test_tx_submit_failures)))
++		ret = -EPROTO;
++	else
++		ret = usb_submit_urb(urb, GFP_ATOMIC);
+ 
+ 	usb_free_urb(urb);
+ 

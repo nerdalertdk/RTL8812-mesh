@@ -2,12 +2,15 @@
 
 ## In progress
 
+- [ ] Build and validate source DKMS 0.1.5 after the active soak. Inject USB TX
+  submission failures, prove traffic recovery and clean teardown, then repeat
+  strict symmetric churn and the checksummed transfer gate.
 - [ ] Complete the active eight-hour two-RTL8812AU functional endurance run
   started 2026-08-06 20:34 CEST. It passed preflight, first bilateral state,
   both initial ping batches, and both initial checksummed transfers.
 - [x] Make the four-file upstream production baseline reproducible with an
   exact-blob annotated tag and a deterministic verifier.
-- [x] Materialize the six logical upstream patches and verify that applying
+- [x] Materialize the seven logical upstream patches and verify that applying
   them in order reproduces all four validated production files byte-for-byte.
 - [x] Make physical USB trials fail preflight when historical soft-temperature
   limiting is already set, preventing an undetectable thermal recurrence from

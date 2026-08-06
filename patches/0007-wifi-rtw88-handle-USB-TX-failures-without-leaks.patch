@@ -1,0 +1,135 @@
+From 34b7bc7f0c74234a059455f264378fc54c4d7120 Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 20:51:22 +0200
+Subject: [PATCH] wifi: rtw88: handle USB TX failures without leaks
+
+USB TX submission failures leave callback-owned state behind because no
+completion callback will run. The aggregate path leaks its txcb and queued
+skbs, while reserved-page and H2C writes leak their skb. Completion errors
+are also treated as successful USB transfers and may be reported as ACKed.
+
+Release every caller-owned object when submission fails. For aggregate
+data, share a status helper between completion and synchronous submission
+failure, and report errored transfers to mac80211 without ACK. Count and
+rate-limit diagnostics for non-teardown TX transport errors.
+
+Do not replay failed TX URBs: completion errors cannot prove how much of an
+ambiguously submitted frame reached the device.
+---
+ usb.c | 40 ++++++++++++++++++++++++++++++++++++----
+ usb.h |  1 +
+ 2 files changed, 37 insertions(+), 4 deletions(-)
+
+diff --git a/usb.c b/usb.c
+index d9e319c..1ffb067 100644
+--- a/usb.c
++++ b/usb.c
+@@ -375,12 +375,18 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+ 	return 0;
+ }
+ 
+-static void rtw_usb_write_port_tx_complete(struct urb *urb)
++static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+ {
+-	struct rtw_usb_txcb *txcb = urb->context;
+ 	struct rtw_dev *rtwdev = txcb->rtwdev;
++	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+ 	struct ieee80211_hw *hw = rtwdev->hw;
+ 
++	if (status && status != -ENOENT && status != -ENODEV &&
++	    status != -ESHUTDOWN)
++		dev_warn_ratelimited(rtwdev->dev,
++				     "USB TX URB error %d, errors=%d\n", status,
++				     atomic_inc_return(&rtwusb->tx_urb_error_count));
++
+ 	while (true) {
+ 		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);
+ 		struct ieee80211_tx_info *info;
+@@ -394,6 +400,18 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+ 
+ 		skb_pull(skb, rtwdev->chip->tx_pkt_desc_sz);
+ 
++		/* A failed USB transfer cannot be treated as successfully delivered
++		 * to the WLAN firmware. Report it without ACK rather than leaking the
++		 * skb or claiming transmission. Do not retry here: a completion error
++		 * does not prove that no bytes reached the device, so replay could
++		 * duplicate an 802.11 frame.
++		 */
++		if (status) {
++			ieee80211_tx_info_clear_status(info);
++			ieee80211_tx_status_irqsafe(hw, skb);
++			continue;
++		}
++
+ 		/* enqueue to wait for tx report */
+ 		if (info->flags & IEEE80211_TX_CTL_REQ_TX_STATUS) {
+ 			rtw_tx_report_enqueue(rtwdev, skb, tx_data->sn);
+@@ -413,6 +431,13 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+ 	kfree(txcb);
+ }
+ 
++static void rtw_usb_write_port_tx_complete(struct urb *urb)
++{
++	struct rtw_usb_txcb *txcb = urb->context;
++
++	rtw_usb_write_port_tx_status(txcb, urb->status);
++}
++
+ static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
+ {
+ 	if (qsel >= ARRAY_SIZE(rtwusb->qsel_to_ep))
+@@ -456,6 +481,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
+ 	struct sk_buff *skb_head;
+ 	struct sk_buff *skb_iter;
+ 	int agg_num = 0;
++	int ret;
+ 	unsigned int align_next = 0;
+ 	u8 qsel;
+ 
+@@ -519,7 +545,10 @@ queue:
+ 	tx_desc = (struct rtw_tx_desc *)skb_head->data;
+ 	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
+ 
+-	rtw_usb_write_port(rtwdev, qsel, skb_head, rtw_usb_write_port_tx_complete, txcb);
++	ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
++				 rtw_usb_write_port_tx_complete, txcb);
++	if (ret)
++		rtw_usb_write_port_tx_status(txcb, ret);
+ 
+ 	return true;
+ }
+@@ -588,8 +617,10 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
+ 
+ 	ret = rtw_usb_write_port(rtwdev, qsel, skb,
+ 				 rtw_usb_write_port_complete, skb);
+-	if (unlikely(ret))
++	if (unlikely(ret)) {
++		dev_kfree_skb_any(skb);
+ 		rtw_err(rtwdev, "failed to do USB write, ret=%d\n", ret);
++	}
+ 
+ 	return ret;
+ }
+@@ -1225,6 +1256,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
+ 	atomic_set(&rtwusb->ctrl_error_count, 0);
+ 	atomic_set(&rtwusb->ctrl_retry_count, 0);
+ 	atomic_set(&rtwusb->rx_urb_error_count, 0);
++	atomic_set(&rtwusb->tx_urb_error_count, 0);
+ 
+ 	return 0;
+ }
+diff --git a/usb.h b/usb.h
+index 683219f..4c61018 100644
+--- a/usb.h
++++ b/usb.h
+@@ -75,6 +75,7 @@ struct rtw_usb {
+ 	atomic_t ctrl_error_count;
+ 	atomic_t ctrl_retry_count;
+ 	atomic_t rx_urb_error_count;
++	atomic_t tx_urb_error_count;
+ 
+ 	u8 pipe_interrupt;
+ 	u8 pipe_in;
+-- 
+2.54.0
+

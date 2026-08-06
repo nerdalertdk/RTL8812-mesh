@@ -375,11 +375,17 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
 	return 0;
 }
 
-static void rtw_usb_write_port_tx_complete(struct urb *urb)
+static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
 {
-	struct rtw_usb_txcb *txcb = urb->context;
 	struct rtw_dev *rtwdev = txcb->rtwdev;
+	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
 	struct ieee80211_hw *hw = rtwdev->hw;
+
+	if (status && status != -ENOENT && status != -ENODEV &&
+	    status != -ESHUTDOWN)
+		dev_warn_ratelimited(rtwdev->dev,
+				     "USB TX URB error %d, errors=%d\n", status,
+				     atomic_inc_return(&rtwusb->tx_urb_error_count));
 
 	while (true) {
 		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);
@@ -393,6 +399,18 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
 		tx_data = rtw_usb_get_tx_data(skb);
 
 		skb_pull(skb, rtwdev->chip->tx_pkt_desc_sz);
+
+		/* A failed USB transfer cannot be treated as successfully delivered
+		 * to the WLAN firmware. Report it without ACK rather than leaking the
+		 * skb or claiming transmission. Do not retry here: a completion error
+		 * does not prove that no bytes reached the device, so replay could
+		 * duplicate an 802.11 frame.
+		 */
+		if (status) {
+			ieee80211_tx_info_clear_status(info);
+			ieee80211_tx_status_irqsafe(hw, skb);
+			continue;
+		}
 
 		/* enqueue to wait for tx report */
 		if (info->flags & IEEE80211_TX_CTL_REQ_TX_STATUS) {
@@ -411,6 +429,13 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
 	}
 
 	kfree(txcb);
+}
+
+static void rtw_usb_write_port_tx_complete(struct urb *urb)
+{
+	struct rtw_usb_txcb *txcb = urb->context;
+
+	rtw_usb_write_port_tx_status(txcb, urb->status);
 }
 
 static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
@@ -456,6 +481,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
 	struct sk_buff *skb_head;
 	struct sk_buff *skb_iter;
 	int agg_num = 0;
+	int ret;
 	unsigned int align_next = 0;
 	u8 qsel;
 
@@ -519,7 +545,10 @@ queue:
 	tx_desc = (struct rtw_tx_desc *)skb_head->data;
 	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
 
-	rtw_usb_write_port(rtwdev, qsel, skb_head, rtw_usb_write_port_tx_complete, txcb);
+	ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
+				 rtw_usb_write_port_tx_complete, txcb);
+	if (ret)
+		rtw_usb_write_port_tx_status(txcb, ret);
 
 	return true;
 }
@@ -588,8 +617,10 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
 
 	ret = rtw_usb_write_port(rtwdev, qsel, skb,
 				 rtw_usb_write_port_complete, skb);
-	if (unlikely(ret))
+	if (unlikely(ret)) {
+		dev_kfree_skb_any(skb);
 		rtw_err(rtwdev, "failed to do USB write, ret=%d\n", ret);
+	}
 
 	return ret;
 }
@@ -1225,6 +1256,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
 	atomic_set(&rtwusb->ctrl_error_count, 0);
 	atomic_set(&rtwusb->ctrl_retry_count, 0);
 	atomic_set(&rtwusb->rx_urb_error_count, 0);
+	atomic_set(&rtwusb->tx_urb_error_count, 0);
 
 	return 0;
 }

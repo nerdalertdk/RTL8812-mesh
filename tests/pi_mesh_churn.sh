@@ -223,7 +223,7 @@ printf '# summary join_pass=%s/%s plink_pass=%s/%s root_first_contact=%s/%s peer
 	"$(( $(date +%s) - start_epoch ))"
 printf '# usb-errors-since-start\n'
 kernel_events=$(journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
-	grep -Ei 'over.?current|under.?voltage|error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+	grep -Ei 'over.?current|under.?voltage|error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' || true)
 printf '%s\n' "$kernel_events" | sed '/^$/d'
 kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' |
 	awk 'END { print NR + 0 }')

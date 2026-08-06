@@ -209,7 +209,7 @@ fi
 log "event=postflight result=pass root_paths=$root_paths peer_paths=$peer_paths"
 printf '# kernel-transport-events-since-start\n' | tee -a "$result"
 kernel_events=$(journalctl -k --since "@$start_epoch" --no-pager 2>/dev/null |
-	grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+	grep -Ei 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' || true)
 printf '%s\n' "$kernel_events" | sed '/^$/d' | tee -a "$result"
 kernel_event_count=$(printf '%s\n' "$kernel_events" | sed '/^$/d' |
 	awk 'END { print NR + 0 }')

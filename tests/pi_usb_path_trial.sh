@@ -255,7 +255,7 @@ fi
 journalctl -k --since "@$start_epoch" --no-pager >"$trial/kernel.log" 2>&1 || true
 journalctl -k --since "@$context_epoch" --no-pager \
 	>"$trial/kernel-context.log" 2>&1 || true
-transport_events=$(grep -Eic 'error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' \
+transport_events=$(grep -Eic 'error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' \
 	"$trial/kernel.log" 2>/dev/null || true)
 post_provenance_mismatches=$(grep -c 'match=no' "$trial/post-state.log" || true)
 

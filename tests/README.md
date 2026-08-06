@@ -132,6 +132,33 @@ Required evidence:
 The first completed run is recorded in
 `results/2026-07-26-rx-submit-eproto.md`.
 
+## TX failure injection
+
+`usb_tx_failure_injection.patch` is test-only instrumentation for source 0.1.5
+or an exact matching disposable copy. It adds root-writable
+`rtw_usb.test_tx_submit_failures` and
+`rtw_usb.test_tx_completion_failures` parameters. The first fails a TX URB
+before USB core sees it, proving synchronous submission-error ownership. The
+second changes only the status delivered to the driver's TX completion path;
+the test frame may already have reached the adapter, so this is evidence for
+status/cleanup handling and must not be interpreted as a physical USB fault.
+
+Required evidence:
+
+- both requested failure counts return to zero under sustained traffic;
+- each injected error emits the rate-limited `USB TX URB error -71`
+  diagnostic, with a monotonically increasing driver counter;
+- bilateral mesh traffic resumes after submission injection and remains live
+  after completion-status injection;
+- strict churn and a bidirectional checksummed transfer pass after the
+  disposable module is replaced by the exact production build;
+- unload during and after injection produces no warning, leak symptom, stale
+  work, or use-after-free signature.
+
+Never ship or submit the instrumented source. A pre-submit injection is safe
+because no URB was queued. A completion-status injection is deliberately not
+replayed because the real transfer's device-side progress is ambiguous.
+
 `usb_ctrl_eproto_injector.c` targets only successful RTL8812AU vendor-device
 control reads. It must never alter a completed write: a write may already have
 changed device state, and reporting a synthetic failure afterward cannot undo

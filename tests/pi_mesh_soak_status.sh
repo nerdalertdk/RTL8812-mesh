@@ -22,7 +22,7 @@ start_utc=$(awk '/event=start/ { print $1; exit }' "$log")
 if [ -n "$start_utc" ] &&
    journalctl -k --since "$start_utc" --no-pager -n 1 >/dev/null 2>&1; then
 	kernel_usb=$(journalctl -k --since "$start_utc" --no-pager 2>/dev/null |
-		grep -Eic 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|read register .* (recovered|failed)|write register .* failed' || true)
+		grep -Eic 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' || true)
 else
 	kernel_usb=unavailable
 fi

@@ -15,6 +15,13 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 ## Current status
 
+- Source DKMS 0.1.5 fixes a USB TX error-path bug found during the symmetric
+  soak: failed aggregate submissions previously leaked the TX context and
+  queued skbs, reserved/H2C submission failures leaked their skb, and errored
+  completions were reported as successful. The new path releases ownership and
+  reports no ACK without blindly replaying an ambiguously submitted frame.
+  Exact-kernel build, targeted fault injection, and hardware regression are
+  pending until the active 0.1.4 soak releases the Pi.
 - An eight-hour two-RTL8812AU functional endurance run started at
   2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected
   completion around 2026-08-07 04:34 CEST. Its first bilateral `ESTAB`/HWMP
@@ -57,7 +64,7 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   production blobs from full source commit `a56bcd26e770257612a0803249cbd4095fc6feca`;
   `scripts/check-upstream-baseline.sh` verifies their IDs and the production
   diff. Publish the tag with the branch.
-- The six logical production changes are materialized as ordered mail patches
+- The seven logical production changes are materialized as ordered mail patches
   under `patches/`. `scripts/check-upstream-series.sh` reapplies them from the
   tagged baseline with strict whitespace handling and requires all four final
   files to match the validated production tree byte-for-byte.
