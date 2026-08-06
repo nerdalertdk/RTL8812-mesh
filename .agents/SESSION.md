@@ -23,6 +23,10 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   `/var/tmp/rtl8812au-mesh/two-rtl8812au-soak/` on the Pi. Historical thermal
   bit 19 means this is functional endurance, not a clean physical-path matrix
   repetition; the live 85 C cutoff remains enforced.
+  A detached `pi_mesh_soak_finalize.sh` service waits for this exact soak,
+  validates its matching clean summary, and then runs the bidirectional 512 MiB
+  integrity gate. It replaces an invalid `After=` attempt that started
+  immediately, found the held test lock, and performed no transfer.
 - Two RTL8812AU adapters now form the production test fixture, one at USB3
   `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
   capability. Open recovery validates bilateral traffic and reciprocal HWMP.
