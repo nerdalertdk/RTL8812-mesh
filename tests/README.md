@@ -160,6 +160,17 @@ Never ship or submit the instrumented source. A pre-submit injection is safe
 because no URB was queued. A completion-status injection is deliberately not
 replayed because the real transfer's device-side progress is ambiguous.
 
+`pi_usb_tx_failure_test.sh` runs both phases under the shared hardware lock.
+It requires two RTL8812AU peers already in the open topology and fails closed
+unless the test-only parameters exist. It drives traffic until both requested
+counts reach zero, retains phase diagnostics, requires monotonically increasing
+cumulative counters, revalidates bilateral `ESTAB`, traffic, and HWMP, and
+rejects any kernel transport event other than its expected injected TX
+`-EPROTO`. The script intentionally does not accept installed-module
+provenance: the instrumented `rtw_usb` cannot match the production artifact.
+Restore and provenance-check all five production modules before running churn
+or transfer release gates.
+
 `usb_ctrl_eproto_injector.c` targets only successful RTL8812AU vendor-device
 control reads. It must never alter a completed write: a write may already have
 changed device state, and reporting a synthetic failure afterward cannot undo
