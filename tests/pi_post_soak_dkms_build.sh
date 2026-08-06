@@ -44,13 +44,14 @@ source_manifest()
 		cd "$SOURCE_DIR"
 		find . -maxdepth 1 -type f \
 			\( -name '*.c' -o -name '*.h' -o -name Makefile -o -name dkms.conf \) \
-			-print0 | sort -z | xargs -0 sha256sum | sha256sum |
+			-print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum |
 			awk '{ print $1 }'
 	)
 }
 
-[ "$(source_manifest)" = "$SOURCE_MANIFEST" ] || {
-	echo "source manifest mismatch" >&2
+actual_manifest=$(source_manifest)
+[ "$actual_manifest" = "$SOURCE_MANIFEST" ] || {
+	echo "source manifest mismatch expected=$SOURCE_MANIFEST actual=$actual_manifest" >&2
 	exit 1
 }
 [ ! -e "$dkms_source" ] || { echo "DKMS source destination already exists" >&2; exit 1; }
@@ -138,8 +139,9 @@ grep -q "event=start file_mib=$FILE_MIB " "$latest_transfer"
 [ "$(grep -c 'event=transfer direction=peer-to-root result=ok ' "$latest_transfer")" -eq 1 ]
 [ "$(grep -c 'event=complete result=pass kernel_events=0 ' "$latest_transfer")" -eq 1 ]
 
-[ "$(source_manifest)" = "$SOURCE_MANIFEST" ] || {
-	echo "source changed while waiting" >&2
+actual_manifest=$(source_manifest)
+[ "$actual_manifest" = "$SOURCE_MANIFEST" ] || {
+	echo "source changed while waiting expected=$SOURCE_MANIFEST actual=$actual_manifest" >&2
 	exit 1
 }
 exec 9>"$LOCK_FILE"
