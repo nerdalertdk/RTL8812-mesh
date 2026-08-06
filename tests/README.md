@@ -11,7 +11,9 @@ same replacements in `99-rtw88-mesh-recover.rules` before installing it.
 Both systemd units load `/etc/default/rtw88-mesh-test`; the soak unit will not
 silently fall back to development adapter identities.
 `pi_mesh_churn.sh` returns nonzero unless every join, peer link, cold contact,
-multicast direction, and pair of HWMP path tables passes.
+multicast direction, and pair of HWMP path tables passes. Its binary multicast
+reachability check sends three unacknowledged group frames and requires one;
+the separate sender-captured probe enforces the quantitative >=99% gate.
 
 `pi_mesh_multicast_probe.sh` quantifies group-frame delivery without changing
 the active topology. It captures each burst at both sender and receiver, so a
@@ -62,9 +64,12 @@ The churn and channel-sweep gates use the same provenance and event convention:
 peer-driver mismatch exits 2, functional failure exits 1, and any USB transport
 event exits 4 while retaining the functional result in their output.
 
-`pi_secure_mesh.sh` controls both peers with `wpa_supplicant`, verifies that
-both control interfaces reached `COMPLETED` with SAE, and requires
-bidirectional unicast, multicast, and HWMP paths. Its default configuration is
+`pi_secure_mesh.sh` controls both peers with `wpa_supplicant`, requires both
+control interfaces to reach `COMPLETED`, and proves SAE/AMPE from configured
+SAE plus peer-specific SAE acceptance and decrypted AMPE in each log. This is
+compatible with wpa_supplicant 2.10 returning `key_mgmt=UNKNOWN` in mesh
+`STATUS`. It also requires bidirectional unicast, multicast, and HWMP paths.
+Its default configuration is
 `wpa_sae_mesh.conf`; the credential is intentionally public test data. To add
 a checksummed transfer without deadlocking the shared test lock, set
 `TRANSFER_TEST` to the absolute path of `pi_mesh_transfer.sh` and select the
@@ -73,6 +78,9 @@ size with `SECURE_FILE_MIB` (default 32 MiB). `ROOT_DRIVER` defaults to
 result cannot accidentally be attributed to the experimental fixture. The
 optional `PEER_DRIVER_ID` unbind fallback is only for a specifically identified
 test adapter and is disabled by default.
+Test supplicants are launched with directly tracked PIDs; an exact
+test-specific process already present causes exit 75 rather than duplicate
+nl80211 frame registration or unsafe process cleanup.
 The secured gate retains its kernel interval in `KERNEL_LOG` and returns 4 if
 an otherwise passing SAE/AMPE run contains a USB transport event requiring
 causal review.

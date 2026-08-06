@@ -35,15 +35,19 @@
   channel-2 fresh-join repetitions.
 - [x] Run the sender/receiver multicast probe after the active soak to localize
   the intermittent mixed-adapter multicast miss.
-- [ ] Compare multicast delivery with two stable RTL8812AU radios; the mixed
-  RTL8812AU/RTL8192FU probe delivered 797/800 captured frames bidirectionally.
+- [x] Compare multicast delivery with two stable RTL8812AU radios: complete
+  sender capture, 399/400 and 400/400 delivered, and zero USB events.
 - [x] Run the bidirectional 512 MiB SHA-256 transfer gate after the active soak.
-- [ ] Validate secured traffic with a second stable RTL8812AU.
+- [x] Validate SAE/AMPE with two RTL8812AU peers, bilateral unicast,
+  multicast, HWMP, and checksummed secured payloads.
 - [ ] Complete three valid repetitions of each row in
   `tests/USB_PATH_MATRIX.md` (direct USB3/USB2 and powered USB3/USB2 paths).
 - [ ] Retain direct USB3 as a regression profile while using USB2
   (`rtw_usb.switch_usb_mode=N`) as the 2.4 GHz deployment baseline.
 - [ ] Extend bounded endurance to a long unattended run.
+- [ ] Add active Pi cooling before the next long endurance/USB attribution
+  run; symmetric qualification recorded historical soft-temperature limiting
+  (`get_throttled=0x80000`) around 80 C.
 
 ## Completed
 

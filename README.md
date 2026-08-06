@@ -28,6 +28,10 @@ build has demonstrated:
 - 20/20 fresh churn cycles with 117--133 ms plink times;
 - MCS 15 / two-stream operation with the current peer;
 - checksummed 512 MiB and repeated 64 MiB transfers;
+- symmetric RTL8812AU multicast delivery of 399/400 and 400/400 frames with
+  complete sender capture and no USB event;
+- symmetric SAE/AMPE with peer-specific SAE acceptance, decrypted AMPE,
+  bilateral unicast/multicast/HWMP, and checksummed secured payloads;
 - bounded recovery from injected USB control and RX `-EPROTO` (`-71`);
 - automatic userspace topology reconstruction after module/USB rebind;
 - a clean thermal-aware 4.5-hour direct-port run with 337/337 established
@@ -37,16 +41,15 @@ build has demonstrated:
   measured USB transport event;
 - a bidirectional checksummed 512 MiB transfer on DKMS 0.1.1;
 - an audited DKMS 0.1.2 production build with strict 20-cycle churn and
-  pending-RX-retry teardown validation; source version 0.1.4 additionally
-  serializes complete synchronous USB control transactions and is queued for
-  exact-kernel validation.
+  pending-RX-retry teardown validation; DKMS 0.1.4 additionally serializes
+  complete synchronous USB control transactions and passed exact-kernel
+  build, injection, churn, transfer, and bounded-soak validation.
 
 Still required before production claims:
 
-- protected payload validation with a second stable RTL8812AU;
-- multicast comparison across channels with two stable RTL8812AU peers;
+- repeat the full channel profile with two stable RTL8812AU peers;
 - original USB2-topology and physical unplug/re-enumeration testing;
-- independently powered USB-path and long-duration endurance.
+- independently powered USB-path and thermally clean long-duration endurance.
 
 The RTL8192FU test peer is experimental and is not part of this driver package.
 
@@ -158,9 +161,11 @@ iw dev wlan1 mpath dump
 For SAE/AMPE security use `wpa_supplicant`; the canonical test profile in
 `tests/wpa_sae_mesh.conf` is an example only and contains a public test
 passphrase that must be changed. `tests/pi_secure_mesh.sh` requires both peers
-to report `wpa_state=COMPLETED` and `key_mgmt=SAE`, then validates directional
-unicast, multicast, and HWMP. Set `TRANSFER_TEST=tests/pi_mesh_transfer.sh` to
-also run a bidirectional checksummed payload gate under the secured topology.
+to report `wpa_state=COMPLETED`, verifies configured SAE plus peer-specific SAE
+acceptance and decrypted AMPE, then validates directional unicast, multicast,
+and HWMP. This handles `wpa_supplicant` 2.10 reporting `key_mgmt=UNKNOWN` for a
+completed mesh group. Set `TRANSFER_TEST=tests/pi_mesh_transfer.sh` to also run
+a bidirectional checksummed payload gate under the secured topology.
 
 ## USB `-71` behavior
 

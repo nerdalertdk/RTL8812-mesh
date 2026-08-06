@@ -172,14 +172,17 @@ while [ "$cycle" -le "$CYCLES" ]; do
 		peer_result=FAIL
 	fi
 
-	# Observe delivery in the receiving namespace.  -p avoids changing the
-	# mac80211 promiscuous filter while the test is running.
+	# Observe reachability in the receiving namespace.  Multicast is not
+	# acknowledged at 802.11, so use a short three-frame burst rather than
+	# turning one ordinary lost group frame into a churn failure.  The separate
+	# multicast probe measures loss over hundreds of sender-captured frames.
+	# -p avoids changing the mac80211 promiscuous filter while the test runs.
 	(exec 9>&-; ns timeout 3 tcpdump -p -qn -i "$PEER_IF" -c 1 \
 		"ether src $ROOT_MAC and icmp and dst 224.0.0.1" \
 		>/dev/null 2>&1) &
 	capture_pid=$!
 	sleep 0.2
-	ping -I "$ROOT_IF" -c 1 -W 1 224.0.0.1 >/dev/null 2>&1 || true
+	ping -I "$ROOT_IF" -c 3 -i 0.05 -W 1 224.0.0.1 >/dev/null 2>&1 || true
 	if wait "$capture_pid"; then
 		root_mcast=PASS
 		pass_root_mcast=$((pass_root_mcast + 1))
@@ -192,7 +195,7 @@ while [ "$cycle" -le "$CYCLES" ]; do
 		>/dev/null 2>&1) &
 	capture_pid=$!
 	sleep 0.2
-	ns ping -I "$PEER_IF" -c 1 -W 1 224.0.0.1 >/dev/null 2>&1 || true
+	ns ping -I "$PEER_IF" -c 3 -i 0.05 -W 1 224.0.0.1 >/dev/null 2>&1 || true
 	if wait "$capture_pid"; then
 		peer_mcast=PASS
 		pass_peer_mcast=$((pass_peer_mcast + 1))

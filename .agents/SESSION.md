@@ -15,6 +15,25 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 ## Current status
 
+- Two RTL8812AU adapters now form the production test fixture, one at USB3
+  `5000M` and one at USB2 `480M`, both on `rtw_8812au` with native mesh-point
+  capability. Open recovery validates bilateral traffic and reciprocal HWMP.
+- Symmetric multicast passed the sender-captured release gate at 399/400 and
+  400/400 delivered frames with zero USB events. A single-frame churn probe
+  produced 19/20 twice; a three-frame reachability burst, with the separate
+  >=99% quantitative gate retained, passed strict churn 20/20 throughout.
+- A symmetric bidirectional 512 MiB transfer matched SHA-256 at 3.97 and
+  5.14 MB/s with reciprocal HWMP and no USB event.
+- Symmetric SAE/AMPE passed peer-specific SAE acceptance, decrypted AMPE,
+  MFP/authorization, 20/20 pings each way, multicast both ways, HWMP, and a
+  bidirectional checksummed 32 MiB transfer. The harness now handles
+  `wpa_supplicant` 2.10's mesh `key_mgmt=UNKNOWN` status and directly tracks
+  the namespace supplicant so cleanup cannot orphan it. See
+  `tests/results/2026-08-06-two-rtl8812au-qualification.md`.
+- The Pi recorded historical soft-temperature limiting (`0x80000`) at
+  79.8--80.8 C, without undervoltage. Use active cooling before long endurance
+  or physical USB attribution runs.
+
 - DKMS 0.1.4 built and installed exactly five modules for
   `6.12.47+rpt-rpi-v8`; all loaded and installed source versions match. An
   exact-kernel `W=1` rebuild and strict checkpatch both passed cleanly.
@@ -256,8 +275,8 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 
 - Target countries are not yet enumerated, so no production regulatory/EIRP
   profile has been approved. Denmark/EU is an example profile only.
-- Secured payload validation is blocked until another stable RTL8812AU peer is
-  available; RTL8192FU is retained only as an experimental open-mesh fixture.
+- Two-RTL8812AU channels 1--13, the powered/direct USB path matrix, and a
+  thermally clean long endurance run remain open release gates.
 - Original USB2 and independently powered-path endurance remain unvalidated.
 - The current peer is RTL8192FU using `rtl8xxxu`; its intermittent multicast
   behavior cannot establish whether the remaining miss is in the RTL8192FU

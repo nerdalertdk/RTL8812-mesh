@@ -125,6 +125,17 @@ if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 fi
 echo "DRIVERS root=$root_driver peer=$peer_driver"
 
+# A previous interrupted test must not retain nl80211 management-frame
+# registrations on either test interface.  Match the complete command line so
+# the host's unrelated system wpa_supplicant is never selected.
+root_wpa_pattern="^$WPA -Dnl80211 -i $ROOT_IF -c $CONFIG -dd$"
+peer_wpa_pattern="^$WPA -Dnl80211 -i $PEER_IF -c $CONFIG -dd$"
+if pgrep -f "$root_wpa_pattern" >/dev/null 2>&1 ||
+   pgrep -f "$peer_wpa_pattern" >/dev/null 2>&1; then
+	echo "a test-specific supplicant is already running" >&2
+	exit 75
+fi
+
 topology_changed=1
 nmcli device set "$current_root" managed no >/dev/null 2>&1 || true
 $IW dev "$current_root" mesh leave 2>/dev/null || true
@@ -143,10 +154,11 @@ ns $IW dev "$PEER_IF" set type mesh
 
 : >"$ROOT_LOG"
 : >"$PEER_LOG"
-(exec 9>&-; $WPA -Dnl80211 -i "$ROOT_IF" -c "$CONFIG" -dd) \
+(exec 9>&-; exec "$WPA" -Dnl80211 -i "$ROOT_IF" -c "$CONFIG" -dd) \
 	>"$ROOT_LOG" 2>&1 &
 root_pid=$!
-(exec 9>&-; ns $WPA -Dnl80211 -i "$PEER_IF" -c "$CONFIG" -dd) \
+(exec 9>&-; exec ip netns exec "$PEER_NS" "$WPA" -Dnl80211 -i "$PEER_IF" \
+	-c "$CONFIG" -dd) \
 	>"$PEER_LOG" 2>&1 &
 peer_pid=$!
 
@@ -187,11 +199,29 @@ for status in "$root_status" "$peer_status"; do
 		echo "secured mesh did not reach wpa_state=COMPLETED" >&2
 		exit 1
 	}
-	printf '%s\n' "$status" | grep -q '^key_mgmt=SAE$' || {
-		echo "secured mesh did not negotiate SAE" >&2
-		exit 1
-	}
 done
+
+# wpa_supplicant 2.10 can report key_mgmt=UNKNOWN in STATUS for a completed
+# mesh group.  Verify the selected network and the peer-specific SAE/AMPE
+# transcript instead; these signals prove substantially more than the broken
+# summary field and are followed by encrypted payload tests below.
+root_key_mgmt=$($WPA_CLI -p "$CTRL_DIR" -i "$ROOT_IF" get_network 0 key_mgmt)
+peer_key_mgmt=$(ns $WPA_CLI -p "$CTRL_DIR" -i "$PEER_IF" get_network 0 key_mgmt)
+if [ "$root_key_mgmt" != SAE ] || [ "$peer_key_mgmt" != SAE ]; then
+	echo "secured mesh is not configured for SAE root=$root_key_mgmt peer=$peer_key_mgmt" >&2
+	exit 1
+fi
+if ! grep -Fq "SAE: State Confirmed -> Accepted for peer $PEER_MAC" "$ROOT_LOG" ||
+   ! grep -q 'mesh: Decrypted AMPE element' "$ROOT_LOG"; then
+	echo "root log does not prove peer-specific SAE acceptance and AMPE decryption" >&2
+	exit 1
+fi
+if ! grep -Fq "SAE: State Confirmed -> Accepted for peer $ROOT_MAC" "$PEER_LOG" ||
+   ! grep -q 'mesh: Decrypted AMPE element' "$PEER_LOG"; then
+	echo "peer log does not prove peer-specific SAE acceptance and AMPE decryption" >&2
+	exit 1
+fi
+echo "SECURITY key_mgmt=SAE root_sae=accepted peer_sae=accepted root_ampe=decrypted peer_ampe=decrypted"
 echo ROOT_STATION
 $IW dev "$ROOT_IF" station dump
 echo PEER_STATION
