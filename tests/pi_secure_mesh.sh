@@ -266,7 +266,7 @@ fi
 echo LOGS "$ROOT_LOG" "$PEER_LOG"
 
 cleanup
-transport_events=$(grep -Eic 'error -71|EPROTO|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' \
+transport_events=$(grep -Eic 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' \
 	"$KERNEL_LOG" || true)
 echo "KERNEL_LOG $KERNEL_LOG transport_events=$transport_events"
 if [ "$transport_events" -ne 0 ]; then
