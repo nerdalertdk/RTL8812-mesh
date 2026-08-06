@@ -68,7 +68,8 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   0.1.4 while the soak remained active. Its deployed SHA-256 is
   `df6e2cb063361f835e3abeec03d3e841069c604bd2a136cb3ed56b44b9a7e421`;
   the deployed injector patch SHA-256 is
-  `f8cfb41c9e5943fcb5fbacbef7375bc7bb88d3b651194a5983430dea301ba7ee`.
+  `880046e12205ea09828308429fbf7f67b0ce475ee567b24cd2ecdbf23f4f9073`;
+  it passes exact pinned Linux strict checkpatch with 0/0/0.
 - An eight-hour two-RTL8812AU functional endurance run started at
   2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected
   completion around 2026-08-07 04:34 CEST. Its first bilateral `ESTAB`/HWMP
