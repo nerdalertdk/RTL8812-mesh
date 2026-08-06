@@ -46,11 +46,12 @@ build has demonstrated:
   pending-RX-retry teardown validation; DKMS 0.1.4 additionally serializes
   complete synchronous USB control transactions and passed exact-kernel
   build, injection, churn, transfer, and bounded-soak validation. Source 0.1.5
-  additionally releases every skb after a failed USB TX submission and reports
-  failed TX completions to mac80211 without a false ACK. It also anchors TX
-  URBs and kills them synchronously after draining their producer during
-  teardown; exact-kernel build and hardware fault-injection validation remain
-  pending.
+  additionally keeps the driver-owned aggregate transfer buffer out of the
+  mac80211 TX-status queue, releases correctly owned objects after a failed USB
+  TX submission, and reports failed completions without a false ACK. It also
+  anchors TX URBs and kills them synchronously after draining their producer
+  during teardown; exact-kernel build and hardware fault-injection validation
+  remain pending.
 
 Still required before production claims:
 
@@ -186,10 +187,11 @@ The transport changes distinguish two classes of failure:
 
 - transient control/RX protocol errors are retried or resubmitted with bounded,
   rate-limited diagnostics;
-- failed TX submissions release their skb/context ownership, while TX
-  completion errors are reported to mac80211 without ACK. They are not blindly
-  replayed because a completion error does not prove that the device received
-  none of the frame;
+- the synthetic USB aggregate buffer remains driver-owned and only original
+  mac80211 frames enter TX status or purge paths. Failed TX submissions release
+  each object through its correct owner, while completion errors are reported
+  to mac80211 without ACK. They are not blindly replayed because a completion
+  error does not prove that the device received none of the frame;
 - with `rtw_usb.switch_usb_mode=Y` (the default), an old-chip RTL8812AU that
   first enumerates at USB2 may deliberately disconnect and re-enumerate at
   USB3. The final write to `REG_SYS_PW_CTRL + 1` can therefore return

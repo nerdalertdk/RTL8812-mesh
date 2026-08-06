@@ -25,6 +25,7 @@ MODULE_PARM_DESC(switch_usb_mode,
 struct rtw_usb_txcb {
 	struct rtw_dev *rtwdev;
 	struct sk_buff_head tx_ack_queue;
+	struct sk_buff *agg_skb;
 };
 
 static void rtw_usb_fill_tx_checksum(struct rtw_usb *rtwusb,
@@ -395,6 +396,8 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
 	struct ieee80211_hw *hw = rtwdev->hw;
 
 	rtw_usb_record_tx_error(rtwdev, status);
+	if (txcb->agg_skb)
+		dev_kfree_skb_any(txcb->agg_skb);
 
 	while (true) {
 		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);
@@ -510,6 +513,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
 
 	txcb->rtwdev = rtwdev;
 	skb_queue_head_init(&txcb->tx_ack_queue);
+	txcb->agg_skb = NULL;
 
 	skb_iter = skb_dequeue(list);
 
@@ -523,6 +527,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
 		skb_head = skb_iter;
 		goto queue;
 	}
+	txcb->agg_skb = skb_head;
 
 	while (skb_iter) {
 		unsigned long flags;
@@ -553,7 +558,8 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
 		rtw_usb_fill_tx_checksum(rtwusb, skb_head, agg_num);
 
 queue:
-	skb_queue_tail(&txcb->tx_ack_queue, skb_head);
+	if (!txcb->agg_skb)
+		skb_queue_tail(&txcb->tx_ack_queue, skb_head);
 	tx_desc = (struct rtw_tx_desc *)skb_head->data;
 	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
 
@@ -561,6 +567,8 @@ queue:
 				 rtw_usb_write_port_tx_complete, txcb);
 	if (ret) {
 		rtw_usb_record_tx_error(rtwdev, ret);
+		if (txcb->agg_skb)
+			dev_kfree_skb_any(txcb->agg_skb);
 		while ((skb_iter = skb_dequeue(&txcb->tx_ack_queue)))
 			ieee80211_free_txskb(rtwdev->hw, skb_iter);
 		kfree(txcb);

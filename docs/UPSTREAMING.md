@@ -37,12 +37,13 @@ Certificate of Origin sign-off, and retain the verified patch content.
 
 Patch 7 is a complete fix relative to the repository's exact downstream
 baseline, not a mail file that can be sent unchanged to current Linux
-mainline. As checked on 2026-08-06, mainline already purges aggregate ownership
-after synchronous submission failure and frees reserved/H2C skbs. It still
-ignores TX completion status, stops draining the software queue after a
-synchronous submission failure, and does not anchor TX URBs. Rebase patches
-7/8 on the intended upstream tree, omit cleanup already present there, and
-retain the queue-draining, completion-status/error-observability, and
+mainline. As checked on 2026-08-06, mainline purges its TX-status queue after a
+synchronous submission failure and frees reserved/H2C skbs. It incorrectly
+mixes the driver-owned aggregate transfer skb into that mac80211 queue, ignores
+TX completion status, stops draining the software queue after a synchronous
+submission failure, and does not anchor TX URBs. Rebase patches 7/8 on the
+intended upstream tree, omit cleanup already present there, and retain the
+aggregate-ownership, queue-draining, completion-status/error-observability, and
 anchored-teardown deltas. Re-run
 strict checkpatch and hardware evidence against that rebased series.
 
@@ -102,7 +103,9 @@ downstream commit.
    - Cancel retry work before URB teardown and again after callbacks have been
      quiesced, closing the completion-versus-teardown race.
 
-7. **rtw88: handle USB TX failures without leaks or false ACKs**
+7. **rtw88: fix USB TX ownership and error reporting**
+   - Keep the synthetic aggregate transfer skb out of mac80211's TX-status
+     queue and free it as driver-owned data.
    - Release aggregate TX contexts and queued skbs when URB submission fails.
    - Release reserved-page and H2C skbs when their submission fails.
    - Report TX completion errors to mac80211 without ACK.

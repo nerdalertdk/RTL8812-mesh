@@ -1,28 +1,45 @@
-From 8b2c3189df4679cdc0a0545a7fcb93c8ed77283d Mon Sep 17 00:00:00 2001
+From b4ff2d0d52bea0ec6098ee3c3fd97ada658eb79e Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
-Date: Thu, 6 Aug 2026 21:48:20 +0200
-Subject: [PATCH 1/2] wifi: rtw88: report USB TX errors without false ACKs
+Date: Thu, 6 Aug 2026 22:20:06 +0200
+Subject: [PATCH 1/2] wifi: rtw88: fix USB TX ownership and error reporting
 
-The USB TX completion path ignores urb->status. It can therefore enqueue a
-firmware TX-report wait or report ACK after a failed host transfer. USB TX
-submission errors also have no shared transport diagnostic.
+USB aggregation copies mac80211 frames into a driver-allocated transfer
+skb, then puts that synthetic buffer on the mac80211 TX-status queue.
+Completion therefore reports a non-frame with an uninitialized control
+block, while a synchronous submission failure passes that driver-owned
+buffer to mac80211's TX-free path.
 
-Report failed completions without ACK and do not enqueue a firmware report.
-Do not replay an errored completion because it does not
-prove how much of the frame reached the device. Count every non-teardown TX
-submission or completion error and retain a rate-limited diagnostic.
-After rejecting a synchronous submission, keep draining frames already queued
-by mac80211 instead of stopping the worker at the first transport error.
+Track the aggregate transfer buffer separately. Free it as driver-owned
+data and report or purge only the original mac80211 skbs.
+
+The USB TX completion path also ignores urb->status. It can enqueue a
+firmware TX-report wait or report ACK after a failed host transfer. Report
+failed completions without ACK and do not enqueue a firmware report. Do not
+replay an errored completion because it does not prove how much reached the
+device.
+
+Count every non-teardown TX submission or completion error and retain a
+rate-limited diagnostic. After rejecting a synchronous submission, keep
+draining frames already queued by mac80211 instead of stopping the worker
+at the first transport error.
 ---
- drivers/net/wireless/realtek/rtw88/usb.c | 43 ++++++++++++++++++++++--
+ drivers/net/wireless/realtek/rtw88/usb.c | 53 ++++++++++++++++++++++--
  drivers/net/wireless/realtek/rtw88/usb.h |  1 +
- 2 files changed, 41 insertions(+), 3 deletions(-)
+ 2 files changed, 50 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
-index 64e1c34..b4d5f6a 100644
+index 64e1c34..de8b4d6 100644
 --- a/drivers/net/wireless/realtek/rtw88/usb.c
 +++ b/drivers/net/wireless/realtek/rtw88/usb.c
-@@ -316,12 +316,27 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+@@ -25,6 +25,7 @@ MODULE_PARM_DESC(switch_usb_mode,
+ struct rtw_usb_txcb {
+ 	struct rtw_dev *rtwdev;
+ 	struct sk_buff_head tx_ack_queue;
++	struct sk_buff *agg_skb;
+ };
+ 
+ static void rtw_usb_fill_tx_checksum(struct rtw_usb *rtwusb,
+@@ -316,12 +317,29 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
  	return 0;
  }
  
@@ -48,11 +65,13 @@ index 64e1c34..b4d5f6a 100644
  	struct ieee80211_hw *hw = rtwdev->hw;
  
 +	rtw_usb_record_tx_error(rtwdev, status);
++	if (txcb->agg_skb)
++		dev_kfree_skb_any(txcb->agg_skb);
 +
  	while (true) {
  		struct sk_buff *skb = skb_dequeue(&txcb->tx_ack_queue);
  		struct ieee80211_tx_info *info;
-@@ -335,6 +350,18 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+@@ -335,6 +353,18 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
  
  		skb_pull(skb, rtwdev->chip->tx_pkt_desc_sz);
  
@@ -71,7 +90,7 @@ index 64e1c34..b4d5f6a 100644
  		/* enqueue to wait for tx report */
  		if (info->flags & IEEE80211_TX_CTL_REQ_TX_STATUS) {
  			rtw_tx_report_enqueue(rtwdev, skb, tx_data->sn);
-@@ -354,6 +381,13 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
+@@ -354,6 +384,13 @@ static void rtw_usb_write_port_tx_complete(struct urb *urb)
  	kfree(txcb);
  }
  
@@ -85,11 +104,38 @@ index 64e1c34..b4d5f6a 100644
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
  {
  	if (qsel >= ARRAY_SIZE(rtwusb->qsel_to_ep))
-@@ -460,9 +494,10 @@ queue:
+@@ -410,6 +447,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
+ 
+ 	txcb->rtwdev = rtwdev;
+ 	skb_queue_head_init(&txcb->tx_ack_queue);
++	txcb->agg_skb = NULL;
+ 
+ 	skb_iter = skb_dequeue(list);
+ 
+@@ -423,6 +461,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
+ 		skb_head = skb_iter;
+ 		goto queue;
+ 	}
++	txcb->agg_skb = skb_head;
+ 
+ 	while (skb_iter) {
+ 		unsigned long flags;
+@@ -453,16 +492,20 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list
+ 		rtw_usb_fill_tx_checksum(rtwusb, skb_head, agg_num);
+ 
+ queue:
+-	skb_queue_tail(&txcb->tx_ack_queue, skb_head);
++	if (!txcb->agg_skb)
++		skb_queue_tail(&txcb->tx_ack_queue, skb_head);
+ 	tx_desc = (struct rtw_tx_desc *)skb_head->data;
+ 	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
+ 
  	ret = rtw_usb_write_port(rtwdev, qsel, skb_head,
  				 rtw_usb_write_port_tx_complete, txcb);
  	if (ret) {
 +		rtw_usb_record_tx_error(rtwdev, ret);
++		if (txcb->agg_skb)
++			dev_kfree_skb_any(txcb->agg_skb);
  		ieee80211_purge_tx_queue(rtwdev->hw, &txcb->tx_ack_queue);
  		kfree(txcb);
 -		return false;
@@ -97,7 +143,7 @@ index 64e1c34..b4d5f6a 100644
  	}
  
  	return true;
-@@ -526,6 +561,7 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
+@@ -526,6 +569,7 @@ static int rtw_usb_write_data(struct rtw_dev *rtwdev,
  	ret = rtw_usb_write_port(rtwdev, qsel, skb,
  				 rtw_usb_write_port_complete, skb);
  	if (unlikely(ret)) {
@@ -105,7 +151,7 @@ index 64e1c34..b4d5f6a 100644
  		rtw_err(rtwdev, "failed to do USB write, ret=%d\n", ret);
  		dev_kfree_skb_any(skb);
  	}
-@@ -1070,6 +1106,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
+@@ -1070,6 +1114,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
  
  	SET_IEEE80211_DEV(rtwdev->hw, &intf->dev);
  	spin_lock_init(&rtwusb->usb_lock);

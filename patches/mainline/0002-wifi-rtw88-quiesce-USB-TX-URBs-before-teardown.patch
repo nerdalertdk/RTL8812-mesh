@@ -1,7 +1,7 @@
-From e470cbef963504056673cbf2c9c7c40e04541acc Mon Sep 17 00:00:00 2001
+From a7eaec888ecb86c1d47848e159451ba2e583b454 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
-Date: Thu, 6 Aug 2026 21:48:20 +0200
-Subject: [PATCH] wifi: rtw88: quiesce USB TX URBs before teardown
+Date: Thu, 6 Aug 2026 22:22:56 +0200
+Subject: [PATCH 2/2] wifi: rtw88: quiesce USB TX URBs before teardown
 
 rtw_usb_write_port() drops the driver's URB reference immediately after a
 successful submission and retains no handle for teardown. A completion may
@@ -17,10 +17,10 @@ anchored URBs synchronously so every completion finishes before teardown.
  2 files changed, 7 insertions(+)
 
 diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
-index b4d5f6a..eee55ca 100644
+index de8b4d6..9d51997 100644
 --- a/drivers/net/wireless/realtek/rtw88/usb.c
 +++ b/drivers/net/wireless/realtek/rtw88/usb.c
-@@ -416,7 +416,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+@@ -419,7 +419,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
  
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
@@ -31,7 +31,7 @@ index b4d5f6a..eee55ca 100644
  
  	usb_free_urb(urb);
  
-@@ -1063,6 +1066,8 @@ static int rtw_usb_init_tx(struct rtw_dev *rtwdev)
+@@ -1071,6 +1074,8 @@ static int rtw_usb_init_tx(struct rtw_dev *rtwdev)
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
  	int i;
  
@@ -40,7 +40,7 @@ index b4d5f6a..eee55ca 100644
  	rtwusb->txwq = create_singlethread_workqueue("rtw88_usb: tx wq");
  	if (!rtwusb->txwq) {
  		rtw_err(rtwdev, "failed to create TX work queue\n");
-@@ -1082,6 +1087,7 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+@@ -1090,6 +1095,7 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
  
  	destroy_workqueue(rtwusb->txwq);

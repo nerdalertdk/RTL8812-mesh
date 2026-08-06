@@ -4,11 +4,13 @@ This directory contains the TX-only upstream form of downstream patches 7/8.
 It is based on Linux commit
 `315f4bd234b3b8a3ed3a71fd4c53b110cf373720` as inspected on 2026-08-06.
 
-Current mainline already purges aggregate ownership after synchronous TX URB
-submission failure and frees reserved-page/H2C skbs. The two patches here do
-not resend that work. They add only the missing behavior:
+Current mainline purges the TX-status queue after synchronous TX URB submission
+failure and frees reserved-page/H2C skbs. However, its synthetic aggregate
+transfer skb is incorrectly mixed into that mac80211-owned status queue. The
+two patches here add the missing behavior:
 
-1. account and diagnose TX submission/completion errors, report failed
+1. separate the driver-owned aggregate transfer buffer from original mac80211
+   frames, account and diagnose TX submission/completion errors, report failed
    completions without ACK, avoid a firmware-report wait, and continue draining
    frames already queued after a synchronous submission failure;
 2. anchor submitted TX URBs and synchronously quiesce callbacks after draining
