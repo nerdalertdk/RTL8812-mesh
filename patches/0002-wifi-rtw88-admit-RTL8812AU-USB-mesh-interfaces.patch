@@ -1,0 +1,59 @@
+From 160cc96af871156f557cd0c794875130896827cd Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 20:09:49 +0200
+Subject: [PATCH 2/6] wifi: rtw88: admit RTL8812AU USB mesh interfaces
+
+RTL8812AU can operate as a standalone mac80211 mesh point, but rtw88 does not
+advertise that interface type. Enable it only for the tested RTL8812A USB path
+and only when mac80211 mesh support is built.
+
+Mesh peers use independent BSSIDs. Honor FIF_OTHER_BSS with the existing
+beacon/probe promiscuity request so their management and data frames are not
+discarded by the receive filter. Do not add mesh to the concurrent-interface
+combination because this change supports one standalone mesh interface.
+
+---
+ mac80211.c | 4 ++--
+ main.c     | 7 +++++++
+ 2 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/mac80211.c b/mac80211.c
+index 8f95e39..048317e 100644
+--- a/mac80211.c
++++ b/mac80211.c
+@@ -321,8 +321,8 @@ static void rtw_ops_configure_filter(struct ieee80211_hw *hw,
+ 		else
+ 			rtwdev->hal.rcr &= ~(BIT_AAP);
+ 	}
+-	if (changed_flags & FIF_BCN_PRBRESP_PROMISC) {
+-		if (*new_flags & FIF_BCN_PRBRESP_PROMISC)
++	if (changed_flags & (FIF_OTHER_BSS | FIF_BCN_PRBRESP_PROMISC)) {
++		if (*new_flags & (FIF_OTHER_BSS | FIF_BCN_PRBRESP_PROMISC))
+ 			rtwdev->hal.rcr &= ~(BIT_CBSSID_BCN | BIT_CBSSID_DATA);
+ 		else
+ 			rtwdev->hal.rcr |= BIT_CBSSID_BCN;
+diff --git a/main.c b/main.c
+index 94b3b62..aa35828 100644
+--- a/main.c
++++ b/main.c
+@@ -2405,6 +2405,10 @@ int rtw_register_hw(struct rtw_dev *rtwdev, struct ieee80211_hw *hw)
+ 				     BIT(NL80211_IFTYPE_ADHOC) |
+ 				     BIT(NL80211_IFTYPE_P2P_CLIENT) |
+ 				     BIT(NL80211_IFTYPE_P2P_GO);
++	if (IS_ENABLED(CONFIG_MAC80211_MESH) &&
++	    rtwdev->chip->id == RTW_CHIP_TYPE_8812A &&
++	    rtw_hci_type(rtwdev) == RTW_HCI_TYPE_USB)
++		hw->wiphy->interface_modes |= BIT(NL80211_IFTYPE_MESH_POINT);
+ 	hw->wiphy->available_antennas_tx = hal->antenna_tx;
+ 	hw->wiphy->available_antennas_rx = hal->antenna_rx;
+ 
+@@ -2415,6 +2419,9 @@ int rtw_register_hw(struct rtw_dev *rtwdev, struct ieee80211_hw *hw)
+ 	hw->wiphy->max_scan_ssids = RTW_SCAN_MAX_SSIDS;
+ 	hw->wiphy->max_scan_ie_len = rtw_get_max_scan_ie_len(rtwdev);
+ 
++	/* Mesh is intentionally absent from this concurrency combination. A
++	 * standalone mesh interface is covered by interface_modes above.
++	 */
+ 	hw->wiphy->iface_combinations = rtw_iface_combs;
+ 	hw->wiphy->n_iface_combinations = ARRAY_SIZE(rtw_iface_combs);
+ 

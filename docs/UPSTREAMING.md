@@ -20,6 +20,21 @@ Verify the tag's four exact blob IDs and the current delta with:
 git diff upstream-baseline-a56bcd2 -- main.c mac80211.c usb.c usb.h
 ```
 
+The materialized six-patch mail series is under `patches/`. Verify that it
+applies in order with strict whitespace handling and reproduces the validated
+production files byte-for-byte with:
+
+```sh
+./scripts/check-upstream-series.sh
+```
+
+The stored mail files intentionally use the neutral
+`RTL8812AU Mesh Project <noreply@example.invalid>` identity and omit
+`Signed-off-by` trailers so private development identity is not published by
+this repository. They must not be sent upstream unchanged: the actual
+submitter must regenerate or amend the mail headers, add their real Developer
+Certificate of Origin sign-off, and retain the verified patch content.
+
 Push the annotated tag together with the branch when publishing the repository;
 a branch-only push cannot reproduce the baseline. The synthetic tag is a
 review convenience, not a claim that its generated commit is the original

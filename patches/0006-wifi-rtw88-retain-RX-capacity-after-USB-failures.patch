@@ -1,0 +1,187 @@
+From 15b75125cdac57fbc89fb23c7fbf3318a36a1b98 Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 20:12:13 +0200
+Subject: [PATCH 6/6] wifi: rtw88: retain RX capacity after USB failures
+
+A transient RX completion or submission failure permanently removes one entry
+from the small RX URB pool. Repeated errors can therefore drain receive
+capacity even after the USB transport becomes healthy.
+
+Resubmit recoverable completions and use delayed work for transient submission
+or allocation failures. Clear skb ownership when submission fails, and use
+mod_delayed_work() so a running worker cannot lose its own requeue. Cancel the
+retry before killing URBs and again after callbacks are quiesced to close the
+completion-versus-teardown race.
+
+---
+ usb.c | 73 ++++++++++++++++++++++++++++++++++++++++++++++++++---------
+ usb.h |  3 ++-
+ 2 files changed, 64 insertions(+), 12 deletions(-)
+
+diff --git a/usb.c b/usb.c
+index 84e7ffd..d9e319c 100644
+--- a/usb.c
++++ b/usb.c
+@@ -771,6 +771,31 @@ skip_packet:
+ 
+ static void rtw_usb_read_port_complete(struct urb *urb);
+ 
++static bool rtw_usb_rx_submit_error_retryable(int error)
++{
++	switch (error) {
++	case -ENOMEM:
++	case -ENOSPC:
++	case -EAGAIN:
++	case -EPROTO:
++	case -EILSEQ:
++	case -ETIME:
++	case -ECOMM:
++		return true;
++	default:
++		return false;
++	}
++}
++
++static void rtw_usb_rx_retry_later(struct rtw_usb *rtwusb)
++{
++	/* mod_delayed_work() also guarantees another run when called from the
++	 * resubmit worker itself; queue_work() can lose that self-requeue.
++	 */
++	mod_delayed_work(rtwusb->rxwq, &rtwusb->rx_urb_work,
++			 msecs_to_jiffies(10));
++}
++
+ static void rtw_usb_rx_resubmit(struct rtw_usb *rtwusb,
+ 				struct rx_usb_ctrl_block *rxcb,
+ 				gfp_t gfp)
+@@ -798,26 +823,33 @@ static void rtw_usb_rx_resubmit(struct rtw_usb *rtwusb,
+ 
+ 	error = usb_submit_urb(rxcb->rx_urb, gfp);
+ 	if (error) {
+-		skb_queue_tail(&rtwusb->rx_free_queue, rxcb->rx_skb);
+-
+-		if (error != -ENODEV)
+-			rtw_err(rtwdev, "Err sending rx data urb %d\n",
+-				error);
++		bool retryable = rtw_usb_rx_submit_error_retryable(error);
+ 
+-		if (error == -ENOMEM)
+-			goto try_later;
++		skb_queue_tail(&rtwusb->rx_free_queue, rxcb->rx_skb);
++		rxcb->rx_skb = NULL;
++
++		if (retryable) {
++			dev_warn_ratelimited(rtwdev->dev,
++					     "transient RX URB submit error %d; retrying\n",
++					     error);
++			rtw_usb_rx_retry_later(rtwusb);
++		} else if (error != -ENODEV && error != -ESHUTDOWN &&
++			   error != -ENOENT) {
++			rtw_err(rtwdev, "Err sending rx data urb %d\n", error);
++		}
+ 	}
+ 
+ 	return;
+ 
+ try_later:
+ 	rxcb->rx_skb = NULL;
+-	queue_work(rtwusb->rxwq, &rtwusb->rx_urb_work);
++	rtw_usb_rx_retry_later(rtwusb);
+ }
+ 
+ static void rtw_usb_rx_resubmit_work(struct work_struct *work)
+ {
+-	struct rtw_usb *rtwusb = container_of(work, struct rtw_usb, rx_urb_work);
++	struct rtw_usb *rtwusb =
++		container_of(to_delayed_work(work), struct rtw_usb, rx_urb_work);
+ 	struct rx_usb_ctrl_block *rxcb;
+ 	int i;
+ 
+@@ -861,12 +893,18 @@ static void rtw_usb_read_port_complete(struct urb *urb)
+ 		case -ENODEV:
+ 		case -ESHUTDOWN:
+ 		case -ENOENT:
++		case -EINPROGRESS:
++			break;
+ 		case -EPROTO:
+ 		case -EILSEQ:
+ 		case -ETIME:
+ 		case -ECOMM:
+ 		case -EOVERFLOW:
+-		case -EINPROGRESS:
++			dev_warn_ratelimited(rtwdev->dev,
++					     "recoverable RX URB error %d, errors=%d; resubmitting\n",
++					     urb->status,
++					     atomic_inc_return(&rtwusb->rx_urb_error_count));
++			rtw_usb_rx_resubmit(rtwusb, rxcb, GFP_ATOMIC);
+ 			break;
+ 		default:
+ 			rtw_err(rtwdev, "status %d\n", urb->status);
+@@ -880,10 +918,21 @@ static void rtw_usb_cancel_rx_bufs(struct rtw_usb *rtwusb)
+ 	struct rx_usb_ctrl_block *rxcb;
+ 	int i;
+ 
++	/* Prevent a pending allocation/submit retry from repopulating an URB
++	 * after the disconnect path has killed it.
++	 */
++	cancel_delayed_work_sync(&rtwusb->rx_urb_work);
++
+ 	for (i = 0; i < RTW_USB_RXCB_NUM; i++) {
+ 		rxcb = &rtwusb->rx_cb[i];
+ 		usb_kill_urb(rxcb->rx_urb);
+ 	}
++
++	/* A completion that raced with the first cancellation can have queued a
++	 * retry before usb_kill_urb() quiesced it. With every callback now done,
++	 * cancel once more so no retry can run after teardown proceeds.
++	 */
++	cancel_delayed_work_sync(&rtwusb->rx_urb_work);
+ }
+ 
+ static void rtw_usb_free_rx_bufs(struct rtw_usb *rtwusb)
+@@ -1086,7 +1135,7 @@ static int rtw_usb_init_rx(struct rtw_dev *rtwdev)
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
+ 	INIT_WORK(&rtwusb->rx_work, rtw_usb_rx_handler);
+ #endif
+-	INIT_WORK(&rtwusb->rx_urb_work, rtw_usb_rx_resubmit_work);
++	INIT_DELAYED_WORK(&rtwusb->rx_urb_work, rtw_usb_rx_resubmit_work);
+ 
+ 	for (i = 0; i < RTW_USB_RX_SKB_NUM; i++) {
+ 		rx_skb = alloc_skb(RTW_USB_MAX_RECVBUF_SZ, GFP_KERNEL);
+@@ -1115,6 +1164,7 @@ static void rtw_usb_deinit_rx(struct rtw_dev *rtwdev)
+ 
+ 	skb_queue_purge(&rtwusb->rx_queue);
+ 
++	cancel_delayed_work_sync(&rtwusb->rx_urb_work);
+ 	destroy_workqueue(rtwusb->rxwq);
+ 
+ 	skb_queue_purge(&rtwusb->rx_free_queue);
+@@ -1174,6 +1224,7 @@ static int rtw_usb_intf_init(struct rtw_dev *rtwdev,
+ 	mutex_init(&rtwusb->usb_ctrl_mutex);
+ 	atomic_set(&rtwusb->ctrl_error_count, 0);
+ 	atomic_set(&rtwusb->ctrl_retry_count, 0);
++	atomic_set(&rtwusb->rx_urb_error_count, 0);
+ 
+ 	return 0;
+ }
+diff --git a/usb.h b/usb.h
+index 0bb911f..683219f 100644
+--- a/usb.h
++++ b/usb.h
+@@ -74,6 +74,7 @@ struct rtw_usb {
+ 	__le32 *usb_data;
+ 	atomic_t ctrl_error_count;
+ 	atomic_t ctrl_retry_count;
++	atomic_t rx_urb_error_count;
+ 
+ 	u8 pipe_interrupt;
+ 	u8 pipe_in;
+@@ -92,7 +93,7 @@ struct rtw_usb {
+ 	struct sk_buff_head rx_queue;
+ 	struct sk_buff_head rx_free_queue;
+ 	struct work_struct rx_work;
+-	struct work_struct rx_urb_work;
++	struct delayed_work rx_urb_work;
+ };
+ 
+ static inline struct rtw_usb_tx_data *rtw_usb_get_tx_data(struct sk_buff *skb)

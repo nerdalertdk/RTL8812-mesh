@@ -1,0 +1,50 @@
+From 8d6125bad6273a9ea15a163158d4731ccd063fc6 Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Thu, 6 Aug 2026 20:10:08 +0200
+Subject: [PATCH 3/6] wifi: rtw88: use an AC queue for mesh group frames
+
+rtw88 routes every broadcast and multicast frame to the high queue used for AP
+DTIM delivery. A mesh point has no AP DTIM delivery context, and leaving group
+frames there prevents timely ARP, multicast, and HWMP transmission.
+
+Keep AP behavior unchanged, but use the skb access-category priority for mesh
+group frames. Hardware tests then establish cold HWMP paths and deliver group
+traffic in both directions.
+
+---
+ usb.c | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/usb.c b/usb.c
+index 95cd1db..d4fea6f 100644
+--- a/usb.c
++++ b/usb.c
+@@ -562,15 +562,25 @@ static int rtw_usb_write_data_h2c(struct rtw_dev *rtwdev, u8 *buf, u32 size)
+ static u8 rtw_usb_tx_queue_mapping_to_qsel(struct sk_buff *skb)
+ {
+ 	struct ieee80211_hdr *hdr = (struct ieee80211_hdr *)skb->data;
++	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
+ 	__le16 fc = hdr->frame_control;
+ 	u8 qsel;
+ 
+ 	if (unlikely(ieee80211_is_mgmt(fc) || ieee80211_is_ctl(fc)))
+ 		qsel = TX_DESC_QSEL_MGMT;
+ 	else if (is_broadcast_ether_addr(hdr->addr1) ||
+-		 is_multicast_ether_addr(hdr->addr1))
+-		qsel = TX_DESC_QSEL_HIGH;
+-	else if (skb_get_queue_mapping(skb) <= IEEE80211_AC_BK)
++		 is_multicast_ether_addr(hdr->addr1)) {
++		/* The high queue is used for AP broadcast/multicast delivery
++		 * around DTIM.  Mesh broadcast carries immediately-needed frames
++		 * such as ARP and HWMP path selection, and has no AP DTIM delivery
++		 * context, so send it through its regular access-category queue.
++		 */
++		if (info->control.vif &&
++		    info->control.vif->type == NL80211_IFTYPE_MESH_POINT)
++			qsel = skb->priority;
++		else
++			qsel = TX_DESC_QSEL_HIGH;
++	} else if (skb_get_queue_mapping(skb) <= IEEE80211_AC_BK)
+ 		qsel = skb->priority;
+ 	else
+ 		qsel = TX_DESC_QSEL_BEACON;

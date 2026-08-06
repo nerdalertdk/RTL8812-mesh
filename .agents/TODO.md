@@ -4,6 +4,8 @@
 
 - [x] Make the four-file upstream production baseline reproducible with an
   exact-blob annotated tag and a deterministic verifier.
+- [x] Materialize the six logical upstream patches and verify that applying
+  them in order reproduces all four validated production files byte-for-byte.
 
 - [x] Build, install, and regression-test DKMS `0.1.4`, including exact
   five-module provenance, parallel control-read stress, control-read injection,
