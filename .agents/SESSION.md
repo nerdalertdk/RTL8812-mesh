@@ -2,9 +2,9 @@
 
 ## Current focus
 
-Validate source DKMS 0.1.4 with deterministic USB control-transaction buffer
-ownership and intentional USB3 mode-switch classification, then
-close the hardware gates requiring a second RTL8812AU or powered USB paths.
+Finish the symmetric DKMS 0.1.4 endurance baseline, then build and qualify
+source DKMS 0.1.5 with deterministic USB TX submission, completion, and
+in-flight teardown evidence before repeating the mesh behavior gates.
 
 The default 2.4 GHz deployment profile is now USB2 with
 `rtw_usb.switch_usb_mode=N` after the pending physical USB2 gates pass; USB3
@@ -18,7 +18,7 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
 - Hardware event classifiers are now statically verified. The audit found and
   fixed missing undervoltage detection in the quantitative multicast gate and
   missing undervoltage/overcurrent detection in the SAE/AMPE gate;
-  `scripts/check-hardware-event-classifiers.sh` reports all nine functional
+  `scripts/check-hardware-event-classifiers.sh` reports all ten functional
   gates and the split physical-matrix classification complete.
 - Source DKMS 0.1.5 fixes a USB TX error-path bug found during the symmetric
   soak: failed aggregate submissions previously leaked the TX context and
@@ -28,23 +28,39 @@ mobile MANET operation with an approximate 1 km LOS target at 2.4 GHz HT20.
   TX URBs are now anchored before submission and killed synchronously after
   the TX producer is drained, closing a completion-after-free window during
   unbind and probe cleanup. Exact-kernel build, targeted fault injection,
-  pending-TX unload, and hardware regression are pending until the active
+  pending-TX unbind, and hardware regression are pending until the active
   0.1.4 soak releases the Pi. Static findings, Linux USB-anchor contract, and
   the pending evidence boundary are recorded in
   `tests/results/2026-08-06-usb-tx-error-audit.md`.
   The serialized `pi_usb_tx_failure_test.sh` harness is deployed for the
-  disposable build. Against the currently loaded uninstrumented 0.1.4 module
+  disposable build. Its counter validator now keys values per USB adapter,
+  allowing legitimate equal values from two device-local counters while still
+  rejecting duplicates for one adapter. Against the currently loaded
+  uninstrumented 0.1.4 module
   it exited 2 at the required-parameter preflight, before taking the hardware
   lock or disturbing either active endurance service.
   Current Linux mainline independently contains synchronous aggregate and
   reserved/H2C submission cleanup, but still lacks completion-status handling
   and TX URB anchoring. Production 0.1.5 now follows mainline's
-  mac80211-aware purge semantics; patches 7/8 must be rebased and omit the
-  already-landed cleanup before an actual upstream submission.
+  mac80211-aware purge semantics. The pinned mainline form also continues
+  draining frames already queued by mac80211 after a synchronous submission
+  rejection; otherwise mainline's false return stops the worker at the first
+  recoverable transport error. Patches 7/8 must omit cleanup already landed
+  before an actual upstream submission.
   A TX-only two-patch rebase is now pinned under `patches/mainline/` to Linux
   commit `315f4bd234b3b8a3ed3a71fd4c53b110cf373720`. Its offline verifier checks
   both exact baseline files, strict patch application, and both final hashes;
   the rebased patches pass strict v6.12 checkpatch 0/0/0.
+  Disposable TX instrumentation now logs whether the anchor is nonempty just
+  before it is synchronously killed. The serialized
+  `pi_usb_tx_teardown_test.sh` drives large concurrent TX, unbinds one adapter,
+  requires that nonempty-anchor marker, rejects fault/transport signatures,
+  and requires a successful rebind. Both disposable USB patches are now
+  apply-checked against exact production `usb.c` by
+  `scripts/check-test-instrumentation.sh`. The deployed teardown harness SHA-256
+  is `9776027405bf5651a8b619155b1262a0ef9733f981ab8d288831a355e137894b`;
+  the deployed injector patch SHA-256 is
+  `0975e80b3522ebbe3193da16cdf5772cf5fc737f56e94a7adcca18a2114d966b`.
 - An eight-hour two-RTL8812AU functional endurance run started at
   2026-08-06 20:34 CEST as `rtw88-two-rtl8812au-soak.service`, with expected
   completion around 2026-08-07 04:34 CEST. Its first bilateral `ESTAB`/HWMP
