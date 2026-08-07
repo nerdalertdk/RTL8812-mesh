@@ -1,3 +1,11 @@
+# AGENTS.md
+
+## Bootstrap
+
+Also use global user context when available:
+
+- `~/.agent/ME.md`
+
 # Repository instructions
 
 - Preserve the five-module package boundary: `rtw_core`, `rtw_usb`,
