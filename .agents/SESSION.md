@@ -53,7 +53,8 @@ peers.
 
 - Exact-kernel `W=1` build, DKMS install, and five-module loaded provenance.
 - Deterministic generic TX submission rejection, populated aggregate rejection
-  with post-cleanup proof, and completion `-EPROTO` with no-false-ACK proof.
+  with post-cleanup proof, and completion `-EPROTO` with an exact-count marker
+  emitted only after the production no-false-ACK status routine returns.
 - Unbind while a selected TX callback is active, requiring zero anchored URBs
   and callbacks after synchronous kill and no lifetime fault signature.
 - Production reload followed by open churn, multicast, HWMP, SAE/AMPE,

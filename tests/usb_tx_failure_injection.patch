@@ -59,26 +59,33 @@ index 07d3fc0..f4767da 100644
  static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
  {
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
-@@ -446,8 +489,17 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+@@ -446,8 +489,24 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
  static void rtw_usb_write_port_tx_complete(struct urb *urb)
  {
  	struct rtw_usb_txcb *txcb = urb->context;
++	struct rtw_dev *rtwdev = txcb->rtwdev;
 +	int status = urb->status;
 +	bool delay;
++	bool injected = false;
  
 -	rtw_usb_write_port_tx_status(txcb, urb->status);
 +	delay = sysfs_streq(rtw_usb_test_dev, dev_name(txcb->rtwdev->dev));
 +	if (unlikely(delay && rtw_usb_test_take(&rtw_usb_test_tx_delays)))
 +		mdelay(5000);
 +
-+	if (unlikely(rtw_usb_test_take(&rtw_usb_test_tx_complete)))
++	if (unlikely(rtw_usb_test_take(&rtw_usb_test_tx_complete))) {
 +		status = -EPROTO;
++		injected = true;
++	}
 +
 +	rtw_usb_write_port_tx_status(txcb, status);
++	if (injected)
++		rtw_info(rtwdev,
++			 "test: reported injected USB TX completion error\n");
  }
  
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
-@@ -479,7 +531,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+@@ -479,7 +538,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
  	usb_anchor_urb(urb, &rtwusb->tx_anchor);
@@ -90,7 +97,7 @@ index 07d3fc0..f4767da 100644
  	if (ret)
  		usb_unanchor_urb(urb);
  
-@@ -496,6 +551,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list)
+@@ -496,6 +558,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list)
  	struct sk_buff *skb_iter;
  	int agg_num = 0;
  	int ret;
@@ -98,7 +105,7 @@ index 07d3fc0..f4767da 100644
  	unsigned int align_next = 0;
  	u8 qsel;
  
-@@ -563,14 +619,28 @@ queue:
+@@ -563,14 +626,28 @@ queue:
  	tx_desc = (struct rtw_tx_desc *)skb_head->data;
  	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
  
@@ -129,7 +136,7 @@ index 07d3fc0..f4767da 100644
  		kfree(txcb);
  	}
  
-@@ -1255,7 +1325,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+@@ -1255,7 +1332,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
  	rtw_usb_tx_queue_purge(rtwusb);
  #endif
  	destroy_workqueue(rtwusb->txwq);

@@ -154,7 +154,8 @@ sleep 6
 drive_phase aggregate-submission "$agg_submit_param" \
 	'test: rejecting aggregate USB TX' || exit 1
 sleep 6
-drive_phase completion "$completion_param" || exit 1
+drive_phase completion "$completion_param" \
+	'test: reported injected USB TX completion error' || exit 1
 traffic_valid && mesh_valid && paths_valid || {
 	echo "post-injection mesh validation failed" >&2
 	exit 1
@@ -181,6 +182,8 @@ event_count=$(printf '%s\n' "$tx_events" | sed '/^$/d' | awk 'END { print NR + 0
 aggregate_events=$(grep -c 'test: rejecting aggregate USB TX' "$kernel_log" || true)
 aggregate_cleanups=$(grep -c 'test: cleaned rejected aggregate USB TX' \
 	"$kernel_log" || true)
+completion_reports=$(grep -c \
+	'test: reported injected USB TX completion error' "$kernel_log" || true)
 aggregate_cleanup_values_valid=$(grep 'test: cleaned rejected aggregate USB TX' \
 	"$kernel_log" | awk '
 	match($0, /originals=[0-9]+/) {
@@ -192,14 +195,15 @@ aggregate_cleanup_values_valid=$(grep 'test: cleaned rejected aggregate USB TX' 
 ')
 unexpected_count=$(printf '%s\n' "$unexpected" | sed '/^$/d' |
 	awk 'END { print NR + 0 }')
-printf 'result=complete tx_diagnostics=%s aggregate_rejections=%s aggregate_cleanups=%s aggregate_cleanup_values_valid=%s counter_values_valid=%s unexpected_events=%s root_paths=%s peer_paths=%s\n' \
+printf 'result=complete tx_diagnostics=%s aggregate_rejections=%s aggregate_cleanups=%s completion_reports=%s aggregate_cleanup_values_valid=%s counter_values_valid=%s unexpected_events=%s root_paths=%s peer_paths=%s\n' \
 	"$event_count" "$aggregate_events" "$aggregate_cleanups" \
-	"$aggregate_cleanup_values_valid" "$counter_values_valid" \
+	"$completion_reports" "$aggregate_cleanup_values_valid" "$counter_values_valid" \
 	"$unexpected_count" "$root_paths" "$peer_paths"
 printf '%s\n' "$unexpected" | sed '/^$/d'
 
 [ "$event_count" -ge 3 ] && [ "$aggregate_events" -eq "$FAILURES" ] &&
 	[ "$aggregate_cleanups" -eq "$FAILURES" ] &&
+	[ "$completion_reports" -eq "$FAILURES" ] &&
 	[ "$aggregate_cleanup_values_valid" -eq 1 ] &&
 	[ "$counter_values_valid" -eq 1 ] &&
 	[ "$unexpected_count" -eq 0 ]

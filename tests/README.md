@@ -184,6 +184,9 @@ Required evidence:
   original frames; the marker is emitted only after the unchanged production
   error path frees the synthetic transfer skb and drains the original-frame
   queue;
+- every injected completion failure has one post-status marker emitted only
+  after the unchanged production routine reports all original frames without
+  ACK and returns;
 - each requested failure count is fully consumed; at least one rate-limited
   `USB TX URB error -71` diagnostic is retained for each injection phase, and
   displayed driver-counter values are positive and nonduplicated per adapter;
@@ -202,10 +205,10 @@ replayed because the real transfer's device-side progress is ambiguous.
 It requires two RTL8812AU peers already in the open topology and fails closed
 unless the test-only parameters exist. It drives traffic until all requested
 counts reach zero, retains phase diagnostics, requires exact rejection and
-post-cleanup markers for each aggregate-only failure, and requires positive,
-nonduplicated cumulative counter values per adapter without imposing a global
-order on messages from two devices or CPUs. It revalidates bilateral `ESTAB`,
-traffic, and HWMP, and
+post-cleanup markers for each aggregate-only failure, requires one post-status
+marker per completion failure, and requires positive, nonduplicated cumulative
+counter values per adapter without imposing a global order on messages from two
+devices or CPUs. It revalidates bilateral `ESTAB`, traffic, and HWMP, and
 rejects any kernel transport event other than its expected injected TX
 `-EPROTO`. The script intentionally does not accept installed-module
 provenance: the instrumented `rtw_usb` cannot match the production artifact.

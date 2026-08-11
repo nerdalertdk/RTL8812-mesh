@@ -85,6 +85,9 @@ remaining anchored URBs.
   corresponding marker is emitted only after the unchanged production error
   path frees the synthetic transfer skb and drains all original frames,
   proving that the corrected split-ownership cleanup ran. It also records
+  a marker only after the unchanged production completion-status routine
+  returns from reporting all original frames without ACK; the harness requires
+  exactly one post-status marker per injected completion failure. It also records
   queued-URB and active-callback anchor state immediately before and after the
   test build kills it during teardown.
 - The exact pinned Linux `315f4bd234b3` `checkpatch.pl --strict` reports zero

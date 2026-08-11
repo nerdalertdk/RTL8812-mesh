@@ -22,9 +22,13 @@ check_patch "$repo_dir/tests/usb_tx_failure_injection.patch"
 
 grep -q 'test: cleaned rejected aggregate USB TX originals=%u' \
 	"$tmp_dir/usb.c"
+grep -q 'test: reported injected USB TX completion error' \
+	"$tmp_dir/usb.c"
 grep -q '\[ "$aggregate_cleanups" -eq "$FAILURES" \]' \
 	"$repo_dir/tests/pi_usb_tx_failure_test.sh"
 grep -q '\[ "$aggregate_cleanup_values_valid" -eq 1 \]' \
 	"$repo_dir/tests/pi_usb_tx_failure_test.sh"
+grep -q '\[ "$completion_reports" -eq "$FAILURES" \]' \
+	"$repo_dir/tests/pi_usb_tx_failure_test.sh"
 
-echo "test_instrumentation=2 production_source=match whitespace=clean aggregate_cleanup_gate=matched"
+echo "test_instrumentation=2 production_source=match whitespace=clean aggregate_cleanup_gate=matched completion_status_gate=matched"
