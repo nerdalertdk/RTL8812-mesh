@@ -2,9 +2,11 @@
 
 ## Current focus
 
-Qualify source DKMS 0.1.5 on the exact Debian Raspberry Pi kernel, including
-deterministic USB TX error/teardown evidence, then repeat the IEEE 802.11s
-behavioral and endurance gates with two RTL8812AU peers.
+Make RTL8812AU native IEEE 802.11s support correct, robust, reproducible on
+Debian, and suitable for upstream Linux submission. The immediate work is to
+qualify source DKMS 0.1.5 with deterministic USB TX error/teardown evidence,
+then repeat the IEEE 802.11s behavioral and endurance gates with two RTL8812AU
+peers.
 
 ## Current source
 
@@ -40,8 +42,9 @@ behavioral and endurance gates with two RTL8812AU peers.
   recovered all slots without losing the peer.
 - RX teardown with retry work pending completed without warning, Oops, UAF, or
   post-free work evidence.
-- Version-pinned udev/systemd recovery reconstructed both mesh interfaces,
-  addressing, peering, traffic, and HWMP after controlled rebind.
+- Version-pinned udev/systemd test infrastructure reconstructed both mesh
+  interfaces, addressing, peering, traffic, and HWMP after controlled rebind;
+  it is not part of the proposed upstream driver patches.
 - A previous simultaneous physical disconnect involved both USB radios and
   shared-path power/topology evidence. It is not evidence of an isolated
   RTL8812AU mesh failure; the controlled physical USB matrix remains open.

@@ -2,8 +2,10 @@
 
 ## Purpose
 
-Provide an upstream-quality Linux rtw88 driver package for RTL8812AU USB
-adapters with correct native IEEE 802.11s mesh-point support.
+Make RTL8812AU native IEEE 802.11s support correct, robust, reproducible on
+Debian, and suitable for upstream Linux submission. This includes
+standards-correct mesh behavior, USB transport fault handling, teardown safety,
+and evidence-based qualification.
 
 ## Scope
 
@@ -43,7 +45,9 @@ Excluded:
 - Correct unicast, broadcast, and multicast behavior.
 - Correct SAE/AMPE operation using mac80211 software crypto where required.
 - Correct TX/RX ownership and bounded behavior across USB failures and teardown.
-- Observable, bounded reconstruction after physical USB re-enumeration.
+- Bounded driver teardown and reprobe behavior after physical USB
+  re-enumeration; userspace reconstruction remains test infrastructure rather
+  than part of the upstream driver deliverable.
 - Endurance and physical-path evidence sufficient to distinguish driver faults
   from external USB faults.
 - A minimal, reviewable patch series that applies to the selected upstream
