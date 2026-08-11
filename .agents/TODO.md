@@ -4,6 +4,8 @@
 
 - [ ] Build, install, and provenance-check production DKMS 0.1.5 against the
   exact Raspberry Pi kernel.
+- [ ] Run the standalone exact-source `W=1` and DKMS build-only gate before
+  installing production 0.1.5.
 - [ ] Run deterministic USB TX submission, aggregate-cleanup, completion-status,
   and in-flight teardown fault tests on the disposable 0.1.5 build.
 - [ ] Restore exact production 0.1.5 and repeat strict open churn, HWMP,

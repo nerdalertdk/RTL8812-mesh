@@ -66,6 +66,14 @@ record their source versions, vermagic, and SHA-256. It never installs or loads
 the result. `PREFLIGHT_ONLY=1` validates the queued operation without waiting or
 writing DKMS state.
 
+`pi_dkms_build_only.sh` is the standalone equivalent for an exact source stage
+that is not coupled to a soak. It requires a caller-supplied source manifest and
+commit, rejects directories or non-build files in the flat stage, takes the
+DKMS build lock, performs an exact-running-kernel `W=1` build, then registers
+and builds—but never installs or loads—exactly the five package modules through
+DKMS. Its result records source identity, kernel, architecture, warning verdict,
+module srcversions, vermagic, artifact hashes, and `action=build-only`.
+
 `pi_mesh_recover.sh` requires `EXPECTED_VERSION`, either inherited from the
 caller or read from `/etc/default/rtw88-mesh-test`, and accepts recovery only
 after `pi_module_provenance.sh` proves that exact DKMS package, all five loaded

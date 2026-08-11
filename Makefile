@@ -54,6 +54,7 @@ check-static:
 	./scripts/check-test-instrumentation.sh
 	./scripts/check-hardware-event-classifiers.sh
 	./scripts/check-soak-finalizer-contract.sh
+	./scripts/check-dkms-build-only-contract.sh
 	@set -e; for script in scripts/*.sh tests/*.sh; do \
 		sh -n "$$script"; \
 	done
