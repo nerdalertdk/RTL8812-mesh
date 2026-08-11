@@ -83,8 +83,10 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   binary multicast, reciprocal HWMP, and zero USB-error checks. Two subsequent
   sender-captured multicast probes failed the 99% threshold: root-to-peer
   delivered 400/400 then 398/400 while peer-to-root delivered 393/400 then
-  390/400, each with zero kernel transport event. This blocks multicast
-  qualification; see
+  390/400, each with zero kernel transport event. A 10 dBm control delivered
+  400/400 root-to-peer and 394/400 peer-to-root, so near-field output power
+  alone does not explain the loss. This blocks multicast qualification; the
+  next controlled isolation reverses the physical root-side receiver; see
   `tests/results/2026-08-11-production-multicast-regression.md`.
 
 ## Source 0.1.5 completed evidence
