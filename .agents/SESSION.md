@@ -40,6 +40,11 @@ peers.
   removal occurred outside the completed interval. The queued final transfer
   and 0.1.5 build did not run because the finalizer consumed the wrong summary
   filename; the repository contract and an offline fixture now cover it.
+- After the later manual power cycle, exact 0.1.4 provenance passed, normal
+  userspace test infrastructure restored bilateral `ESTAB`/HWMP, and the
+  deferred 512 MiB transfer passed both directions at 4.42 and 4.72 MB/s with
+  matching SHA-256 and zero kernel transport/power events. Current power state
+  was clean at `get_throttled=0x0`.
 
 ## USB evidence
 

@@ -40,3 +40,26 @@ The later manual power removal occurred days after the soak summary closed and
 cannot invalidate the completed eight-hour interval. No monitored workload
 continued after the soak, so the intervening powered-on days are not additional
 endurance evidence.
+
+## Reboot and deferred final transfer
+
+After power was restored on 2026-08-11, exact DKMS 0.1.4 five-module
+provenance passed and the standard userspace test infrastructure recreated two
+mesh-point interfaces. Both peers reported `ESTAB`, reciprocal HWMP paths, and
+5/5 bidirectional ping replies. Current power state was clean at
+`get_throttled=0x0`.
+
+The repository-exact transfer harness
+(`418112c1bad80b1f93bcaa4fa44c071b598d3f3f648a932ebe05119c5b6b4675`)
+then completed the deferred integrity gate:
+
+- source: 536,870,912 bytes, SHA-256
+  `465eaefa2d3cb399e5439d7d17e1a73599640b3a1fc3933119f7bd3afba9968b`;
+- root to peer: 4,424,214 B/s, matching SHA-256;
+- peer to root: 4,716,183 B/s, matching SHA-256;
+- reciprocal postflight HWMP paths: one at each peer;
+- kernel transport/power events during the 254-second interval: zero.
+
+This closes the final integrity evidence for the 0.1.4 extended run. It does
+not qualify source 0.1.5, which still requires an exact-current source stage,
+build, install, and regression.
