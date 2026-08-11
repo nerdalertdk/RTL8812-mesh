@@ -17,7 +17,9 @@ FLOODERS=${FLOODERS:-8}
 REBIND_POLLS=${REBIND_POLLS:-100}
 DELAY_POLLS=${DELAY_POLLS:-200}
 UNBIND_TIMEOUT_SECONDS=${UNBIND_TIMEOUT_SECONDS:-20}
+UNBIND_CPU=${UNBIND_CPU:-3}
 LOG_DIR=${LOG_DIR:-/var/tmp/rtl8812au-mesh/usb-tx-teardown}
+TASKSET=${TASKSET:-/usr/bin/taskset}
 submit_param=/sys/module/rtw_usb/parameters/test_tx_submit_failures
 completion_param=/sys/module/rtw_usb/parameters/test_tx_completion_failures
 delay_param=/sys/module/rtw_usb/parameters/test_tx_completion_delays
@@ -25,7 +27,7 @@ delay_device_param=/sys/module/rtw_usb/parameters/test_tx_completion_delay_devic
 
 [ "$(id -u)" -eq 0 ] || { echo "run this hardware test as root" >&2; exit 2; }
 for value in "$FLOODERS" "$REBIND_POLLS" "$DELAY_POLLS" \
-	"$UNBIND_TIMEOUT_SECONDS"; do
+	"$UNBIND_TIMEOUT_SECONDS" "$UNBIND_CPU"; do
 	case $value in *[!0-9]*|''|0) echo "counts must be positive integers" >&2; exit 2 ;; esac
 done
 [ -x "$IW" ] || { echo "iw is required at $IW" >&2; exit 2; }
@@ -33,6 +35,12 @@ command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
 command -v journalctl >/dev/null 2>&1 || { echo "journalctl is required" >&2; exit 2; }
 command -v systemctl >/dev/null 2>&1 || { echo "systemctl is required" >&2; exit 2; }
 command -v timeout >/dev/null 2>&1 || { echo "timeout is required" >&2; exit 2; }
+[ -x "$TASKSET" ] || { echo "taskset is required at $TASKSET" >&2; exit 2; }
+cpu_count=$(getconf _NPROCESSORS_ONLN)
+[ "$UNBIND_CPU" -lt "$cpu_count" ] || {
+	echo "UNBIND_CPU=$UNBIND_CPU is outside available CPUs 0-$((cpu_count - 1))" >&2
+	exit 2
+}
 [ -w "$submit_param" ] && [ -w "$completion_param" ] &&
    [ -w "$delay_param" ] && [ -w "$delay_device_param" ] || {
 	echo "test-only TX failure parameters are unavailable" >&2
@@ -143,7 +151,8 @@ printf '1\n' >"$delay_param"
 # the deterministic delay, so launching userspace only after observing the
 # consumed token can miss the callback entirely.
 bound=0
-(
+export delay_param DELAY_POLLS timing_log UNBIND_TIMEOUT_SECONDS driver_id unbind_path
+"$TASKSET" -c "$UNBIND_CPU" sh -c '
 	poll=0
 	while [ "$(cat "$delay_param")" -gt 0 ] && [ "$poll" -lt "$DELAY_POLLS" ]; do
 		poll=$((poll + 1))
@@ -161,7 +170,7 @@ bound=0
 	unbind_end=$(date +%s)
 	printf 'end=%s status=%s\n' "$unbind_end" "$status" >>"$timing_log"
 	exit "$status"
-) &
+' &
 unbind_pid=$!
 
 i=0
