@@ -9,14 +9,9 @@ This repository builds only the required module stack:
 rtw_8812au -> rtw_8812a -> rtw_88xxa -> rtw_usb + rtw_core
 ```
 
-It currently targets Debian first. Android and OpenWrt packaging are future
-work. The tested RF baseline is 2.4 GHz HT20.
-
-The intended deployment is a multinational off-grid mobile MANET with an
-engineering target of approximately 1 km LOS. Range depends on the complete
-bidirectional RF system, not the adapter's advertised conducted power. See
-[docs/RF_DEPLOYMENT.md](docs/RF_DEPLOYMENT.md) for the preliminary link budget,
-country-profile model, antenna guidance, and field-test ladder.
+Debian is the current build and hardware-test environment. The initial radio
+qualification profile is 2.4 GHz HT20; channel selection remains subject to
+the active cfg80211 regulatory domain.
 
 ## Current validation
 
@@ -153,8 +148,8 @@ sudo dkms remove rtl8812au-mesh/0.1.5 --all
 
 ## Create an open mesh point
 
-Replace `wlan1`, addresses, mesh ID, and frequency for your deployment. Set the
-regulatory country before selecting a channel.
+Replace `wlan1`, addresses, mesh ID, and frequency for the test environment.
+Set the regulatory country before selecting a channel.
 
 ```sh
 sudo iw reg set DK
@@ -209,12 +204,11 @@ that disconnected both test adapters. Do not interpret every `-71` as an
 RTL8812AU mesh-driver defect; retain USB topology, power, temperature, and
 kernel timestamps when reporting one.
 
-For 2.4 GHz deployments, validate both USB modes. USB3 can create local
+For 2.4 GHz driver qualification, validate both USB modes. USB3 can create local
 2.4 GHz interference, while USB2 limits host throughput and changes the
-physical USB path. The intended deployment baseline is USB2, pending completion
-of the physical USB2 matrix: set `rtw_usb.switch_usb_mode=N` before module load
-to retain USB2. Keep USB3 as an explicit required regression profile. For a
-persistent Debian configuration:
+physical USB path. Set `rtw_usb.switch_usb_mode=N` before module load to retain
+USB2; keep USB3 as a separate regression profile. For a persistent Debian test
+configuration:
 
 ```conf
 # /etc/modprobe.d/rtw88-mesh.conf

@@ -14,3 +14,6 @@ Also use global user context when available:
   out of this repository.
 - Build against the exact target kernel before loading modules.
 - Serialize hardware tests with `/run/lock/rtw88-mesh-test.lock`.
+- Keep tracked documentation limited to the RTL8812AU driver, native IEEE
+  802.11s behavior, packaging, testing, and upstreaming. Store private use-case
+  or application planning under ignored `.local/` and do not commit it.

@@ -15,3 +15,4 @@ tests/*.mod.o
 tests/*.o
 tests/Module.symvers
 tests/modules.order
+.local/

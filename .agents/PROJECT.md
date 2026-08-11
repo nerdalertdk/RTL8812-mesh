@@ -2,49 +2,49 @@
 
 ## Purpose
 
-Package native IEEE 802.11s mesh-point support for RTL8812AU as a focused
-Debian-compatible out-of-tree rtw88 driver. The deployment target is an
-off-grid MANET carried by mobile nodes, with an engineering target of roughly
-1 km line of sight at 2.4 GHz using 2x2 MIMO-capable radios.
+Provide an upstream-quality Linux rtw88 driver package for RTL8812AU USB
+adapters with correct native IEEE 802.11s mesh-point support.
 
 ## Scope
 
-Included: RTL8812AU USB, RTL8812A/88xxA support, shared rtw88 core, firmware,
-DKMS/manual installation, recovery helpers, and hardware-in-loop tests.
+Included:
 
-Excluded for now: unrelated Realtek chipsets and transports, Android/OpenWrt
-packaging, and production claims not backed by completed security/endurance
-tests.
+- RTL8812AU USB and its required RTL8812A/88xxA/shared rtw88 modules;
+- mac80211/cfg80211 mesh-point capability and lifecycle behavior;
+- open peering, HWMP, unicast, broadcast, multicast, and SAE/AMPE security;
+- USB control, RX, TX, teardown, disconnect, and recovery behavior;
+- focused Debian manual/DKMS packaging;
+- exact-source static checks, fault injection, and hardware qualification;
+- reviewable patches against current Linux wireless development trees.
 
-## RF and deployment constraints
+Excluded:
 
-- HT20 is the range/interference baseline; wider channels are not required for
-  the first production profile.
-- USB2 is the intended transport profile for 2.4 GHz deployment, pending the
-  physical USB2 release gates:
-  `rtw_usb.switch_usb_mode=N` prevents the adapter from switching to USB3 and
-  reduces local USB3 interference risk. USB3 remains a separately validated
-  regression profile, not the default RF deployment choice.
-- Range is a bidirectional link property. High conducted transmit power on one
-  node cannot compensate for a weaker return path, obstructed Fresnel zone, or
-  poor receive antenna placement.
-- Deployment is multinational. Country code, allowed channels, EIRP/PSD limit,
-  antenna gain, cable loss, and any indoor/outdoor restrictions belong to a
-  per-country deployment profile rather than a Denmark-specific assumption.
-- The driver must retain cfg80211/mac80211 regulatory enforcement. It must not
-  provide a mechanism for bypassing the active regulatory database.
-- Advertised 1 W / 30 dBm adapters are useful hardware candidates, not an
-  authorization to radiate 30 dBm EIRP. Effective power must be calculated and
-  validated for the country and complete antenna assembly.
-- Mobile-node power delivery, thermal behavior, USB stability, antenna spacing,
-  body/vehicle shadowing, and installation height are part of the RF system.
+- unrelated Realtek chipsets and transports;
+- application topology or routing layers above native IEEE 802.11s;
+- product, range, antenna, enclosure, field-use, and other use-case planning;
+- downstream operating-system or appliance integration not required to prove
+  the driver itself.
+
+## Constraints
+
+- Preserve cfg80211/mac80211 regulatory enforcement.
+- Build and validate against the exact target kernel before loading modules.
+- Preserve the five-module package boundary: `rtw_core`, `rtw_usb`,
+  `rtw_88xxa`, `rtw_8812a`, and `rtw_8812au`.
+- Separate synthetic driver-fault evidence from physical USB power, cable,
+  adapter, hub, and host-controller evidence.
+- Do not claim conformance or robustness beyond the scope of completed gates.
 
 ## Success criteria
 
-- Reproducible five-module build and DKMS installation on Debian.
-- Open and secured 802.11s behavior across supported 2.4 GHz HT20 channels.
-- Verified HWMP, multicast, churn, transfer integrity, USB recovery, and
-  physical endurance with two stable RTL8812AU peers.
-- A repeatable 100 m--1 km LOS field test characterizes both directions across
-  node height/orientation cases and records RSSI, rate, retries, loss, latency,
-  throughput, peer state, HWMP state, power, and temperature.
+- Reproducible exact-kernel Debian build, install, load, and provenance.
+- Stable standalone mesh-point creation, deletion, peering, and churn.
+- Correct bidirectional HWMP discovery and repair.
+- Correct unicast, broadcast, and multicast behavior.
+- Correct SAE/AMPE operation using mac80211 software crypto where required.
+- Correct TX/RX ownership and bounded behavior across USB failures and teardown.
+- Observable, bounded reconstruction after physical USB re-enumeration.
+- Endurance and physical-path evidence sufficient to distinguish driver faults
+  from external USB faults.
+- A minimal, reviewable patch series that applies to the selected upstream
+  Linux wireless tree and passes exact-kernel build and strict static checks.
