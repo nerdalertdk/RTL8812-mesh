@@ -122,6 +122,11 @@ module_dir=/var/lib/dkms/$PACKAGE_NAME/$PACKAGE_VERSION/$kernel/$arch/module
 dkms_count=0
 for module in $modules; do
 	artifact=$module_dir/$module.ko
+	# Debian DKMS may compress its build artifacts before installation.  modinfo
+	# reads either representation, so require exactly one supported artifact.
+	if [ ! -s "$artifact" ]; then
+		artifact=$module_dir/$module.ko.xz
+	fi
 	[ -s "$artifact" ] || { echo "missing DKMS module $module"; exit 1; }
 	set -- $(modinfo -F vermagic "$artifact")
 	[ "${1:-}" = "$kernel" ] || { echo "$module vermagic mismatch: $*"; exit 1; }
