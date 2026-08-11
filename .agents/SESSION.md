@@ -85,8 +85,12 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   delivered 400/400 then 398/400 while peer-to-root delivered 393/400 then
   390/400, each with zero kernel transport event. A 10 dBm control delivered
   400/400 root-to-peer and 394/400 peer-to-root, so near-field output power
-  alone does not explain the loss. This blocks multicast qualification; the
-  next controlled isolation reverses the physical root-side receiver; see
+  alone does not explain the loss. A valid physical-role reversal then delivered
+  393/400 to `fc:22:1c:30:08:c1` / USB path `1-1.2` but 399/400 to the other
+  adapter, excluding root-namespace role and locating the issue to that
+  receiver-specific physical path (not yet distinguished between adapter/RF and
+  hub branch). This blocks multicast qualification; the next isolation is a
+  physical USB-port swap; see
   `tests/results/2026-08-11-production-multicast-regression.md`.
 
 ## Source 0.1.5 completed evidence
