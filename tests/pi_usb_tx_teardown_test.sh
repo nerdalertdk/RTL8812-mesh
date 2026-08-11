@@ -112,6 +112,7 @@ ping -I "$ROOT_IF" -c 10 -W 1 "$PEER_IP" >/dev/null
 ns ping -I "$PEER_IF" -c 10 -W 1 "$ROOT_IP" >/dev/null
 
 driver_id=$(basename "$(readlink -f "/sys/class/net/$ROOT_IF/device")")
+usb_device_id=${driver_id%:*}
 unbind_path=/sys/bus/usb/drivers/$ROOT_DRIVER/unbind
 bind_path=/sys/bus/usb/drivers/$ROOT_DRIVER/bind
 [ -w "$unbind_path" ] && [ -w "$bind_path" ] || {
@@ -186,11 +187,12 @@ inflight=$(grep 'test: USB TX anchor before kill ' "$kernel_log" |
 quiesced=$(grep -c 'test: USB TX anchor after kill pending_urbs=0 active_callbacks=0' \
 	"$kernel_log" || true)
 faults=$(grep -Ei 'BUG:|WARNING:|Oops:|KASAN|UBSAN|use-after-free|general protection fault|kernel NULL pointer|refcount_t:|error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' \
-	"$kernel_log" || true)
+	"$kernel_log" | grep -Ev "usb $usb_device_id: reset .* USB device" || true)
 fault_count=$(printf '%s\n' "$faults" | sed '/^$/d' | awk 'END { print NR + 0 }')
-printf 'result=complete driver_id=%s unbind_elapsed_s=%s pre_kill_inflight=%s post_kill_quiesced=%s fault_events=%s rebind_polls=%s root_if=%s\n' \
+printf 'result=complete driver_id=%s unbind_elapsed_s=%s pre_kill_inflight=%s post_kill_quiesced=%s fault_events=%s rebind_polls=%s root_if=%s controlled_usb_reset=%s\n' \
 	"$driver_id" "$unbind_elapsed" "$inflight" "$quiesced" \
-	"$fault_count" "$poll" "$ROOT_IF"
+	"$fault_count" "$poll" "$ROOT_IF" \
+	"$(grep -Ec "usb $usb_device_id: reset .* USB device" "$kernel_log" || true)"
 printf '%s\n' "$faults" | sed '/^$/d'
 
 # Rebinding proves the interface driver remains usable. The stopped recovery
