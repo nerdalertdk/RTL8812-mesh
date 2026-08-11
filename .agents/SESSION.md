@@ -89,8 +89,10 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   393/400 to `fc:22:1c:30:08:c1` / USB path `1-1.2` but 399/400 to the other
   adapter, excluding root-namespace role and locating the issue to that
   receiver-specific physical path (not yet distinguished between adapter/RF and
-  hub branch). This blocks multicast qualification; the next isolation is a
-  physical USB-port swap; see
+  hub branch). A restored-topology 200-frame repeat delivered 197/200 into the
+  same receiver. The exposed `rx_dropped` statistic rises symmetrically and is
+  not a valid attribution counter. This blocks multicast qualification; the
+  next isolation is a physical USB-port swap; see
   `tests/results/2026-08-11-production-multicast-regression.md`.
 
 ## Source 0.1.5 completed evidence

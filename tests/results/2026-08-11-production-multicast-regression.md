@@ -13,6 +13,7 @@ DKMS 0.1.5 provenance, bilateral mesh peering, and the preceding strict
 | `20260811T214345Z` | 398/400 | 390/400 | 0 | fail |
 | `20260811T231240Z` (10 dBm control) | 400/400 | 394/400 | 0 | fail |
 | `20260811T233505Z` (roles reversed) | 393/400 | 399/400 | 0 | fail |
+| `20260811T233906Z` (restored roles; 200-frame counter delta) | 200/200 | 197/200 | 0 | fail |
 
 The retained Pi artifacts are:
 
@@ -20,6 +21,7 @@ The retained Pi artifacts are:
 - `/var/tmp/rtl8812au-mesh/mesh-multicast-probe/multicast-20260811T214345Z.log`
 - `/var/tmp/rtl8812au-mesh/mesh-multicast-probe/multicast-20260811T231240Z.log`
 - `/var/tmp/rtl8812au-mesh/mesh-multicast-probe/multicast-20260811T233505Z.log`
+- `/var/tmp/rtl8812au-mesh/mesh-multicast-probe/multicast-20260811T233906Z.log`
 
 Both adapters were on channel 1 HT20 with a strong direct link (roughly
 −10 dBm). Firmware reported a historical thermal/throttle mask, but no current
@@ -65,3 +67,13 @@ An earlier reversed-role invocation (`20260811T233258Z`) lost sender capture
 after round 7 and is invalid; it is deliberately excluded from the result table.
 The next discriminating test is a physical USB-port swap while retaining adapter
 identities, followed by the same probe.
+
+## Driver-counter check
+
+After standard topology restoration, a ten-round/200-frame probe reproduced
+the loss only into `…08:c1` (197/200) without a transport event. The exposed
+`rx_dropped` ethtool statistic is not a valid proxy for this loss: over this
+interval it rose from 16 to 206 on `…08:c1` and from 1 to 193 on `…0d:8b`.
+The near-equal increments are far larger than the three missing receiver
+captures, so they must not be used to attribute the multicast failure to a
+specific rtw88 receive-drop path.
