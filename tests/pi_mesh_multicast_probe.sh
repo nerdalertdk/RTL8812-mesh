@@ -55,6 +55,13 @@ ns()
 	ip netns exec "$PEER_NS" "$@"
 }
 
+usb_device_for_path()
+{
+	device_path=$1
+	usb_interface=${device_path##*/}
+	printf '%s\n' "${usb_interface%%:*}"
+}
+
 capture_root()
 {
 	output=$1
@@ -121,10 +128,17 @@ trap 'rm -rf -- "$tmp_dir"' EXIT INT TERM
 
 root_info=$($IW dev "$ROOT_IF" info | awk '/wiphy|channel/ { printf "%s ", $0 }')
 peer_info=$(ns $IW dev "$PEER_IF" info | awk '/wiphy|channel/ { printf "%s ", $0 }')
+root_device_path=$(readlink -f "/sys/class/net/$ROOT_IF/device")
+peer_device_path=$(ns readlink -f "/sys/class/net/$PEER_IF/device")
+root_usb_device=$(usb_device_for_path "$root_device_path")
+peer_usb_device=$(usb_device_for_path "$peer_device_path")
 printf '# multicast-probe start=%s rounds=%s packets=%s group=%s root=%s peer=%s\n' \
 	"$(date --iso-8601=seconds)" "$ROUNDS" "$PACKETS" "$GROUP" \
 	"$ROOT_IF" "$PEER_IF" | tee "$result"
 printf '# root_info=%s\n# peer_info=%s\n' "$root_info" "$peer_info" |
+	tee -a "$result"
+printf '# root_mac=%s root_usb_device=%s peer_mac=%s peer_usb_device=%s\n' \
+	"$ROOT_MAC" "$root_usb_device" "$PEER_MAC" "$peer_usb_device" |
 	tee -a "$result"
 printf 'round direction sender_seen receiver_seen lost_after_sender\n' |
 	tee -a "$result"

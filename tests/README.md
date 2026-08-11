@@ -24,6 +24,9 @@ the active topology. It captures each burst at both sender and receiver, so a
 missing frame can be localized to after the sender's network stack rather than
 being reported only as a binary timeout. Run it only after an endurance service
 has released the shared test lock.
+Each retained probe records the permanent MAC and resolved USB device path for
+both roles, so a physical adapter/port swap is an auditable change rather than
+an inferred one.
 It requires complete sender capture and defaults to at least 99% delivery in
 each direction; lower delivery exits 1, incomplete sender evidence exits 2,
 and a USB transport event exits 4 for review. Set `PEER_DRIVER=rtw_8812au` for
