@@ -1,0 +1,41 @@
+From 4f67dcbf9b0f2740e9b749814b3a2c805750896f Mon Sep 17 00:00:00 2001
+From: RTL8812AU Mesh Project <noreply@example.invalid>
+Date: Wed, 12 Aug 2026 01:44:00 +0200
+Subject: [PATCH 9/9] wifi: rtw88: do not advertise unsupported antenna selection
+
+rtw8812a has no set_antenna implementation, but rtw_register_hw() exposes
+the hardware RF paths as selectable antenna masks. This makes nl80211 report
+TX/RX mask 0x3 and accept antenna-control requests up to the driver operation,
+where every request fails with -EOPNOTSUPP.
+
+Only advertise selectable antenna masks when the chip implements the matching
+operation. The RF path count remains available internally for normal 2T2R
+operation; this merely prevents a false userspace capability claim.
+
+---
+ main.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/main.c b/main.c
+index da84e5f..301ec07 100644
+--- a/main.c
++++ b/main.c
+@@ -2415,8 +2415,14 @@ int rtw_register_hw(struct rtw_dev *rtwdev, struct ieee80211_hw *hw)
+ 		 */
+ 		hw->wiphy->flags |= WIPHY_FLAG_IBSS_RSN;
+ 	}
+-	hw->wiphy->available_antennas_tx = hal->antenna_tx;
+-	hw->wiphy->available_antennas_rx = hal->antenna_rx;
++	/* Do not advertise antenna selection without a chip implementation.
++	 * RTL8812A is 2T2R, but it has no set_antenna operation and therefore
++	 * cannot honour nl80211 per-chain selection requests.
++	 */
++	if (rtwdev->chip->ops->set_antenna) {
++		hw->wiphy->available_antennas_tx = hal->antenna_tx;
++		hw->wiphy->available_antennas_rx = hal->antenna_rx;
++	}
+ 
+ 	hw->wiphy->flags |= WIPHY_FLAG_SUPPORTS_TDLS |
+ 			    WIPHY_FLAG_TDLS_EXTERNAL_SETUP;
+-- 
+2.39.2

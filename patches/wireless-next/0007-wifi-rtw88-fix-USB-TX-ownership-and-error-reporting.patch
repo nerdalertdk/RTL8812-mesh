@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 23:45:53 +0200
-Subject: [PATCH 7/8] wifi: rtw88: fix USB TX ownership and error reporting
+Subject: [PATCH 7/9] wifi: rtw88: fix USB TX ownership and error reporting
 
 USB aggregation puts its synthetic skb on mac80211's TX-status queue with
 original frames. Completion can therefore report a non-frame with an

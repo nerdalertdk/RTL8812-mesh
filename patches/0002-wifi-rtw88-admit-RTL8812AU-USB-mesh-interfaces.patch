@@ -1,7 +1,7 @@
 From 160cc96af871156f557cd0c794875130896827cd Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 20:09:49 +0200
-Subject: [PATCH 2/8] wifi: rtw88: admit RTL8812AU USB mesh interfaces
+Subject: [PATCH 2/9] wifi: rtw88: admit RTL8812AU USB mesh interfaces
 
 RTL8812AU can operate as a standalone mac80211 mesh point, but rtw88 does
 not advertise that interface type. Enable it only for the tested RTL8812A

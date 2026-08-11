@@ -1,7 +1,7 @@
 From d15ba60a81a8049ac7ec59e6090be05140a392ef Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 20:11:30 +0200
-Subject: [PATCH 5/8] wifi: rtw88: harden synchronous USB control transfers
+Subject: [PATCH 5/9] wifi: rtw88: harden synchronous USB control transfers
 
 The rotating control-buffer index is released before usb_control_msg() uses
 the selected entry. Enough concurrent transactions can therefore wrap the

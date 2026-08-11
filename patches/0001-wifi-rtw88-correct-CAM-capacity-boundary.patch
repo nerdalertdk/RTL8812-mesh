@@ -1,7 +1,7 @@
 From 97f76a4e78aae02e7426f8ccf177e15a9d689cec Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 20:09:26 +0200
-Subject: [PATCH 1/8] wifi: rtw88: correct CAM capacity boundary
+Subject: [PATCH 1/9] wifi: rtw88: correct CAM capacity boundary
 
 CAM indices are zero based, so total_cam_num is the first invalid index.
 Reject it along with larger values to avoid selecting one entry beyond the

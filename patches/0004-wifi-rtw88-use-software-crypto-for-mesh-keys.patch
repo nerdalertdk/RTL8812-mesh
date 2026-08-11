@@ -1,7 +1,7 @@
 From 550d2832b9745f3695437fdff2562523b50e2254 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 20:10:28 +0200
-Subject: [PATCH 4/8] wifi: rtw88: use software crypto for mesh keys
+Subject: [PATCH 4/9] wifi: rtw88: use software crypto for mesh keys
 
 The legacy rtw88 CAM path cannot represent per-peer mesh MGTK and IGTK
 state. Advertise the cfg80211 admission flag for non-pairwise peer keys.

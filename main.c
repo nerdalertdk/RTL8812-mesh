@@ -2415,8 +2415,14 @@ int rtw_register_hw(struct rtw_dev *rtwdev, struct ieee80211_hw *hw)
 		 */
 		hw->wiphy->flags |= WIPHY_FLAG_IBSS_RSN;
 	}
-	hw->wiphy->available_antennas_tx = hal->antenna_tx;
-	hw->wiphy->available_antennas_rx = hal->antenna_rx;
+	/* Do not advertise antenna selection without a chip implementation.
+	 * RTL8812A is 2T2R, but it has no set_antenna operation and therefore
+	 * cannot honour nl80211 per-chain selection requests.
+	 */
+	if (rtwdev->chip->ops->set_antenna) {
+		hw->wiphy->available_antennas_tx = hal->antenna_tx;
+		hw->wiphy->available_antennas_rx = hal->antenna_rx;
+	}
 
 	hw->wiphy->flags |= WIPHY_FLAG_SUPPORTS_TDLS |
 			    WIPHY_FLAG_TDLS_EXTERNAL_SETUP;

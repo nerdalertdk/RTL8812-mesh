@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 23:43:43 +0200
-Subject: [PATCH 1/8] wifi: rtw88: correct CAM capacity boundary
+Subject: [PATCH 1/9] wifi: rtw88: correct CAM capacity boundary
 
 Hardware CAM indices range from zero through total_cam_num minus one.
 Reject total_cam_num itself so a full table cannot address past the end.

@@ -1,7 +1,7 @@
 From 8d6125bad6273a9ea15a163158d4731ccd063fc6 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 20:10:08 +0200
-Subject: [PATCH 3/8] wifi: rtw88: use an AC queue for mesh group frames
+Subject: [PATCH 3/9] wifi: rtw88: use an AC queue for mesh group frames
 
 rtw88 routes every broadcast and multicast frame to the high queue used for
 AP DTIM delivery. A mesh point has no AP DTIM delivery context, and leaving

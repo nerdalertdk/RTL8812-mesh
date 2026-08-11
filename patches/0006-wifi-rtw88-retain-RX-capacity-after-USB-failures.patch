@@ -1,7 +1,7 @@
 From 15b75125cdac57fbc89fb23c7fbf3318a36a1b98 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 20:12:13 +0200
-Subject: [PATCH 6/8] wifi: rtw88: retain RX capacity after USB failures
+Subject: [PATCH 6/9] wifi: rtw88: retain RX capacity after USB failures
 
 A transient RX completion or submission failure permanently removes an
 entry from the small RX URB pool. Repeated errors can drain capacity even

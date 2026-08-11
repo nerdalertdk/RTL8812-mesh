@@ -16,6 +16,10 @@ filtering, queue selection, key fallback, TX status, and USB transport lifetime.
 Mesh is intentionally absent from the existing concurrent-interface
 combination.
 
+Hardware RF-path count and userspace antenna selection are distinct. A chipset
+with no `set_antenna` operation must not advertise configurable antenna masks;
+it continues normal fixed 2T2R operation without a false nl80211 capability.
+
 ## Installation
 
 - Manual modules: `/lib/modules/<kernel>/updates/rtl8812au-mesh/`

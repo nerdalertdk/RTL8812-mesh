@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: RTL8812AU Mesh Project <noreply@example.invalid>
 Date: Thu, 6 Aug 2026 23:45:54 +0200
-Subject: [PATCH 8/8] wifi: rtw88: quiesce USB TX URBs before teardown
+Subject: [PATCH 8/9] wifi: rtw88: quiesce USB TX URBs before teardown
 
 The driver drops its URB reference immediately after TX submission. A
 completion can therefore dereference its skb or rtwdev context after unbind
