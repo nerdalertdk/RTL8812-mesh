@@ -2,7 +2,6 @@
 
 ## In progress
 
-- [ ] Run the corrected in-flight teardown test on the disposable 0.1.5 build.
 - [ ] Restore exact production 0.1.5 and repeat strict open churn, HWMP,
   multicast, SAE/AMPE, checksummed transfer, and bounded endurance gates.
 
@@ -20,6 +19,8 @@
   provenance-check production DKMS 0.1.5 on the exact Raspberry Pi kernel.
 - [x] Prove disposable 0.1.5 TX pre-submit ownership, forced aggregate cleanup,
   and post-status no-false-ACK behavior with deterministic `-EPROTO` faults.
+- [x] Prove Linux USB-core serialization of active TX completion before driver
+  remove, plus bounded disposable unbind/rebind and post-kill quiescence.
 - [x] Package only the five required RTL8812AU/shared rtw88 modules and firmware.
 - [x] Add RTL8812AU USB-only standalone mesh-point capability advertisement.
 - [x] Validate open peering, reciprocal HWMP, bidirectional unicast, broadcast,

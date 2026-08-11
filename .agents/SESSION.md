@@ -68,7 +68,11 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   passed in the disposable build; see
   `tests/results/2026-08-11-usb-tx-fault-injection.md`.
 - Unbind while a selected TX callback is active, requiring zero anchored URBs
-  and callbacks after synchronous kill and no lifetime fault signature.
+  and callbacks after synchronous kill and no lifetime fault signature. The
+  disposable kernel-side test proved that USB core defers driver remove until
+  the active callback returns, then observed zero/zero post-kill state and
+  bounded rebind; see
+  `tests/results/2026-08-11-usb-tx-teardown-serialization.md`.
 - Production reload followed by open churn, multicast, HWMP, SAE/AMPE,
   checksummed transfer, and endurance regression.
 - Direct and independently powered USB2/USB3 physical-path repetitions.
