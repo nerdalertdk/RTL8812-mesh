@@ -95,7 +95,7 @@
 +	    cmpxchg(&rtw_usb_test_teardown_dev, NULL, rtwdev->dev) == NULL) {
 +		get_device(rtwdev->dev);
 +		rtw_info(rtwdev, "test: scheduled driver unbind from TX completion\\n");
-+		schedule_work(&rtw_usb_test_tx_teardown_worker);
++		queue_work(system_unbound_wq, &rtw_usb_test_tx_teardown_worker);
 +	}
 +	if (unlikely(delay && rtw_usb_test_take(&rtw_usb_test_tx_delays)))
 +		mdelay(5000);
