@@ -64,7 +64,9 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
 
 - Deterministic generic TX submission rejection, populated aggregate rejection
   with post-cleanup proof, and completion `-EPROTO` with an exact-count marker
-  emitted only after the production no-false-ACK status routine returns.
+  emitted only after the production no-false-ACK status routine returns. These
+  passed in the disposable build; see
+  `tests/results/2026-08-11-usb-tx-fault-injection.md`.
 - Unbind while a selected TX callback is active, requiring zero anchored URBs
   and callbacks after synchronous kill and no lifetime fault signature.
 - Production reload followed by open churn, multicast, HWMP, SAE/AMPE,
