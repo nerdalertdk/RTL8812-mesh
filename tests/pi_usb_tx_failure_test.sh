@@ -110,6 +110,25 @@ paths_valid()
 	[ "$root_paths" -gt 0 ] && [ "$peer_paths" -gt 0 ]
 }
 
+drive_aggregate_burst()
+{
+	# A single sequential ping stream may drain before mac80211 hands enough
+	# frames to the USB aggregation queue.  Concurrent flood bursts make the
+	# aggregate-only injection prove the real multi-frame cleanup path.
+	burst_pids=
+	for _ in 1 2 3 4; do
+		ping -I "$ROOT_IF" -f -q -c 128 -s 1400 -W 1 "$PEER_IP" \
+			>/dev/null 2>&1 &
+		burst_pids="$burst_pids $!"
+		ns ping -I "$PEER_IF" -f -q -c 128 -s 1400 -W 1 "$ROOT_IP" \
+			>/dev/null 2>&1 &
+		burst_pids="$burst_pids $!"
+	done
+	for burst_pid in $burst_pids; do
+		wait "$burst_pid" || true
+	done
+}
+
 drive_phase()
 {
 	label=$1
@@ -120,10 +139,14 @@ drive_phase()
 
 	printf '%s\n' "$FAILURES" >"$param"
 	while [ "$(cat "$param")" -gt 0 ] && [ "$(date +%s)" -lt "$deadline" ]; do
-		ping -I "$ROOT_IF" -c 64 -s 1400 -i 0.001 -W 1 \
-			"$PEER_IP" >/dev/null 2>&1 || true
-		ns ping -I "$PEER_IF" -c 64 -s 1400 -i 0.001 -W 1 \
-			"$ROOT_IP" >/dev/null 2>&1 || true
+		if [ "$label" = aggregate-submission ]; then
+			drive_aggregate_burst
+		else
+			ping -I "$ROOT_IF" -c 64 -s 1400 -i 0.001 -W 1 \
+				"$PEER_IP" >/dev/null 2>&1 || true
+			ns ping -I "$PEER_IF" -c 64 -s 1400 -i 0.001 -W 1 \
+				"$ROOT_IP" >/dev/null 2>&1 || true
+		fi
 	done
 	remaining=$(cat "$param")
 	phase_events=$(journalctl -k --since "@$phase_start" --no-pager 2>/dev/null |
