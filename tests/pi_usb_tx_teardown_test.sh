@@ -152,7 +152,8 @@ printf '1\n' >"$delay_param"
 # consumed token can miss the callback entirely.
 bound=0
 export delay_param DELAY_POLLS timing_log UNBIND_TIMEOUT_SECONDS driver_id unbind_path
-"$TASKSET" -c "$UNBIND_CPU" sh -c '
+timeout --foreground -k 5 "$UNBIND_TIMEOUT_SECONDS" \
+	"$TASKSET" -c "$UNBIND_CPU" sh -c '
 	poll=0
 	while [ "$(cat "$delay_param")" -gt 0 ] && [ "$poll" -lt "$DELAY_POLLS" ]; do
 		poll=$((poll + 1))
@@ -164,8 +165,7 @@ export delay_param DELAY_POLLS timing_log UNBIND_TIMEOUT_SECONDS driver_id unbin
 	fi
 	unbind_start=$(date +%s)
 	printf 'start=%s polls=%s\n' "$unbind_start" "$poll" >"$timing_log"
-	timeout --foreground -k 5 "$UNBIND_TIMEOUT_SECONDS" \
-		sh -c 'printf "%s" "$1" >"$2"' sh "$driver_id" "$unbind_path"
+	printf "%s" "$driver_id" >"$unbind_path"
 	status=$?
 	unbind_end=$(date +%s)
 	printf 'end=%s status=%s\n' "$unbind_end" "$status" >>"$timing_log"
