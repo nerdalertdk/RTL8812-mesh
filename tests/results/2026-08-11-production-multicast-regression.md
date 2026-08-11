@@ -77,3 +77,13 @@ interval it rose from 16 to 206 on `…08:c1` and from 1 to 193 on `…0d:8b`.
 The near-equal increments are far larger than the three missing receiver
 captures, so they must not be used to attribute the multicast failure to a
 specific rtw88 receive-drop path.
+
+## Read-only PHY snapshot
+
+With both radios restored and linked on channel 1 HT20, rtw88 debugfs reported
+for `…08:c1` (phy1) last-sampled per-chain RSSI of `-88/-72` dBm and CCK
+`ok/err` counters of `47/24`; `…0d:8b` (phy2) reported `-10/-74` dBm and
+`51/6`. This is directionally consistent with an RF/antenna-path issue on
+`…08:c1`, but it is only a point-in-time debug snapshot: these fields are not
+per-probe packet accounting and do not establish cause. The physical port swap
+remains the required discriminating test.
