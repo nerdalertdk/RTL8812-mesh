@@ -1,14 +1,15 @@
 --- a/usb.c
 +++ b/usb.c
-@@ -5,6 +5,7 @@
+@@ -5,6 +5,8 @@
  #include <linux/module.h>
  #include <linux/usb.h>
  #include <linux/mutex.h>
 +#include <linux/delay.h>
++#include <linux/device.h>
  #include "main.h"
  #include "debug.h"
  #include "mac.h"
-@@ -376,6 +377,49 @@
+@@ -376,6 +378,69 @@
  	return 0;
  }
  
@@ -19,8 +20,10 @@
 +static int rtw_usb_test_tx_agg_submit;
 +static int rtw_usb_test_tx_complete;
 +static int rtw_usb_test_tx_delays;
++static int rtw_usb_test_tx_teardown;
 +static atomic_t rtw_usb_test_tx_callbacks = ATOMIC_INIT(0);
 +static char rtw_usb_test_dev[32];
++static struct device *rtw_usb_test_teardown_dev;
 +module_param_named(test_tx_submit_failures,
 +		   rtw_usb_test_tx_submit, int, 0600);
 +module_param_named(test_tx_agg_submit_failures,
@@ -29,6 +32,8 @@
 +		   rtw_usb_test_tx_complete, int, 0600);
 +module_param_named(test_tx_completion_delays,
 +		   rtw_usb_test_tx_delays, int, 0600);
++module_param_named(test_tx_teardown_unbind,
++		   rtw_usb_test_tx_teardown, int, 0600);
 +module_param_string(test_tx_completion_delay_device,
 +		    rtw_usb_test_dev, sizeof(rtw_usb_test_dev), 0600);
 +MODULE_PARM_DESC(test_tx_submit_failures,
@@ -39,6 +44,8 @@
 +		 "number of RTL88 USB TX completions to report as -EPROTO");
 +MODULE_PARM_DESC(test_tx_completion_delays,
 +		 "number of RTL88 USB TX completions to delay by five seconds");
++MODULE_PARM_DESC(test_tx_teardown_unbind,
++		 "number of RTL88 TX completions to unbind from kernel work");
 +MODULE_PARM_DESC(test_tx_completion_delay_device,
 +		 "USB interface name whose RTL88 TX completion may be delayed");
 +
@@ -55,10 +62,24 @@
 +	return true;
 +}
 +
++static void rtw_usb_test_tx_teardown_work(struct work_struct *work)
++{
++	struct device *dev = xchg(&rtw_usb_test_teardown_dev, NULL);
++
++	if (!dev)
++		return;
++	dev_info(dev, "test: requesting driver unbind from TX completion work\\n");
++	device_release_driver(dev);
++	put_device(dev);
++}
++
++static DECLARE_WORK(rtw_usb_test_tx_teardown_worker,
++			    rtw_usb_test_tx_teardown_work);
++
  static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
  {
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
-@@ -446,8 +490,26 @@
+@@ -446,8 +511,32 @@
  static void rtw_usb_write_port_tx_complete(struct urb *urb)
  {
  	struct rtw_usb_txcb *txcb = urb->context;
@@ -70,6 +91,12 @@
 -	rtw_usb_write_port_tx_status(txcb, urb->status);
 +	atomic_inc(&rtw_usb_test_tx_callbacks);
 +	delay = sysfs_streq(rtw_usb_test_dev, dev_name(txcb->rtwdev->dev));
++	if (unlikely(delay && rtw_usb_test_take(&rtw_usb_test_tx_teardown)) &&
++	    cmpxchg(&rtw_usb_test_teardown_dev, NULL, rtwdev->dev) == NULL) {
++		get_device(rtwdev->dev);
++		rtw_info(rtwdev, "test: scheduled driver unbind from TX completion\\n");
++		schedule_work(&rtw_usb_test_tx_teardown_worker);
++	}
 +	if (unlikely(delay && rtw_usb_test_take(&rtw_usb_test_tx_delays)))
 +		mdelay(5000);
 +
@@ -86,7 +113,7 @@
  }
  
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
-@@ -479,7 +541,10 @@
+@@ -479,7 +568,10 @@
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
  	usb_anchor_urb(urb, &rtwusb->tx_anchor);
@@ -98,7 +125,7 @@
  	if (ret)
  		usb_unanchor_urb(urb);
  
-@@ -497,6 +562,8 @@
+@@ -497,6 +589,8 @@
  	struct sk_buff *skb_iter;
  	int agg_num = 0;
  	int ret;
@@ -107,7 +134,7 @@
  	unsigned int align_next = 0;
  	u8 qsel;
  
-@@ -545,9 +612,12 @@
+@@ -545,9 +639,12 @@
  
  		skb_iter = skb_peek(list);
  
@@ -121,7 +148,7 @@
  			__skb_unlink(skb_iter, list);
  		else
  			skb_iter = NULL;
-@@ -563,14 +633,28 @@
+@@ -563,14 +660,28 @@
  	tx_desc = (struct rtw_tx_desc *)skb_head->data;
  	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
  
@@ -152,7 +179,7 @@
  		kfree(txcb);
  	}
  
-@@ -1255,7 +1339,15 @@
+@@ -1255,7 +1366,15 @@
  	rtw_usb_tx_queue_purge(rtwusb);
  #endif
  	destroy_workqueue(rtwusb->txwq);
