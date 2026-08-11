@@ -2,6 +2,8 @@
 
 ## In progress
 
+- [ ] Diagnose reproducible production 0.1.5 sender-confirmed multicast loss
+  (393/400 and 390/400 peer-to-root) before closing multicast qualification.
 - [ ] Restore exact production 0.1.5 and repeat strict open churn, HWMP,
   multicast, SAE/AMPE, checksummed transfer, and bounded endurance gates.
 

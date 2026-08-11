@@ -77,6 +77,16 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   checksummed transfer, and endurance regression.
 - Direct and independently powered USB2/USB3 physical-path repetitions.
 
+## Current regression
+
+- Production 0.1.5 passed strict 20-cycle open mesh churn, cold first contact,
+  binary multicast, reciprocal HWMP, and zero USB-error checks. Two subsequent
+  sender-captured multicast probes failed the 99% threshold: root-to-peer
+  delivered 400/400 then 398/400 while peer-to-root delivered 393/400 then
+  390/400, each with zero kernel transport event. This blocks multicast
+  qualification; see
+  `tests/results/2026-08-11-production-multicast-regression.md`.
+
 ## Source 0.1.5 completed evidence
 
 - Exact-current flat-source `W=1` and DKMS build-only qualification passed for
