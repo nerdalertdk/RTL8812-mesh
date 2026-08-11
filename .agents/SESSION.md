@@ -34,6 +34,12 @@ peers.
   with two RTL8812AU peers.
 - Prior source versions passed bounded and eight-hour endurance. Current-source
   0.1.5 behavioral regression remains required after TX changes.
+- The final symmetric DKMS 0.1.4 eight-hour run completed 597/597 bilateral
+  states, 1,194/1,194 ping batches, and 16/16 checksummed transfers with zero
+  recovery, invalidation, or kernel transport event. A later manual Pi power
+  removal occurred outside the completed interval. The queued final transfer
+  and 0.1.5 build did not run because the finalizer consumed the wrong summary
+  filename; the repository contract and an offline fixture now cover it.
 
 ## USB evidence
 

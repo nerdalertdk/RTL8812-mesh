@@ -29,7 +29,7 @@ while systemctl is-active --quiet "$SOAK_UNIT"; do
 	elapsed=$((elapsed + WAIT_SECONDS))
 done
 
-summary=$SOAK_LOG_DIR/soak-$SOAK_RUN_ID-summary.log
+summary=$SOAK_LOG_DIR/summary-$SOAK_RUN_ID.log
 [ -r "$summary" ] || {
 	echo "matching soak summary is unavailable" >&2
 	exit 1

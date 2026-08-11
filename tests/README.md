@@ -50,7 +50,7 @@ summary symlink points at a previous run.
 the exact `SOAK_RUN_ID` summary's header, completion, state, ping, transfer,
 invalidation, recovery, and kernel-event counters, and only then executes a
 configured final integrity transfer. It opens
-`soak-$SOAK_RUN_ID-summary.log` directly rather than following `latest`, so a
+`summary-$SOAK_RUN_ID.log` directly rather than following `latest`, so a
 hard-killed run cannot inherit an older clean verdict. This also avoids relying
 on `After=` to wait for a service that was already active when a dependent unit
 was queued.
