@@ -1,5 +1,3 @@
-diff --git a/usb.c b/usb.c
-index 07d3fc0..f4767da 100644
 --- a/usb.c
 +++ b/usb.c
 @@ -5,6 +5,7 @@
@@ -10,7 +8,7 @@ index 07d3fc0..f4767da 100644
  #include "main.h"
  #include "debug.h"
  #include "mac.h"
-@@ -376,6 +377,48 @@ static int rtw_usb_parse(struct rtw_dev *rtwdev,
+@@ -376,6 +377,48 @@
  	return 0;
  }
  
@@ -59,7 +57,7 @@ index 07d3fc0..f4767da 100644
  static void rtw_usb_record_tx_error(struct rtw_dev *rtwdev, int status)
  {
  	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
-@@ -446,8 +489,24 @@ static void rtw_usb_write_port_tx_status(struct rtw_usb_txcb *txcb, int status)
+@@ -446,8 +489,24 @@
  static void rtw_usb_write_port_tx_complete(struct urb *urb)
  {
  	struct rtw_usb_txcb *txcb = urb->context;
@@ -85,7 +83,7 @@ index 07d3fc0..f4767da 100644
  }
  
  static int qsel_to_ep(struct rtw_usb *rtwusb, unsigned int qsel)
-@@ -479,7 +538,10 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+@@ -479,7 +538,10 @@
  	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
  	urb->transfer_flags |= URB_ZERO_PACKET;
  	usb_anchor_urb(urb, &rtwusb->tx_anchor);
@@ -97,15 +95,30 @@ index 07d3fc0..f4767da 100644
  	if (ret)
  		usb_unanchor_urb(urb);
  
-@@ -496,6 +558,7 @@ static bool rtw_usb_tx_agg_skb(struct rtw_usb *rtwusb, struct sk_buff_head *list)
+@@ -497,6 +559,8 @@
  	struct sk_buff *skb_iter;
  	int agg_num = 0;
  	int ret;
 +	unsigned int test_agg_originals = 0;
++	unsigned int max_agg_num = rtwdev->chip->usb_tx_agg_desc_num;
  	unsigned int align_next = 0;
  	u8 qsel;
  
-@@ -563,14 +626,28 @@ queue:
+@@ -545,9 +609,12 @@
+ 
+ 		skb_iter = skb_peek(list);
+ 
++		if (unlikely(READ_ONCE(rtw_usb_test_tx_agg_submit) > 0))
++			max_agg_num = max(max_agg_num, 2U);
++
+ 		if (skb_iter &&
+ 		    skb_iter->len + skb_head->len <= RTW_USB_MAX_XMITBUF_SZ &&
+-		    agg_num < rtwdev->chip->usb_tx_agg_desc_num)
++		    agg_num < max_agg_num)
+ 			__skb_unlink(skb_iter, list);
+ 		else
+ 			skb_iter = NULL;
+@@ -563,14 +630,28 @@
  	tx_desc = (struct rtw_tx_desc *)skb_head->data;
  	qsel = le32_get_bits(tx_desc->w1, RTW_TX_DESC_W1_QSEL);
  
@@ -136,7 +149,7 @@ index 07d3fc0..f4767da 100644
  		kfree(txcb);
  	}
  
-@@ -1255,7 +1332,15 @@ static void rtw_usb_deinit_tx(struct rtw_dev *rtwdev)
+@@ -1255,7 +1336,15 @@
  	rtw_usb_tx_queue_purge(rtwusb);
  #endif
  	destroy_workqueue(rtwusb->txwq);
