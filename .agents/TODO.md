@@ -2,10 +2,6 @@
 
 ## In progress
 
-- [ ] Build, install, and provenance-check production DKMS 0.1.5 against the
-  exact Raspberry Pi kernel.
-- [ ] Run the standalone exact-source `W=1` and DKMS build-only gate before
-  installing production 0.1.5.
 - [ ] Run deterministic USB TX submission, aggregate-cleanup, completion-status,
   and in-flight teardown fault tests on the disposable 0.1.5 build.
 - [ ] Restore exact production 0.1.5 and repeat strict open churn, HWMP,
@@ -21,6 +17,8 @@
 
 ## Completed
 
+- [x] Run the exact-source `W=1`/DKMS build-only gate, install, load, and
+  provenance-check production DKMS 0.1.5 on the exact Raspberry Pi kernel.
 - [x] Package only the five required RTL8812AU/shared rtw88 modules and firmware.
 - [x] Add RTL8812AU USB-only standalone mesh-point capability advertisement.
 - [x] Validate open peering, reciprocal HWMP, bidirectional unicast, broadcast,

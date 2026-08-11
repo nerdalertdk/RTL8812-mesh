@@ -3,10 +3,10 @@
 ## Current focus
 
 Make RTL8812AU native IEEE 802.11s support correct, robust, reproducible on
-Debian, and suitable for upstream Linux submission. The immediate work is to
-qualify source DKMS 0.1.5 with deterministic USB TX error/teardown evidence,
-then repeat the IEEE 802.11s behavioral and endurance gates with two RTL8812AU
-peers.
+Debian, and suitable for upstream Linux submission. Production DKMS 0.1.5 is
+now exact-kernel built, loaded, provenance-checked, and mesh-smoke-checked; the
+immediate work is deterministic disposable TX error/teardown evidence, then
+the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
 
 ## Current source
 
@@ -62,7 +62,6 @@ peers.
 
 ## Source 0.1.5 pending evidence
 
-- Exact-kernel `W=1` build, DKMS install, and five-module loaded provenance.
 - Deterministic generic TX submission rejection, populated aggregate rejection
   with post-cleanup proof, and completion `-EPROTO` with an exact-count marker
   emitted only after the production no-false-ACK status routine returns.
@@ -71,6 +70,19 @@ peers.
 - Production reload followed by open churn, multicast, HWMP, SAE/AMPE,
   checksummed transfer, and endurance regression.
 - Direct and independently powered USB2/USB3 physical-path repetitions.
+
+## Source 0.1.5 completed evidence
+
+- Exact-current flat-source `W=1` and DKMS build-only qualification passed for
+  `6.12.47+rpt-rpi-v8` with exactly five modules and zero diagnostics.
+- DKMS 0.1.5 was installed and loaded from `updates/dkms`; all five
+  installed/loaded hashes and `srcversion` fields matched exactly.
+- Version-pinned recovery rebuilt two RTL8812AU mesh points with bilateral
+  `ESTAB`, reciprocal HWMP, and lossless five-packet traffic in both directions.
+- The activation interval included an un-attributable Pi reboot with no
+  persistent prior journal and a historical soft-temperature bit.  It is not
+  physical USB qualification evidence; see
+  `tests/results/2026-08-11-dkms-0.1.5-build-load.md`.
 
 ## Test policy
 
