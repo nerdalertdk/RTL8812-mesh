@@ -65,6 +65,7 @@ find_peer_if()
 }
 
 flood_pids=
+unbind_pid=
 bound=1
 driver_id=
 bind_path=
@@ -83,6 +84,11 @@ stop_flood()
 cleanup()
 {
 	stop_flood
+	if [ -n "$unbind_pid" ]; then
+		kill "$unbind_pid" 2>/dev/null || true
+		wait "$unbind_pid" 2>/dev/null || true
+		unbind_pid=
+	fi
 	printf '0\n' >"$delay_param" 2>/dev/null || true
 	printf 'none\n' >"$delay_device_param" 2>/dev/null || true
 	if [ "$bound" -eq 0 ] && [ -n "$driver_id" ] && [ -w "$bind_path" ]; then
@@ -124,6 +130,7 @@ mkdir -p "$LOG_DIR"
 run_id=$(date -u +%Y%m%dT%H%M%SZ)
 log=$LOG_DIR/tx-teardown-$run_id.log
 kernel_log=$LOG_DIR/tx-teardown-$run_id-kernel.log
+timing_log=$LOG_DIR/tx-teardown-$run_id-unbind.log
 echo "result_log=$log kernel_log=$kernel_log"
 exec >"$log" 2>&1
 start_epoch=$(date +%s)
@@ -132,6 +139,31 @@ printf '0\n' >"$completion_param"
 printf '%s\n' "$driver_id" >"$delay_device_param"
 printf '1\n' >"$delay_param"
 
+# Start the unbind worker before traffic. Completion context may busy-wait for
+# the deterministic delay, so launching userspace only after observing the
+# consumed token can miss the callback entirely.
+bound=0
+(
+	poll=0
+	while [ "$(cat "$delay_param")" -gt 0 ] && [ "$poll" -lt "$DELAY_POLLS" ]; do
+		poll=$((poll + 1))
+		sleep 0.01
+	done
+	if [ "$(cat "$delay_param")" -ne 0 ]; then
+		printf 'result=no-delay polls=%s\n' "$poll" >"$timing_log"
+		exit 1
+	fi
+	unbind_start=$(date +%s)
+	printf 'start=%s polls=%s\n' "$unbind_start" "$poll" >"$timing_log"
+	timeout --foreground -k 5 "$UNBIND_TIMEOUT_SECONDS" \
+		sh -c 'printf "%s" "$1" >"$2"' sh "$driver_id" "$unbind_path"
+	status=$?
+	unbind_end=$(date +%s)
+	printf 'end=%s status=%s\n' "$unbind_end" "$status" >>"$timing_log"
+	exit "$status"
+) &
+unbind_pid=$!
+
 i=0
 while [ "$i" -lt "$FLOODERS" ]; do
 	ping -I "$ROOT_IF" -s 1400 -i 0.001 "$PEER_IP" >/dev/null 2>&1 &
@@ -139,24 +171,19 @@ while [ "$i" -lt "$FLOODERS" ]; do
 	i=$((i + 1))
 done
 
-poll=0
-while [ "$(cat "$delay_param")" -gt 0 ] && [ "$poll" -lt "$DELAY_POLLS" ]; do
-	poll=$((poll + 1))
-	sleep 0.01
-done
-[ "$(cat "$delay_param")" -eq 0 ] || {
-	echo "no TX completion entered the deterministic delay" >&2
-	exit 1
-}
-
-bound=0
-unbind_start=$(date +%s)
-if ! timeout --foreground -k 5 "$UNBIND_TIMEOUT_SECONDS" \
-	sh -c 'printf "%s" "$1" >"$2"' sh "$driver_id" "$unbind_path"; then
+if ! wait "$unbind_pid"; then
+	unbind_pid=
 	echo "RTL8812AU unbind exceeded ${UNBIND_TIMEOUT_SECONDS}s or failed" >&2
 	exit 1
 fi
-unbind_elapsed=$(( $(date +%s) - unbind_start ))
+unbind_pid=
+unbind_start=$(sed -n 's/^start=\([0-9][0-9]*\).*/\1/p' "$timing_log")
+unbind_end=$(sed -n 's/^end=\([0-9][0-9]*\).*/\1/p' "$timing_log")
+[ -n "$unbind_start" ] && [ -n "$unbind_end" ] || {
+	echo "unbind timing evidence is unavailable" >&2
+	exit 1
+}
+unbind_elapsed=$((unbind_end - unbind_start))
 stop_flood
 printf '%s' "$driver_id" >"$bind_path"
 bound=1
