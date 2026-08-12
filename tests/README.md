@@ -143,6 +143,9 @@ a checksummed transfer without deadlocking the shared test lock, set
 size with `SECURE_FILE_MIB` (default 32 MiB). `ROOT_DRIVER` defaults to
 `rtw_8812au`; set `PEER_DRIVER=rtw_8812au` for the release-gate run so the
 result cannot accidentally be attributed to the experimental fixture. The
+`wpa_sae_mesh_ht40minus.conf` profile is the corresponding legal Danish
+2.4 GHz channel-13 HT40− configuration. Invoke it by setting `CONFIG` to that
+file; it is test data only and has the same public credential.
 optional `PEER_DRIVER_ID` unbind fallback is only for a specifically identified
 test adapter and is disabled by default.
 Set `EXPECTED_VERSION` to the exact DKMS package version. The secured gate

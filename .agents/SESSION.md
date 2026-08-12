@@ -67,6 +67,12 @@ long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
   lifecycle cycle with a clean kernel interval, then restored HT20. Full HT40
   qualification remains open; see
   `tests/results/2026-08-12-2ghz-ht40minus-smoke-0.1.6.md`.
+- Exact 0.1.6 fully qualified the legal channel-13 HT40− profile: five
+  serialized churn cycles, 399/400 and 400/400 sender-captured multicast,
+  bidirectional 64 MiB open transfers, and SAE/AMPE with protected 32 MiB
+  transfers all passed with clean kernel intervals. The secured harness
+  restored open channel-1 HT20 afterward; see
+  `tests/results/2026-08-12-2ghz-ht40minus-full-0.1.6.md`.
 - Exact 0.1.6 passed the SAE/AMPE gate with peer-specific SAE acceptance,
   decrypted AMPE, MFP/authorization, bidirectional traffic/multicast/HWMP,
   and 32 MiB checksummed transfers in both directions. The corrected harness
