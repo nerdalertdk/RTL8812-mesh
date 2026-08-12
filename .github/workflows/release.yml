@@ -1,0 +1,80 @@
+name: Build and release
+
+on:
+  pull_request:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential ca-certificates dkms git linux-headers-amd64 make
+
+      - name: Verify source and patch series
+        run: make check-static
+
+      - name: Create release archives
+        run: |
+          chmod +x scripts/create-release-artifacts.sh
+          ./scripts/create-release-artifacts.sh dist
+          tar -tzf dist/*-dkms.tar.gz >/dev/null
+          tar -tzf dist/*-firmware.tar.gz >/dev/null
+
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(sed -n 's/^PACKAGE_VERSION="\([^"]*\)"$/\1/p' dkms.conf)
+          test "$GITHUB_REF_NAME" = "v$version"
+
+      - name: Build the packaged DKMS source
+        id: dkms
+        shell: bash
+        run: |
+          set -euo pipefail
+          package=$(sed -n 's/^PACKAGE_NAME="\([^"]*\)"$/\1/p' dkms.conf)
+          version=$(sed -n 's/^PACKAGE_VERSION="\([^"]*\)"$/\1/p' dkms.conf)
+          kernel=$(find /lib/modules -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n 1)
+          test -n "$kernel"
+          extract=$(mktemp -d)
+          tar -xzf "dist/${package}-${version}-dkms.tar.gz" -C "$extract"
+          cp -a "$extract/${package}-${version}" "/usr/src/${package}-${version}"
+          dkms add -m "$package" -v "$version"
+          dkms build -m "$package" -v "$version" -k "$kernel"
+          module_dir="/var/lib/dkms/${package}/${version}/${kernel}/$(dpkg --print-architecture)/module"
+          test "$(find "$module_dir" -maxdepth 1 -name '*.ko' -type f | wc -l)" -eq 5
+          mkdir -p dist/modules
+          cp "$module_dir"/*.ko dist/modules/
+          printf 'package=%s\nversion=%s\nkernel=%s\narchitecture=%s\n' \
+            "$package" "$version" "$kernel" "$(dpkg --print-architecture)" > dist/modules/BUILD-INFO
+          tar -C dist -czf "dist/${package}-${version}-debian-trixie-$(dpkg --print-architecture)-${kernel}-modules.tar.gz" modules
+          echo "package=$package" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtl8812au-mesh-${{ steps.dkms.outputs.version }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*.tar.gz

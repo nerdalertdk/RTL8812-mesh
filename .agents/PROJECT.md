@@ -3,11 +3,11 @@
 ## Purpose
 
 Make RTL8812AU native IEEE 802.11s support correct, robust, reproducible on
-Debian, and suitable for upstream Linux submission. The active project focus is
-standards-correct mesh behavior and evidence-based mesh qualification. Existing
-generic USB-lifecycle patches remain separately reviewable; no further generic
-transport work is in scope unless a reproduced failure directly prevents mesh
-operation.
+Debian, and suitable for upstream Linux submission. Public releases provide a
+DKMS source archive, firmware archive, and a clearly labelled CI build
+artifact. Existing generic USB-lifecycle patches remain separately reviewable;
+no further generic transport work is in scope unless a reproduced mesh failure
+directly prevents mesh operation.
 
 ## Scope
 
@@ -17,6 +17,7 @@ Included:
 - mac80211/cfg80211 mesh-point capability and lifecycle behavior;
 - open peering, HWMP, unicast, broadcast, multicast, and SAE/AMPE security;
 - focused Debian manual/DKMS packaging;
+- tag-driven GitHub release artifacts and reproducible CI DKMS builds;
 - exact-source static checks and mesh hardware qualification;
 - reviewable patches against current Linux wireless development trees.
 

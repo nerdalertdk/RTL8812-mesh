@@ -1,69 +1,42 @@
-# RTL8812AU native 802.11s mesh driver
+# RTL8812AU mesh driver
 
-Focused out-of-tree Linux rtw88 package for Realtek RTL8812AU USB adapters with
-native mac80211 IEEE 802.11s (`mesh point`) support.
+An out-of-tree Linux `rtw88` driver package for Realtek RTL8812AU USB Wi-Fi
+adapters, with native mac80211 IEEE 802.11s mesh-point support.
 
-This repository builds only the required module stack:
+It builds exactly this compatible module set:
 
 ```text
 rtw_8812au -> rtw_8812a -> rtw_88xxa -> rtw_usb + rtw_core
 ```
 
-Debian is the current build and hardware-test environment. The initial radio
-qualification profile is 2.4 GHz HT20; channel selection remains subject to
-the active cfg80211 regulatory domain.
+> [!WARNING]
+> These modules replace the effective `rtw_core` and `rtw_usb` selected by
+> `depmod`. Do not install them while another Realtek `rtw_*` device needs a
+> different source revision. Keep an independent management connection while
+> replacing Wi-Fi modules remotely.
 
-## Current validation
+## Status
 
-On Debian 13.1 ARM64, Raspberry Pi kernel `6.12.47+rpt-rpi-v8`, the development
-build has demonstrated:
+The current package is `0.1.6`. It has been built, installed, provenance
+checked, and exercised on Debian ARM64 with two RTL8812AU adapters.
 
-- open 802.11s peering and native HWMP paths;
-- bidirectional unicast, broadcast, and IPv4 multicast;
-- 20/20 fresh churn cycles with 117--133 ms plink times;
-- MCS 15 / two-stream operation with the current peer;
-- checksummed 512 MiB and repeated 64 MiB transfers;
-- symmetric RTL8812AU multicast delivery of 399/400 and 400/400 frames with
-  complete sender capture and no USB event;
-- symmetric SAE/AMPE with peer-specific SAE acceptance, decrypted AMPE,
-  bilateral unicast/multicast/HWMP, and checksummed secured payloads;
-- symmetric RTL8812AU channels 1--13 HT20 with fresh peering, bilateral cold
-  unicast/multicast, reciprocal HWMP, and no USB event;
-- bounded recovery from injected USB control and RX `-EPROTO` (`-71`);
-- automatic userspace topology reconstruction after module/USB rebind;
-- a clean thermal-aware 4.5-hour direct-port run with 337/337 established
-  states, 672/672 ping batches, 10/10 checksummed transfers, and no USB event;
-- a completed eight-hour DKMS 0.1.2 run with 597/597 established states,
-  1,194/1,194 ping batches, 16/16 checksummed transfers, and no recovery or
-  measured USB transport event;
-- a bidirectional checksummed 512 MiB transfer on DKMS 0.1.1;
-- an audited DKMS 0.1.2 production build with strict 20-cycle churn and
-  pending-RX-retry teardown validation; DKMS 0.1.4 additionally serializes
-  complete synchronous USB control transactions and passed exact-kernel
-  build, injection, churn, transfer, and bounded-soak validation. Source 0.1.5
-  additionally keeps the driver-owned aggregate transfer buffer out of the
-  mac80211 TX-status queue, releases correctly owned objects after a failed USB
-  TX submission, and reports failed completions without a false ACK. It also
-  anchors TX URBs and kills them synchronously after draining their producer
-  during teardown; exact-kernel build and hardware fault-injection validation
-  are recorded in the release gates.
+- Open 802.11s peering, HWMP, unicast, broadcast, and multicast pass.
+- SAE/AMPE secured mesh traffic passes using mac80211 software crypto.
+- 2.4 GHz HT20 channels 1--13, legal 2.4 GHz HT40-, non-DFS 5 GHz HT20, and
+  non-DFS 5 GHz HT40+ were qualified on the recorded test profile.
+- A strict 30-minute soak completed 37/37 established-state checks, 74/74
+  lossless ping batches, and 12/12 SHA-256-verified transfers, with no scoped
+  USB transport event or throttling.
 
-Still required before production claims:
+Those results apply to the documented hardware and regulatory profiles, not to
+every adapter, host controller, antenna, cable, or country. DFS is unavailable
+because this driver does not expose nl80211 radar detection. See
+[release gates](docs/RELEASE_GATES.md) for the exact scope and evidence.
 
-- original USB2-topology and physical unplug/re-enumeration testing;
-- independently powered USB-path attribution. The exact-source strict
-  30-minute mesh endurance gate has passed; see `docs/RELEASE_GATES.md`.
+## Install with DKMS
 
-The RTL8192FU test peer is experimental and is not part of this driver package.
-
-## Debian prerequisites
-
-Run the source-only reproducibility, event-classifier, and POSIX shell gates
-without touching hardware:
-
-```sh
-make check-static
-```
+On Debian or Ubuntu, install the build tools and headers for the kernel that
+will load the driver:
 
 ```sh
 sudo apt update
@@ -71,52 +44,14 @@ sudo apt install build-essential dkms kmod linux-headers-$(uname -r) \
   iw wpasupplicant rfkill util-linux
 ```
 
-`util-linux` supplies `flock`, which every hardware-test entry point requires
-to enforce exclusive ownership of the radios and mesh topology. The extended
-hardware harness also uses `curl`, `iproute2`, `python3`, and `tcpdump`.
-
-Remove or disable any vendor `8812au` driver that already owns the adapter.
-Keep Ethernet or another independent management path while replacing Wi-Fi
-modules remotely.
-
-## Manual build and installation
+From a source checkout, or after extracting the released source archive:
 
 ```sh
-make
-sudo make install
-sudo make install_fw
+tar -xzf rtl8812au-mesh-0.1.6-dkms.tar.gz
+cd rtl8812au-mesh-0.1.6
 ```
 
-The modules install under
-`/lib/modules/$(uname -r)/updates/rtl8812au-mesh/`; distribution files under
-`kernel/` are not overwritten.
-
-To replace a currently loaded matching rtw88 stack:
-
-```sh
-sudo modprobe -r rtw_8812au rtw_8812a rtw_88xxa rtw_usb rtw_core
-sudo modprobe rtw_8812au
-```
-
-Confirm that the packaged module wins lookup order:
-
-```sh
-modinfo -n rtw_8812au
-modinfo -n rtw_usb
-iw list | sed -n '/Supported interface modes:/,/Band 1:/p'
-```
-
-`mesh point` must appear in the interface modes.
-
-To remove only the manually installed copies:
-
-```sh
-sudo make uninstall
-```
-
-## DKMS installation
-
-From the repository root:
+Then install with DKMS:
 
 ```sh
 ./scripts/check-loaded-rtw88-conflicts.sh
@@ -125,23 +60,19 @@ sudo dkms add .
 sudo dkms build rtl8812au-mesh/0.1.6
 sudo dkms install --force rtl8812au-mesh/0.1.6
 sudo depmod -a
+sudo modprobe rtw_8812au
 ```
 
-`--force` is required because Debian already provides unversioned in-tree
-modules with these same five names. On Debian DKMS installs the replacements under
-`updates/dkms`; it does not delete or overwrite the distribution
-copies under `kernel/`.
+Confirm the selected driver and mesh capability:
 
-This package's five-module boundary is a source/package boundary, not a private
-kernel ABI namespace. In particular, `rtw_core` and `rtw_usb` have the same
-module names used by Debian's other downstream rtw88 drivers. Do not install
-this package on a host actively using another `rtw_*` chipset module unless all
-consumers were built from the same source revision. The preflight script rejects
-an unrelated loaded consumer; it cannot detect hardware whose driver is
-currently unloaded but may be needed later. `make install` enforces the check
-for a live root and skips it for an explicit `INSTALL_MOD_PATH` staging root.
+```sh
+modinfo -n rtw_8812au
+modinfo -n rtw_usb
+iw list | sed -n '/Supported interface modes:/,/Band 1:/p'
+```
 
-Remove the DKMS package with:
+`mesh point` must appear in the supported interface modes. To remove the DKMS
+package:
 
 ```sh
 sudo dkms remove rtl8812au-mesh/0.1.6 --all
@@ -149,8 +80,8 @@ sudo dkms remove rtl8812au-mesh/0.1.6 --all
 
 ## Create an open mesh point
 
-Replace `wlan1`, addresses, mesh ID, and frequency for the test environment.
-Set the regulatory country before selecting a channel.
+Set the regulatory domain for the location and use a legal channel. This
+example creates an open 2.4 GHz HT20 mesh point:
 
 ```sh
 sudo iw reg set DK
@@ -161,87 +92,67 @@ sudo iw dev wlan1 mesh join my-mesh freq 2412 HT20
 sudo ip address add 10.44.0.1/24 dev wlan1
 ```
 
-Inspect the peer and HWMP state:
+Inspect peering and HWMP paths with:
 
 ```sh
 iw dev wlan1 station dump
 iw dev wlan1 mpath dump
 ```
 
-For SAE/AMPE security use `wpa_supplicant`; the canonical test profile in
-`tests/wpa_sae_mesh.conf` is an example only and contains a public test
-passphrase that must be changed. `tests/pi_secure_mesh.sh` requires both peers
-to report `wpa_state=COMPLETED`, verifies configured SAE plus peer-specific SAE
-acceptance and decrypted AMPE, then validates directional unicast, multicast,
-and HWMP. This handles `wpa_supplicant` 2.10 reporting `key_mgmt=UNKNOWN` for a
-completed mesh group. Set `TRANSFER_TEST=tests/pi_mesh_transfer.sh` to also run
-a bidirectional checksummed payload gate under the secured topology.
+For a secured mesh, use `wpa_supplicant`. The test configuration in
+[`tests/wpa_sae_mesh.conf`](tests/wpa_sae_mesh.conf) contains a public test
+passphrase only; replace it before use.
 
-## USB `-71` behavior
+## USB mode and `-71`
 
-The transport changes distinguish two classes of failure:
+Some RTL8812AU devices initially enumerate at USB2 and then intentionally
+disconnect to re-enumerate at USB3. The driver handles the narrow expected
+status from that transition without hiding unrelated write errors.
 
-- transient control/RX protocol errors are retried or resubmitted with bounded,
-  rate-limited diagnostics;
-- the synthetic USB aggregate buffer remains driver-owned and only original
-  mac80211 frames enter TX status or purge paths. Failed TX submissions release
-  each object through its correct owner, while completion errors are reported
-  to mac80211 without ACK. They are not blindly replayed because a completion
-  error does not prove that the device received none of the frame;
-- with `rtw_usb.switch_usb_mode=Y` (the default), an old-chip RTL8812AU that
-  first enumerates at USB2 may deliberately disconnect and re-enumerate at
-  USB3. The final write to `REG_SYS_PW_CTRL + 1` can therefore return
-  `-EPROTO`, `-ENODEV`, or `-ESHUTDOWN` as the device disappears. Version 0.1.4
-  classifies only this narrow, intentional transition as expected; it does not
-  retry the write or hide other write failures;
-- a physical USB disconnect destroys the netdev and cannot be repaired solely
-  inside the driver. `tests/pi_mesh_recover.sh` and the accompanying udev and
-  systemd files reconstruct the test topology after re-enumeration and require
-  exact module/driver provenance, bilateral peering, bidirectional traffic, and
-  HWMP paths before reporting recovery.
-
-The Pi evidence includes a prior simultaneous hub/root-port over-current event
-that disconnected both test adapters. Do not interpret every `-71` as an
-RTL8812AU mesh-driver defect; retain USB topology, power, temperature, and
-kernel timestamps when reporting one.
-
-For 2.4 GHz driver qualification, validate both USB modes. USB3 can create local
-2.4 GHz interference, while USB2 limits host throughput and changes the
-physical USB path. Set `rtw_usb.switch_usb_mode=N` before module load to retain
-USB2; keep USB3 as a separate regression profile. For a persistent Debian test
-configuration:
+For a USB2 test profile, prevent that transition before loading the module:
 
 ```conf
 # /etc/modprobe.d/rtw88-mesh.conf
 options rtw_usb switch_usb_mode=N
 ```
 
-Reload the matching five-module stack or reboot, then confirm `lsusb -t`
-reports the adapter at `480M`. This parameter is unrelated to `usb_modeswitch`,
-which handles devices initially presenting as CD-ROM storage.
+Reload the matching module stack or reboot, then check `lsusb -t` for `480M`.
+This setting does not downshift an adapter already enumerated at USB3, and it
+is unrelated to `usb_modeswitch`.
 
-## Tests
+A physical USB disconnect removes the netdev; recovery is necessarily a
+userspace/topology concern, not something the interface driver can guarantee.
+Do not attribute every `-71` to the driver: collect kernel timestamps, USB
+topology, power, and thermal state first.
 
-The churn gate serializes mesh teardown: it waits until both mesh station
-tables have quiesced after `iw ... mesh leave`, then applies a short settle
-interval before bringing either netdev down. Do not replace this with an
-immediate leave/down sequence; that can race mac80211 teardown and is not a
-meaningful driver lifecycle result.
+## Releases and verification
 
-See [tests/README.md](tests/README.md). Hardware scripts require explicit
-`ROOT_MAC` and `PEER_MAC` values and otherwise use the documented test network
-namespace defaults; no development adapter identities are embedded.
+GitHub tag releases contain:
 
-Fault-injection modules, `usb_rx_submit_failure.patch`, and
-`usb_tx_failure_injection.patch` are test-only. Never ship an instrumented
-module as the production driver.
+- a DKMS source archive;
+- the firmware archive and its redistribution notice;
+- modules built by CI against Debian Trixie's AMD64 headers, as a build
+  verification artifact only.
 
-The requirement-by-requirement release verdict and authoritative evidence are
-tracked in [docs/RELEASE_GATES.md](docs/RELEASE_GATES.md).
+Use DKMS to build on the target kernel and architecture; do not install the CI
+AMD64 modules on another kernel or architecture.
 
-## Source and licensing
+Run repository-only checks without touching hardware:
 
-See [SOURCE.md](SOURCE.md). Source files retain their SPDX identifiers and
-original copyright notices; canonical license texts are under `LICENSES/` and
-the firmware redistribution terms accompany the binary in `firmware/`. No
-private signing keys or certificates are stored in this repository.
+```sh
+make check-static
+```
+
+Hardware harnesses are documented in [tests/README.md](tests/README.md). They
+need two dedicated adapters, explicit MAC addresses, and an isolated test
+topology. Fault-injection modules are test-only and must never be shipped as
+the production driver.
+
+## Development and licensing
+
+The patch series, baseline verification, and upstream submission notes are in
+[docs/UPSTREAMING.md](docs/UPSTREAMING.md). Source provenance and firmware
+redistribution terms are in [SOURCE.md](SOURCE.md) and `firmware/`.
+
+The project is not affiliated with Realtek. Preserve all SPDX identifiers and
+license notices when redistributing source or firmware.
