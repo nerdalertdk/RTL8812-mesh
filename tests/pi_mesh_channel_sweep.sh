@@ -1,5 +1,5 @@
 #!/bin/sh
-# Validate open 802.11s operation across the permitted 2.4 GHz HT20 channels.
+# Validate open 802.11s operation across a caller-selected channel/width profile.
 
 set -eu
 

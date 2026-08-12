@@ -106,6 +106,17 @@ The churn and channel-sweep gates use the same provenance and event convention:
 peer-driver mismatch exits 2, functional failure exits 1, and any USB transport
 event exits 4 while retaining the functional result in their output.
 
+`pi_mesh_channel_sweep.sh` defaults to the Danish 2.4 GHz HT20 profile
+(channels 1--13), but is also the open-mesh compatibility harness for HT40 and
+5 GHz. Supply only frequencies permitted by the active regulatory domain via
+`CHANNELS="channel:frequency ..."`, select `WIDTH` (`HT20`, `HT40+`, or
+`HT40-` as appropriate), and set `RESTORE_FREQ` to a permitted HT20 recovery
+channel. Each selected profile must independently pass fresh peering, cold
+traffic, bidirectional multicast reachability, and HWMP. Follow every sweep
+with the quantitative multicast, SAE/AMPE, and transfer gates before marking a
+new bandwidth or band qualified. Do not include DFS channels until their CAC
+and regulatory handling are explicitly part of the test setup.
+
 `pi_secure_mesh.sh` controls both peers with `wpa_supplicant`, requires both
 control interfaces to reach `COMPLETED`, and proves SAE/AMPE from configured
 SAE plus peer-specific SAE acceptance and decrypted AMPE in each log. This is
