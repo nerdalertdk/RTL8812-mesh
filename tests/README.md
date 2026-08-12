@@ -146,6 +146,12 @@ result cannot accidentally be attributed to the experimental fixture. The
 `wpa_sae_mesh_ht40minus.conf` profile is the corresponding legal Danish
 2.4 GHz channel-13 HT40− configuration. Invoke it by setting `CONFIG` to that
 file; it is test data only and has the same public credential.
+`wpa_sae_mesh_5ghz_ht20.conf` is the non-DFS channel-149 HT20 profile, subject
+to the active regulatory domain and its applicable power limit. It explicitly
+requests disabled HT40 and VHT: a 5 GHz `frequency` alone is insufficient to
+constrain wpa_supplicant mesh operation to HT20. Always verify the resulting
+channel width with `iw dev info` while the secured mesh is active, since the
+station-rate label may retain `VHT` even for 20 MHz operation.
 optional `PEER_DRIVER_ID` unbind fallback is only for a specifically identified
 test adapter and is disabled by default.
 Set `EXPECTED_VERSION` to the exact DKMS package version. The secured gate
