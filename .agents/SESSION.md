@@ -3,10 +3,10 @@
 ## Current focus
 
 Make RTL8812AU native IEEE 802.11s support correct, robust, reproducible on
-Debian, and suitable for upstream Linux submission. Production DKMS 0.1.5 is
-now exact-kernel built, loaded, provenance-checked, and mesh-smoke-checked; the
-immediate work is deterministic disposable TX error/teardown evidence, then
-the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
+Debian, and suitable for upstream Linux submission. Production DKMS 0.1.6 is
+exact-kernel built, loaded, provenance-checked, and substantially runtime
+qualified with two RTL8812AU peers. The immediate work is to close the
+long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
 
 ## Current source
 
