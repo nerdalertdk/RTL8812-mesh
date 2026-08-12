@@ -80,6 +80,12 @@ long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
   passed 20/20 joins, cold contacts, multicast checks, and HWMP paths in 169 s
   (117--133 ms peering), with no fresh warning or transport event; see
   `tests/results/2026-08-12-serialized-mesh-lifecycle-0.1.6.md`.
+- The mesh-soak harness now requires every requested ping reply, after a
+  previous harness accepted an 8/10 batch because `ping` returned success. Its
+  corrected 360-second 0.1.6 smoke passed 8/8 established states, 16/16
+  lossless batches, four checksummed transfers, and zero transport event. This
+  validates the harness rather than closing the long-duration gate; see
+  `tests/results/2026-08-12-strict-mesh-soak-smoke-0.1.6.md`.
 - Exact 0.1.6 also passed an open non-DFS 5 GHz HT20 smoke on channel 149:
   bilateral mesh/HWMP plus one serialized lifecycle cycle completed with no
   transport event, and the test restored 2.4 GHz HT20 afterward. This is not
