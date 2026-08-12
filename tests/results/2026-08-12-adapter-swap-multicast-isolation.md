@@ -33,11 +33,9 @@ The post-swap probe's own kernel interval was clean.
 
 ## Conclusion
 
-The severe group-frame loss follows the `fc:22:1c:30:08:c1` physical unit or
-an antenna physically attached to it, not either tested USB branch. The later
-5 GHz 400-frame-per-direction control passed 400/400 in both directions with
-the same unit and USB branches, further limiting the fault to the 2.4 GHz RF
-path rather than generic USB transport or mesh-driver behavior. The test does
-not distinguish the adapter's 2.4 GHz radio path from its attached antenna or
-local 2.4 GHz environment. A detached-antenna exchange or a known-good third
-RTL8812AU is required to separate those hardware causes.
+The severe group-frame loss follows neither tested USB branch. The later 5 GHz
+400-frame-per-direction control passed 400/400 in both directions with the
+same unit and USB branches, and the 2.4 GHz channel-13 control passed
+399/400 and 400/400. Together those controls rule out the adapter, its
+antenna, generic USB transport, and driver behavior as the dominant cause.
+The original loss is specific to the local channel-1 RF environment.

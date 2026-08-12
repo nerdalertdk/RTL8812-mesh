@@ -5,11 +5,10 @@
 - [ ] Build, install, provenance-check, and regress the distinct 0.1.6 package
   containing the correction that stops unsupported per-chain antenna selection
   from being advertised.
-- [ ] Separate the 2.4 GHz multicast fault that follows physical adapter
-  `…08:c1` across the `1-1.4`/`1-1.1` port swap from its antenna or local RF
-  environment: exchange detachable antennas or test a known-good third
-  RTL8812AU. The A/B swap and 5 GHz 400/400 control rule out the tested USB
-  branches and generic driver/USB transport as the primary cause.
+- [ ] Complete a current-source all-channel 2.4 GHz HT20 quantitative sweep.
+  The channel-1 loss is now localized to its local RF environment: the same
+  `…08:c1` adapter/antenna passes 5 GHz 400/400 and 2.4 GHz channel 13 at
+  399/400 with no transport event.
 - [ ] Complete the physical USB-path matrix after separating the `…08:c1`
   adapter from its antenna. The latest direct A/B swap between `1-1.1` and
   `1-1.4` shows those two branches are not the primary cause of the severe
