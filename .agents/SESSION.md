@@ -116,6 +116,9 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   zero USB event. A current-source SAE/AMPE run passed peer-specific security,
   MFP, authorization, bidirectional unicast/multicast/HWMP, and 32 MiB
   checksummed transfers in both directions, then recovered the open topology.
+- A standalone current-source 512 MiB open transfer passed SHA-256 in both
+  directions at 5.23 and 6.86 MB/s with reciprocal postflight HWMP and zero
+  kernel transport event.
 - The activation interval included an un-attributable Pi reboot with no
   persistent prior journal and a historical soft-temperature bit.  It is not
   physical USB qualification evidence; see

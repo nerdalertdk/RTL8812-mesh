@@ -37,8 +37,16 @@ The secured-test cleanup rebuilt the open MAC-based topology and exact DKMS
 `/var/tmp/rtl8812au-mesh/mesh-churn/` and
 `/var/tmp/rtl8812au-mesh/secure/`.
 
+## Open 512 MiB transfer
+
+The standalone open-mesh transfer (`transfer-20260812T121947Z.log`) completed
+one 512 MiB SHA-256-verified transfer in each direction. Root-to-peer completed
+in 102.71 seconds at 5,227,010 B/s; peer-to-root completed in 78.27 seconds at
+6,858,876 B/s. Both output hashes matched the 512 MiB source, postflight HWMP
+paths were present at both peers, and the full 199-second interval had zero
+kernel transport events. The wrapper exit status was zero.
+
 ## Remaining scope
 
-This does not close the separate bidirectional 512 MiB open-transfer,
-long-duration endurance, HT40/5 GHz, physical re-enumeration, or complete USB
-path-matrix gates.
+This does not close long-duration endurance, HT40/5 GHz, physical
+re-enumeration, or the complete USB path-matrix gates.
