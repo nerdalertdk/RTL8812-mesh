@@ -9,6 +9,10 @@
   while taking a 0.1.5 mesh interface down, recover the USB-bound/no-PHY peer
   on `1-1.1`, and establish a warning-free controlled reload procedure before
   attempting 0.1.6 runtime qualification.
+- [ ] Diagnose reproducible 0.1.6 root-to-peer multicast loss on validated
+  branches `1-1.4` to `1-1.1` (391/400 then 394/400, reverse 400/400, zero
+  transport event) without attributing it to driver, USB, power, or RF before
+  controlled evidence separates those causes.
 - [ ] Complete the physical USB-path matrix. The multicast control now passes
   399/400 into `…0d:8b` on `1-1.1` and 400/400 into `…08:c1` on `1-1.4`, while
   the `1-1.2` post-swap runs delivered 395/400 then 381/400 into `…0d:8b`.

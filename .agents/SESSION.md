@@ -32,6 +32,14 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   left the `1-1.1` adapter USB-bound without a PHY/netdev.  This invalidates
   the transition interval; see
   `tests/results/2026-08-12-reload-warning-incident.md`.
+- A safer USB-unbind/module-reload/USB-rebind procedure then loaded exact DKMS
+  0.1.6 provenance, rebuilt bilateral mesh/HWMP, and completed a 32 MiB
+  checksum transfer with no fresh warning or transport event. Both PHYs now
+  expose zero selectable antenna masks, as intended. Two 400-frame group
+  probes nevertheless delivered 391/400 then 394/400 root-to-peer to
+  `1-1.1`, while reverse delivery was 400/400 and no transport event occurred;
+  this is a failing, un-attributed 0.1.6 group-traffic gate. See
+  `tests/results/2026-08-12-dkms-0.1.6-build-load-smoke.md`.
 
 ## Behavioral evidence
 
