@@ -70,12 +70,10 @@ jobs:
           cp -a "$extract/${package}-${version}" "/usr/src/${package}-${version}"
           dkms add -m "$package" -v "$version"
           dkms build -m "$package" -v "$version" -k "$kernel"
-          module_dir=$(find "/var/lib/dkms/${package}/${version}/${kernel}" \
-            -type d -name module -print -quit)
-          test -n "$module_dir"
-          test "$(find "$module_dir" -maxdepth 1 -name '*.ko' -type f | wc -l)" -eq 5
+          build_dir="/var/lib/dkms/${package}/${version}/${kernel}/$(dpkg --print-architecture)/build"
+          test "$(find "$build_dir" -maxdepth 1 -name '*.ko' -type f | wc -l)" -eq 5
           mkdir -p dist/modules
-          cp "$module_dir"/*.ko dist/modules/
+          cp "$build_dir"/*.ko dist/modules/
           printf 'package=%s\nversion=%s\nkernel=%s\narchitecture=%s\n' \
             "$package" "$version" "$kernel" "$(dpkg --print-architecture)" > dist/modules/BUILD-INFO
           tar -C dist -czf "dist/${package}-${version}-debian-trixie-$(dpkg --print-architecture)-${kernel}-modules.tar.gz" modules
