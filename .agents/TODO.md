@@ -2,18 +2,8 @@
 
 ## In progress
 
-- [ ] Build, install, provenance-check, and regress the distinct 0.1.6 package
-  containing the correction that stops unsupported per-chain antenna selection
-  from being advertised.
-- [ ] Complete the physical USB-path matrix after separating the `…08:c1`
-  adapter from its antenna. The latest direct A/B swap between `1-1.1` and
-  `1-1.4` shows those two branches are not the primary cause of the severe
-  loss; repeat with a powered hub/direct paths only after the hardware source
-  is known.
 - [ ] Complete a thermally clean long-duration current-source endurance gate.
-  The 30-minute bounded 0.1.5 soak now passes on `1-1.1`/`1-1.4`; strict open
-  churn/HWMP/multicast, SAE/AMPE plus 32 MiB secured transfer, and a 512 MiB
-  bidirectional checksum-verified open transfer also pass there.
+  It must use the strict lossless-ping accounting now in the soak harness.
 - [ ] Qualify 2.4 GHz HT40 and 5 GHz HT20/HT40 separately from the core
   2.4 GHz HT20 release profile, subject to the active regulatory domain and
   DFS requirements. 0.1.6 passed a non-DFS channel-149 5 GHz HT20 smoke;
@@ -21,13 +11,12 @@
   a channel-149/153 5 GHz HT40+ and channel-13 HT40− smoke also pass but are
   not full qualification.
 
-## Pending hardware gates
+## Parked non-mesh follow-up
 
-- [ ] Complete three valid repetitions of each direct/powered USB2/USB3 row in
-  `tests/USB_PATH_MATRIX.md`.
-- [ ] Complete a thermally clean long-duration current-source endurance run.
-- [ ] Validate physical unplug/re-enumeration reconstruction independently from
-  synthetic control, RX, and TX failures.
+- [ ] Independently decide whether generic USB-path, physical re-enumeration,
+  and antenna-capability work should become a separate driver-hardening effort.
+  Do not run or extend these gates as part of the mesh-support goal unless a
+  reproduced mesh failure requires them.
 
 ## Completed
 

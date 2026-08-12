@@ -3,9 +3,11 @@
 ## Purpose
 
 Make RTL8812AU native IEEE 802.11s support correct, robust, reproducible on
-Debian, and suitable for upstream Linux submission. This includes
-standards-correct mesh behavior, USB transport fault handling, teardown safety,
-and evidence-based qualification.
+Debian, and suitable for upstream Linux submission. The active project focus is
+standards-correct mesh behavior and evidence-based mesh qualification. Existing
+generic USB-lifecycle patches remain separately reviewable; no further generic
+transport work is in scope unless a reproduced failure directly prevents mesh
+operation.
 
 ## Scope
 
@@ -14,14 +16,15 @@ Included:
 - RTL8812AU USB and its required RTL8812A/88xxA/shared rtw88 modules;
 - mac80211/cfg80211 mesh-point capability and lifecycle behavior;
 - open peering, HWMP, unicast, broadcast, multicast, and SAE/AMPE security;
-- USB control, RX, TX, teardown, disconnect, and recovery behavior;
 - focused Debian manual/DKMS packaging;
-- exact-source static checks, fault injection, and hardware qualification;
+- exact-source static checks and mesh hardware qualification;
 - reviewable patches against current Linux wireless development trees.
 
 Excluded:
 
 - unrelated Realtek chipsets and transports;
+- new generic USB control, RX, TX, teardown, disconnect, recovery, or
+  fault-injection work that is not required by a reproduced mesh failure;
 - application topology or routing layers above native IEEE 802.11s;
 - product, range, antenna, enclosure, field-use, and other use-case planning;
 - downstream operating-system or appliance integration not required to prove
@@ -44,11 +47,7 @@ Excluded:
 - Correct bidirectional HWMP discovery and repair.
 - Correct unicast, broadcast, and multicast behavior.
 - Correct SAE/AMPE operation using mac80211 software crypto where required.
-- Correct TX/RX ownership and bounded behavior across USB failures and teardown.
-- Bounded driver teardown and reprobe behavior after physical USB
-  re-enumeration; userspace reconstruction remains test infrastructure rather
-  than part of the upstream driver deliverable.
-- Endurance and physical-path evidence sufficient to distinguish driver faults
-  from external USB faults.
+- Mesh qualification that distinguishes a mesh-driver failure from an
+  environmental or transport observation without expanding the driver scope.
 - A minimal, reviewable patch series that applies to the selected upstream
   Linux wireless tree and passes exact-kernel build and strict static checks.
