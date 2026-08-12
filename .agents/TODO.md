@@ -20,7 +20,8 @@
   bidirectional checksum-verified open transfer also pass there.
 - [ ] Qualify 2.4 GHz HT40 and 5 GHz HT20/HT40 separately from the core
   2.4 GHz HT20 release profile, subject to the active regulatory domain and
-  DFS requirements.
+  DFS requirements. 0.1.6 passed a non-DFS channel-149 5 GHz HT20 smoke;
+  its quantitative multicast, security, transfer, and multi-cycle gates remain.
 
 ## Pending hardware gates
 

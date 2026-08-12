@@ -56,6 +56,11 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   passed 20/20 joins, cold contacts, multicast checks, and HWMP paths in 169 s
   (117--133 ms peering), with no fresh warning or transport event; see
   `tests/results/2026-08-12-serialized-mesh-lifecycle-0.1.6.md`.
+- Exact 0.1.6 also passed an open non-DFS 5 GHz HT20 smoke on channel 149:
+  bilateral mesh/HWMP plus one serialized lifecycle cycle completed with no
+  transport event, and the test restored 2.4 GHz HT20 afterward. This is not
+  full 5 GHz qualification; see
+  `tests/results/2026-08-12-5ghz-ht20-smoke-0.1.6.md`.
 
 ## Behavioral evidence
 
