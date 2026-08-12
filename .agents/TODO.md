@@ -7,7 +7,8 @@
 - [ ] Qualify 5 GHz HT20/HT40 separately from the core 2.4 GHz release
   profiles, subject to the active regulatory domain and DFS requirements.
   Exact 0.1.6 fully qualified the legal 2.4 GHz channel-13 HT40− profile.
-  It passed a non-DFS channel-149 5 GHz HT20 smoke;
+  DFS channel 100 HT20 is unavailable because the current driver does not
+  expose radar detection; it passed a non-DFS channel-149 5 GHz HT20 smoke;
   its quantitative multicast, security, transfer, and multi-cycle gates remain;
   a channel-149/153 5 GHz HT40+ and channel-13 HT40− smoke also pass but are
   not full qualification.

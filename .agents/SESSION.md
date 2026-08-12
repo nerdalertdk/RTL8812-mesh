@@ -97,6 +97,11 @@ long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
   transport event, and the test restored 2.4 GHz HT20 afterward. This is not
   full 5 GHz qualification; see
   `tests/results/2026-08-12-5ghz-ht20-smoke-0.1.6.md`.
+- The requested DFS channel-100 HT20 profile is unavailable: all three peer
+  joins were rejected with `EINVAL` before peering, and the RTL8812AU nl80211
+  command set exposes no radar-detection start operation. This is a regulatory
+  refusal, not a mesh failure; see
+  `tests/results/2026-08-12-5ghz-dfs-ht20-refusal-0.1.6.md`.
 - A matching channel-149/153 5 GHz HT40+ smoke passed open peering, HWMP, and
   one serialized lifecycle cycle with a clean kernel interval, then restored
   the 2.4 GHz profile. Full 5 GHz HT40 qualification remains open; see
