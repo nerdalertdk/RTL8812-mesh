@@ -15,6 +15,8 @@ CHANNELS=${CHANNELS:-1:2412 2:2417 3:2422 4:2427 5:2432 6:2437 7:2442 8:2447 9:2
 RESTORE_FREQ=${RESTORE_FREQ:-2412}
 LOCK_FILE=${LOCK_FILE:-/run/lock/rtw88-mesh-test.lock}
 ESTAB_POLLS=${ESTAB_POLLS:-100}
+LEAVE_POLLS=${LEAVE_POLLS:-50}
+LEAVE_SETTLE_SECS=${LEAVE_SETTLE_SECS:-1}
 MULTICAST_COUNT=${MULTICAST_COUNT:-3}
 ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
 PEER_DRIVER=${PEER_DRIVER:-}
@@ -66,6 +68,18 @@ if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 	exit 2
 fi
 
+for value in "$ESTAB_POLLS" "$LEAVE_POLLS" "$LEAVE_SETTLE_SECS" "$MULTICAST_COUNT"; do
+	case $value in
+		*[!0-9]*|'') echo "poll and multicast values must be non-negative integers" >&2; exit 2 ;;
+	esac
+done
+for value in "$ESTAB_POLLS" "$LEAVE_POLLS" "$MULTICAST_COUNT"; do
+	[ "$value" -gt 0 ] || {
+		echo "ESTAB_POLLS, LEAVE_POLLS, and MULTICAST_COUNT must be positive" >&2
+		exit 2
+	}
+done
+
 is_established()
 {
 	$IW dev "$ROOT_IF" station dump 2>/dev/null |
@@ -80,6 +94,23 @@ join_frequency()
 
 	$IW dev "$ROOT_IF" mesh leave 2>/dev/null || true
 	ns $IW dev "$PEER_IF" mesh leave 2>/dev/null || true
+
+	# Do not race netdev stop with mesh teardown. Wait for both mesh station
+	# tables to quiesce, then give mac80211 a short settle window before the
+	# down/up lifecycle portion of this channel transition.
+	poll=0
+	while $IW dev "$ROOT_IF" station dump | grep -q 'mesh plink:' ||
+	      ns $IW dev "$PEER_IF" station dump | grep -q 'mesh plink:'; do
+		poll=$((poll + 1))
+		if [ "$poll" -ge "$LEAVE_POLLS" ]; then
+			echo "mesh leave did not quiesce before frequency $freq" >&2
+			return 1
+		fi
+		sleep 0.1
+	done
+	if [ "$LEAVE_SETTLE_SECS" -gt 0 ]; then
+		sleep "$LEAVE_SETTLE_SECS"
+	fi
 	ip link set "$ROOT_IF" down
 	ns ip link set "$PEER_IF" down
 	$IW dev "$ROOT_IF" set type mesh

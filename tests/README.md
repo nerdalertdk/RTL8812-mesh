@@ -117,6 +117,11 @@ with the quantitative multicast, SAE/AMPE, and transfer gates before marking a
 new bandwidth or band qualified. Do not include DFS channels until their CAC
 and regulatory handling are explicitly part of the test setup.
 
+Before every channel transition, the sweep waits until both mesh station tables
+are empty after `mesh leave`, then uses a short settle interval before either
+netdev is brought down. This preserves the serialized lifecycle contract used
+by the churn gate and prevents a channel test from racing mac80211 teardown.
+
 `pi_secure_mesh.sh` controls both peers with `wpa_supplicant`, requires both
 control interfaces to reach `COMPLETED`, and proves SAE/AMPE from configured
 SAE plus peer-specific SAE acceptance and decrypted AMPE in each log. This is
