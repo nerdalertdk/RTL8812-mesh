@@ -25,6 +25,13 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
 - A separate pinned current-mainline TX-only series captures only TX changes
   not already present in its target tree.
 - Repository static checks and stored production patches pass strict validation.
+- DKMS 0.1.6 passes the exact-kernel `W=1` and build-only gate (five modules,
+  zero diagnostics) and is installed but not runtime-qualified.  During the
+  subsequent attempted transition while 0.1.5 was still loaded, `ip link set
+  down` after mesh leave triggered a mac80211 `ieee80211_do_stop` warning and
+  left the `1-1.1` adapter USB-bound without a PHY/netdev.  This invalidates
+  the transition interval; see
+  `tests/results/2026-08-12-reload-warning-incident.md`.
 
 ## Behavioral evidence
 

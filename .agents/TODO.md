@@ -5,6 +5,10 @@
 - [ ] Build, install, provenance-check, and regress the distinct 0.1.6 package
   containing the correction that stops unsupported per-chain antenna selection
   from being advertised.
+- [ ] Diagnose the 2026-08-12 mac80211 `ieee80211_do_stop` warning triggered
+  while taking a 0.1.5 mesh interface down, recover the USB-bound/no-PHY peer
+  on `1-1.1`, and establish a warning-free controlled reload procedure before
+  attempting 0.1.6 runtime qualification.
 - [ ] Complete the physical USB-path matrix. The multicast control now passes
   399/400 into `…0d:8b` on `1-1.1` and 400/400 into `…08:c1` on `1-1.4`, while
   the `1-1.2` post-swap runs delivered 395/400 then 381/400 into `…0d:8b`.
