@@ -5,10 +5,6 @@
 - [ ] Build, install, provenance-check, and regress the distinct 0.1.6 package
   containing the correction that stops unsupported per-chain antenna selection
   from being advertised.
-- [ ] Complete a current-source all-channel 2.4 GHz HT20 quantitative sweep.
-  The channel-1 loss is now localized to its local RF environment: the same
-  `…08:c1` adapter/antenna passes 5 GHz 400/400 and 2.4 GHz channel 13 at
-  399/400 with no transport event.
 - [ ] Complete the physical USB-path matrix after separating the `…08:c1`
   adapter from its antenna. The latest direct A/B swap between `1-1.1` and
   `1-1.4` shows those two branches are not the primary cause of the severe
@@ -36,6 +32,9 @@
 
 - [x] Run the exact-source `W=1`/DKMS build-only gate, install, load, and
   provenance-check production DKMS 0.1.5 on the exact Raspberry Pi kernel.
+- [x] Pass current-source 0.1.6 serialized 2.4 GHz HT20 channel sweep 13/13,
+  including fresh peering, cold traffic, multicast reachability, HWMP, and a
+  clean kernel interval.
 - [x] Pass the exact 0.1.6 serialized mesh leave/down/up lifecycle gate for
   20/20 cycles with peer-table quiescence, cold traffic, multicast, HWMP, and
   no warning or transport event.

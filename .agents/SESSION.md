@@ -59,6 +59,10 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   defect; see
   `tests/results/2026-08-12-5ghz-ht20-multicast-0.1.6.md` and
   `tests/results/2026-08-12-2ghz-channel13-multicast-0.1.6.md`.
+- Exact 0.1.6 passed the serialized 2.4 GHz HT20 channel-1--13 sweep 13/13
+  (fresh bilateral peering, cold traffic, multicast reachability, HWMP, clean
+  kernel interval) and restored channel 1 afterward; see
+  `tests/results/2026-08-12-2ghz-ht20-channel-sweep-0.1.6.md`.
 - The serialized 0.1.6 mesh lifecycle gate waits for both mesh station tables
   to quiesce and then settles before netdev down/up. Its strict 20-cycle run
   passed 20/20 joins, cold contacts, multicast checks, and HWMP paths in 169 s
