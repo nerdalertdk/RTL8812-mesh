@@ -13,11 +13,11 @@
   across the `1-1.4`/`1-1.1` port swap from its attached antenna: exchange
   detachable antennas or test a known-good third RTL8812AU. The A/B swap
   rules out both tested USB branches as the primary cause.
-- [ ] Complete the physical USB-path matrix. The multicast control now passes
-  399/400 into `…0d:8b` on `1-1.1` and 400/400 into `…08:c1` on `1-1.4`, while
-  the `1-1.2` post-swap runs delivered 395/400 then 381/400 into `…0d:8b`.
-  This strongly localizes the issue to `1-1.2`; repeat across direct/powered
-  paths before closing qualification or attributing a driver fault.
+- [ ] Complete the physical USB-path matrix after separating the `…08:c1`
+  adapter from its antenna. The latest direct A/B swap between `1-1.1` and
+  `1-1.4` shows those two branches are not the primary cause of the severe
+  loss; repeat with a powered hub/direct paths only after the hardware source
+  is known.
 - [ ] Complete a thermally clean long-duration current-source endurance gate.
   The 30-minute bounded 0.1.5 soak now passes on `1-1.1`/`1-1.4`; strict open
   churn/HWMP/multicast, SAE/AMPE plus 32 MiB secured transfer, and a 512 MiB

@@ -39,8 +39,9 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   probes nevertheless delivered 391/400 then 394/400 root-to-peer to
   `1-1.1`, while reverse delivery was 400/400 and no transport event occurred.
   A capture-valid 5 Hz diagnostic also delivered only 191/200 root-to-peer
-  while reverse delivery was 200/200. This is a failing, un-attributed 0.1.6
-  group-traffic gate. See
+  while reverse delivery was 200/200. This is a failing 0.1.6 group-traffic
+  gate. The later adapter swap localizes its dominant loss to physical adapter
+  `…08:c1` or its antenna; see
   `tests/results/2026-08-12-dkms-0.1.6-build-load-smoke.md`.
 - A physical port swap then isolated the severe group-frame loss to physical
   unit `fc:22:1c:30:08:c1` or its attached antenna: its sender capture fell
