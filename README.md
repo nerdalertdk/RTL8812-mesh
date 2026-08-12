@@ -46,12 +46,13 @@ build has demonstrated:
   TX submission, and reports failed completions without a false ACK. It also
   anchors TX URBs and kills them synchronously after draining their producer
   during teardown; exact-kernel build and hardware fault-injection validation
-  remain pending.
+  are recorded in the release gates.
 
 Still required before production claims:
 
 - original USB2-topology and physical unplug/re-enumeration testing;
-- independently powered USB-path and thermally clean long-duration endurance.
+- independently powered USB-path attribution. The exact-source strict
+  30-minute mesh endurance gate has passed; see `docs/RELEASE_GATES.md`.
 
 The RTL8192FU test peer is experimental and is not part of this driver package.
 

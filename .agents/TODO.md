@@ -1,10 +1,5 @@
 # TODO
 
-## In progress
-
-- [ ] Complete a thermally clean long-duration current-source endurance gate.
-  It must use the strict lossless-ping accounting now in the soak harness.
-
 ## Parked non-mesh follow-up
 
 - [ ] Independently decide whether generic USB-path, physical re-enumeration,
@@ -13,6 +8,10 @@
   reproduced mesh failure requires them.
 
 ## Completed
+
+- [x] Complete the exact 0.1.6 strict 30-minute mesh-endurance gate: 37/37
+  established states, 74/74 lossless batches, 12/12 checksummed transfers,
+  and zero recovery, invalidation, transport event, or throttle condition.
 
 - [x] Run the exact-source `W=1`/DKMS build-only gate, install, load, and
   provenance-check production DKMS 0.1.5 on the exact Raspberry Pi kernel.

@@ -5,8 +5,8 @@
 Make RTL8812AU native IEEE 802.11s support correct, robust, reproducible on
 Debian, and suitable for upstream Linux submission. Production DKMS 0.1.6 is
 exact-kernel built, loaded, provenance-checked, and substantially runtime
-qualified with two RTL8812AU peers. The immediate work is to close the
-long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
+qualified with two RTL8812AU peers. All active mesh behavior gates are now
+closed; physical USB-path work remains parked outside the mesh scope.
 
 ## Current source
 
@@ -17,7 +17,7 @@ long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
   its chip operation is absent; fixed 2T2R operation remains unchanged.
 - The current source carries the later antenna-capability correction as DKMS
   0.1.6. It is exact-kernel built, installed, loaded, provenance-checked, and
-  partially runtime-qualified; remaining release gates are recorded below.
+  runtime-qualified through the active mesh release gates.
 - The package boundary is exactly `rtw_core`, `rtw_usb`, `rtw_88xxa`,
   `rtw_8812a`, and `rtw_8812au`.
 - Downstream nine-patch and pinned wireless-next nine-patch series reproduce
@@ -92,6 +92,11 @@ long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
   lossless batches, four checksummed transfers, and zero transport event. This
   validates the harness rather than closing the long-duration gate; see
   `tests/results/2026-08-12-strict-mesh-soak-smoke-0.1.6.md`.
+- The final exact 0.1.6 strict 30-minute soak then completed 37/37 bilateral
+  `ESTAB` samples, 74/74 lossless ping batches, and 12/12 checksum-verified
+  transfers with zero recovery, invalidation, scoped USB transport event, or
+  throttle condition; see
+  `tests/results/2026-08-12-final-strict-mesh-soak-0.1.6.md`.
 - Exact 0.1.6 also passed an open non-DFS 5 GHz HT20 smoke on channel 149:
   bilateral mesh/HWMP plus one serialized lifecycle cycle completed with no
   transport event, and the test restored 2.4 GHz HT20 afterward. This is not
@@ -114,8 +119,7 @@ long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
   see `tests/results/2026-08-12-5ghz-ht40plus-full-0.1.6.md`.
 - A matching channel-149/153 5 GHz HT40+ smoke passed open peering, HWMP, and
   one serialized lifecycle cycle with a clean kernel interval, then restored
-  the 2.4 GHz profile. Full 5 GHz HT40 qualification remains open; see
-  `tests/results/2026-08-12-5ghz-ht40plus-smoke-0.1.6.md`.
+  the 2.4 GHz profile; it preceded the subsequent full qualification.
 - The same 5 GHz HT40+ profile passed sender-captured multicast 400/400 in
   both directions with a clean kernel interval, then restored HT20; see
   `tests/results/2026-08-12-5ghz-ht40plus-multicast-0.1.6.md`.
