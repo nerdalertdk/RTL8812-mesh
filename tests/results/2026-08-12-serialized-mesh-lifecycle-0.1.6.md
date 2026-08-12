@@ -31,9 +31,23 @@ or rtw88 RX/TX transport diagnostic. The root and namespace peer passed
 directional cold contact, three-frame multicast reachability, and reciprocal
 HWMP-path checks.
 
+## Twenty-cycle repeat
+
+The same exact loaded 0.1.6 module set then completed the strict 20-cycle
+repeat with the same two-second settle interval:
+
+```
+# summary join_pass=20/20 plink_pass=20/20 root_first_contact=20/20 peer_first_contact=20/20 root_multicast=20/20 peer_multicast=20/20 paths_both=20/20 elapsed_s=169
+```
+
+Peer establishment ranged from 117 to 133 ms. The scoped kernel interval was
+empty for `WARNING`, `BUG`, `ieee80211_do_stop`, USB `-71`/`-EPROTO`, USB
+disconnect/reset, and rtw88 RX/TX transport diagnostics.
+
 ## Interpretation
 
 The previous warning has not reproduced with serialized mesh teardown, so it
-is not currently evidence of a driver lifecycle defect. This single cycle
-does not close the multi-cycle current-source churn gate; that gate remains
-required before release qualification.
+is not currently evidence of a driver lifecycle defect. The 20-cycle repeat
+closes the current-source 0.1.6 lifecycle/churn gate at its stated HT20
+topology, but does not close the independent sender-captured group-traffic,
+bandwidth/band, endurance, or physical USB-path gates.

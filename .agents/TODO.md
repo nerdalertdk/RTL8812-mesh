@@ -5,10 +5,6 @@
 - [ ] Build, install, provenance-check, and regress the distinct 0.1.6 package
   containing the correction that stops unsupported per-chain antenna selection
   from being advertised.
-- [ ] Repeat the serialized mesh leave/down/up lifecycle gate across
-  multi-cycle current-source 0.1.6 churn. One 2026-08-12 cycle passed with
-  no warning or transport event; the earlier 0.1.5 `ieee80211_do_stop`
-  incident remains recorded but is not reproduced by the serialized method.
 - [ ] Separate the multicast fault that follows physical adapter `…08:c1`
   across the `1-1.4`/`1-1.1` port swap from its attached antenna: exchange
   detachable antennas or test a known-good third RTL8812AU. The A/B swap
@@ -38,6 +34,9 @@
 
 - [x] Run the exact-source `W=1`/DKMS build-only gate, install, load, and
   provenance-check production DKMS 0.1.5 on the exact Raspberry Pi kernel.
+- [x] Pass the exact 0.1.6 serialized mesh leave/down/up lifecycle gate for
+  20/20 cycles with peer-table quiescence, cold traffic, multicast, HWMP, and
+  no warning or transport event.
 - [x] Prove disposable 0.1.5 TX pre-submit ownership, forced aggregate cleanup,
   and post-status no-false-ACK behavior with deterministic `-EPROTO` faults.
 - [x] Prove Linux USB-core serialization of active TX completion before driver

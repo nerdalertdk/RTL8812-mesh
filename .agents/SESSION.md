@@ -15,9 +15,9 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   capacity recovery, TX ownership/error reporting, and TX URB teardown.
 - RTL8812AU no longer advertises nl80211 per-chain antenna selection because
   its chip operation is absent; fixed 2T2R operation remains unchanged.
-- The deployed evidence package is 0.1.5. The current source has the later
-  antenna-capability correction and is now versioned as the unbuilt 0.1.6
-  candidate so provenance cannot conflate it with 0.1.5.
+- The current source carries the later antenna-capability correction as DKMS
+  0.1.6. It is exact-kernel built, installed, loaded, provenance-checked, and
+  partially runtime-qualified; remaining release gates are recorded below.
 - The package boundary is exactly `rtw_core`, `rtw_usb`, `rtw_88xxa`,
   `rtw_8812a`, and `rtw_8812au`.
 - Downstream nine-patch and pinned wireless-next nine-patch series reproduce
@@ -51,11 +51,11 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   primary cause but requires an antenna exchange or third adapter to separate
   card from antenna; see
   `tests/results/2026-08-12-adapter-swap-multicast-isolation.md`.
-- A serialized 0.1.6 mesh lifecycle cycle now waits for both mesh station
-  tables to quiesce and then settles before netdev down/up. It re-established
-  in 130 ms and passed bidirectional cold traffic, multicast, and HWMP with
-  no fresh warning or transport event. Multi-cycle 0.1.6 churn remains open;
-  see `tests/results/2026-08-12-serialized-mesh-lifecycle-0.1.6.md`.
+- The serialized 0.1.6 mesh lifecycle gate waits for both mesh station tables
+  to quiesce and then settles before netdev down/up. Its strict 20-cycle run
+  passed 20/20 joins, cold contacts, multicast checks, and HWMP paths in 169 s
+  (117--133 ms peering), with no fresh warning or transport event; see
+  `tests/results/2026-08-12-serialized-mesh-lifecycle-0.1.6.md`.
 
 ## Behavioral evidence
 
