@@ -17,7 +17,7 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   its chip operation is absent; fixed 2T2R operation remains unchanged.
 - The package boundary is exactly `rtw_core`, `rtw_usb`, `rtw_88xxa`,
   `rtw_8812a`, and `rtw_8812au`.
-- Downstream eight-patch and pinned wireless-next eight-patch series reproduce
+- Downstream nine-patch and pinned wireless-next nine-patch series reproduce
   the validated four-file final source exactly.
 - A separate pinned current-mainline TX-only series captures only TX changes
   not already present in its target tree.
@@ -90,11 +90,16 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   alone does not explain the loss. A valid physical-role reversal then delivered
   393/400 to `fc:22:1c:30:08:c1` / USB path `1-1.2` but 399/400 to the other
   adapter, excluding root-namespace role and locating the issue to that
-  receiver-specific physical path (not yet distinguished between adapter/RF and
-  hub branch). A restored-topology 200-frame repeat delivered 197/200 into the
-  same receiver. The exposed `rx_dropped` statistic rises symmetrically and is
-  not a valid attribution counter. This blocks multicast qualification; the
-  next isolation is a physical USB-port swap; see
+  receiver-specific physical path. After physically swapping the adapters, the
+  first complete 400-frame probe delivered 395/400 into `…0d:8b` now on USB
+  branch `1-1.2`, but 400/400 into `…08:c1` now on `1-1.4`; the independent
+  repeat delivered 381/400 and 398/400 respectively. Neither had a transport
+  event or throttle bit. This rules out a stable individual-adapter or namespace
+  cause and points to the `1-1.2` shared physical/RF/hub environment, though
+  it does not prove a receive-only failure. The exposed `rx_dropped` statistic
+  rises symmetrically and is not a valid attribution counter. Multicast
+  qualification remains blocked pending a direct or independently powered
+  physical-path test; see
   `tests/results/2026-08-11-production-multicast-regression.md`.
 
 ## Source 0.1.5 completed evidence

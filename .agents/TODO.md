@@ -2,11 +2,11 @@
 
 ## In progress
 
-- [ ] Isolate reproducible production 0.1.5 receiver-specific multicast loss:
-  it follows adapter `fc:22:1c:30:08:c1` / USB path `1-1.2` across namespace
-  role reversal (393/400 received), but has not yet been separated from that
-  adapter's RF/antenna path or USB hub branch. Physically swap USB ports and
-  repeat the sender-confirmed probe before closing multicast qualification.
+- [ ] Confirm and isolate production 0.1.5 multicast loss on USB hub branch
+  `1-1.2`: post-swap runs delivered 395/400 then 381/400 into `…0d:8b` on
+  `1-1.2`, versus 400/400 then 398/400 into `…08:c1` on `1-1.4`, with no
+  transport event. Test a direct or independently powered path before closing
+  multicast qualification or attributing a driver fault.
 - [ ] Restore exact production 0.1.5 and repeat strict open churn, HWMP,
   multicast, SAE/AMPE, checksummed transfer, and bounded endurance gates.
 

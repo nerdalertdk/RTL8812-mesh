@@ -87,3 +87,27 @@ for `…08:c1` (phy1) last-sampled per-chain RSSI of `-88/-72` dBm and CCK
 `…08:c1`, but it is only a point-in-time debug snapshot: these fields are not
 per-probe packet accounting and do not establish cause. The physical port swap
 remains the required discriminating test.
+
+## Physical USB-port swap
+
+The two RTL8812AU adapters were then physically exchanged between their existing
+hub branches, with their permanent MAC identities preserved. The normal logical
+topology was restored before testing: `…08:c1` was root on USB path `1-1.4`,
+and `…0d:8b` was the namespace peer on USB path `1-1.2`. Exact production
+DKMS 0.1.5 provenance passed before the probe.
+
+The first complete post-swap 400-frame run (`20260812T054519Z`) delivered
+395/400 from `…08:c1` to `…0d:8b` (the receiver now on `1-1.2`) and 400/400
+in the opposite direction (receiver `…08:c1` on `1-1.4`). The independent
+repeat (`20260812T054752Z`) delivered 381/400 into `…0d:8b` on `1-1.2` and
+398/400 in the reverse direction. Neither interval had a kernel USB/rtw88
+transport event or a current throttle bit.
+
+Together, the swap removes the individual `…08:c1` adapter and mesh namespace
+role as stable explanations. The higher loss remains toward the radio on hub
+branch `1-1.2`, but the second run's two reverse-direction losses mean this is
+not proof that receive processing alone fails on that branch. The evidence
+instead points to the shared physical topology/RF environment of `1-1.2` and
+does not support an RTL8812AU mesh data-path attribution. A direct or
+independently powered USB-path control is required before treating the physical
+path attribution as confirmed.
