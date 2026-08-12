@@ -58,6 +58,12 @@ hard-killed run cannot inherit an older clean verdict. This also avoids relying
 on `After=` to wait for a service that was already active when a dependent unit
 was queued.
 
+On Raspberry Pi, the soak snapshots the `vcgencmd get_throttled` latched bits
+at start. Pre-existing latched history is retained in the log but does not
+invalidate new evidence; any active power condition or a bit newly latched
+during the measured interval invalidates the run. This separates an old power
+incident from a fault observed while testing the driver.
+
 `pi_post_soak_dkms_build.sh` is a build-only continuation gate. Before waiting,
 it requires an exact finalizer invocation, an empty dedicated transfer-result
 directory, an unchanged source manifest, and an absent DKMS target version.

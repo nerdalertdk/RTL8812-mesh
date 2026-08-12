@@ -114,6 +114,20 @@ read_throttled()
 		sed -n 's/^throttled=//p' || true
 }
 
+throttle_masks()
+{
+	# Raspberry Pi reports current conditions in bits 0--3 and conditions
+	# latched since boot in bits 16--19. A pre-existing latched bit is history,
+	# while an active condition or newly latched bit belongs to this run.
+	case $1 in
+		0x[0-9A-Fa-f]*) ;;
+		*) return 1 ;;
+	esac
+	throttle_value=$(( $1 ))
+	throttle_current=$((throttle_value & 0xf))
+	throttle_latched=$((throttle_value & 0xf0000))
+}
+
 open_topology_ready()
 {
 	root_if=$1
@@ -317,7 +331,12 @@ summary_requires_review()
 	[ "$recovery_windows" -ne 0 ] || [ "$kernel_events" -ne 0 ]
 }
 
-log_event "event=start duration_seconds=$DURATION_SECONDS poll_seconds=$POLL_SECONDS transfer_seconds=$TRANSFER_SECONDS transfer_mib=$TRANSFER_MIB"
+throttled_at_start=$(read_throttled)
+initial_throttle_latched=unavailable
+if throttle_masks "$throttled_at_start"; then
+	initial_throttle_latched=$throttle_latched
+fi
+log_event "event=start duration_seconds=$DURATION_SECONDS poll_seconds=$POLL_SECONDS transfer_seconds=$TRANSFER_SECONDS transfer_mib=$TRANSFER_MIB throttled_at_start=${throttled_at_start:-unavailable} initial_throttle_latched=$initial_throttle_latched"
 
 if ! command -v flock >/dev/null 2>&1; then
 	log_event "event=blocked reason=flock-missing"
@@ -391,7 +410,20 @@ while [ "$(date +%s)" -lt "$end_epoch" ]; do
 		fi
 		temp_millic=$(read_temp_millic)
 		throttled=$(read_throttled)
-		log_event "event=state result=$state root_if=$root_if peer_if=$peer_if root_plink=${root_plink:-none} peer_plink=${peer_plink:-none} root_paths=$root_paths peer_paths=$peer_paths temp_millic=${temp_millic:-unavailable} throttled=${throttled:-unavailable}"
+		throttle_current=unavailable
+		throttle_new_latched=unavailable
+		if throttle_masks "$throttled"; then
+			if [ "$initial_throttle_latched" != unavailable ]; then
+				throttle_new_latched=$((throttle_latched & ~initial_throttle_latched))
+			fi
+		fi
+		log_event "event=state result=$state root_if=$root_if peer_if=$peer_if root_plink=${root_plink:-none} peer_plink=${peer_plink:-none} root_paths=$root_paths peer_paths=$peer_paths temp_millic=${temp_millic:-unavailable} throttled=${throttled:-unavailable} throttle_current=$throttle_current throttle_new_latched=$throttle_new_latched"
+		if { [ "$throttle_current" != unavailable ] && [ "$throttle_current" -ne 0 ]; } ||
+		   { [ "$throttle_new_latched" != unavailable ] && [ "$throttle_new_latched" -ne 0 ]; }; then
+			log_event "event=invalid reason=power-flag throttled=${throttled:-unavailable} throttle_current=$throttle_current throttle_new_latched=$throttle_new_latched"
+			write_summary
+			exit 75
+		fi
 		case "$temp_millic" in
 			*[!0-9]*|'') ;;
 			*)
