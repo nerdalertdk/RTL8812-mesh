@@ -221,6 +221,12 @@ which handles devices initially presenting as CD-ROM storage.
 
 ## Tests
 
+The churn gate serializes mesh teardown: it waits until both mesh station
+tables have quiesced after `iw ... mesh leave`, then applies a short settle
+interval before bringing either netdev down. Do not replace this with an
+immediate leave/down sequence; that can race mac80211 teardown and is not a
+meaningful driver lifecycle result.
+
 See [tests/README.md](tests/README.md). Hardware scripts require explicit
 `ROOT_MAC` and `PEER_MAC` values and otherwise use the documented test network
 namespace defaults; no development adapter identities are embedded.

@@ -51,6 +51,11 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   primary cause but requires an antenna exchange or third adapter to separate
   card from antenna; see
   `tests/results/2026-08-12-adapter-swap-multicast-isolation.md`.
+- A serialized 0.1.6 mesh lifecycle cycle now waits for both mesh station
+  tables to quiesce and then settles before netdev down/up. It re-established
+  in 130 ms and passed bidirectional cold traffic, multicast, and HWMP with
+  no fresh warning or transport event. Multi-cycle 0.1.6 churn remains open;
+  see `tests/results/2026-08-12-serialized-mesh-lifecycle-0.1.6.md`.
 
 ## Behavioral evidence
 

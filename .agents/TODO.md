@@ -5,10 +5,10 @@
 - [ ] Build, install, provenance-check, and regress the distinct 0.1.6 package
   containing the correction that stops unsupported per-chain antenna selection
   from being advertised.
-- [ ] Diagnose the 2026-08-12 mac80211 `ieee80211_do_stop` warning triggered
-  while taking a 0.1.5 mesh interface down, recover the USB-bound/no-PHY peer
-  on `1-1.1`, and establish a warning-free controlled reload procedure before
-  attempting 0.1.6 runtime qualification.
+- [ ] Repeat the serialized mesh leave/down/up lifecycle gate across
+  multi-cycle current-source 0.1.6 churn. One 2026-08-12 cycle passed with
+  no warning or transport event; the earlier 0.1.5 `ieee80211_do_stop`
+  incident remains recorded but is not reproduced by the serialized method.
 - [ ] Separate the multicast fault that follows physical adapter `…08:c1`
   across the `1-1.4`/`1-1.1` port swap from its attached antenna: exchange
   detachable antennas or test a known-good third RTL8812AU. The A/B swap

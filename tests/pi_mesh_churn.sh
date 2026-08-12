@@ -26,6 +26,8 @@ ROOT_MAC=${ROOT_MAC:?set ROOT_MAC to the primary adapter MAC}
 PEER_MAC=${PEER_MAC:?set PEER_MAC to the peer adapter MAC}
 CYCLES=${CYCLES:-20}
 ESTAB_POLLS=${ESTAB_POLLS:-100}
+LEAVE_POLLS=${LEAVE_POLLS:-50}
+LEAVE_SETTLE_SECS=${LEAVE_SETTLE_SECS:-1}
 ROOT_DRIVER=${ROOT_DRIVER:-rtw_8812au}
 PEER_DRIVER=${PEER_DRIVER:-}
 
@@ -74,9 +76,17 @@ if [ -n "$PEER_DRIVER" ] && [ "$peer_driver" != "$PEER_DRIVER" ]; then
 	exit 2
 fi
 
-case $CYCLES in
-	*[!0-9]*|''|0) echo "CYCLES must be a positive integer" >&2; exit 2 ;;
-esac
+for value in "$CYCLES" "$ESTAB_POLLS" "$LEAVE_POLLS" "$LEAVE_SETTLE_SECS"; do
+	case $value in
+		*[!0-9]*|'') echo "cycle and poll values must be non-negative integers" >&2; exit 2 ;;
+	esac
+done
+for value in "$CYCLES" "$ESTAB_POLLS" "$LEAVE_POLLS"; do
+	[ "$value" -gt 0 ] || {
+		echo "CYCLES, ESTAB_POLLS, and LEAVE_POLLS must be positive" >&2
+		exit 2
+	}
+done
 
 is_established()
 {
@@ -98,6 +108,24 @@ join_cycle()
 {
 	$IW dev "$ROOT_IF" mesh leave 2>/dev/null || true
 	ns $IW dev "$PEER_IF" mesh leave 2>/dev/null || true
+
+	# mesh leave is synchronous from nl80211's perspective, but allow the
+	# peer station entries and mac80211 work to quiesce before netdev stop.
+	# This makes the down/up portion an independent lifecycle check rather
+	# than racing it against mesh teardown.
+	poll=0
+	while $IW dev "$ROOT_IF" station dump | grep -q 'mesh plink:' ||
+	      ns $IW dev "$PEER_IF" station dump | grep -q 'mesh plink:'; do
+		poll=$((poll + 1))
+		if [ "$poll" -ge "$LEAVE_POLLS" ]; then
+			echo MESH_LEAVE_TIMEOUT
+			return 1
+		fi
+		sleep 0.1
+	done
+	if [ "$LEAVE_SETTLE_SECS" -gt 0 ]; then
+		sleep "$LEAVE_SETTLE_SECS"
+	fi
 	ip link set "$ROOT_IF" down
 	ns ip link set "$PEER_IF" down
 	sleep 1
