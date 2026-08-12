@@ -63,6 +63,10 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   (fresh bilateral peering, cold traffic, multicast reachability, HWMP, clean
   kernel interval) and restored channel 1 afterward; see
   `tests/results/2026-08-12-2ghz-ht20-channel-sweep-0.1.6.md`.
+- A legal channel-13 HT40− smoke passed open peering, HWMP, and one serialized
+  lifecycle cycle with a clean kernel interval, then restored HT20. Full HT40
+  qualification remains open; see
+  `tests/results/2026-08-12-2ghz-ht40minus-smoke-0.1.6.md`.
 - The serialized 0.1.6 mesh lifecycle gate waits for both mesh station tables
   to quiesce and then settles before netdev down/up. Its strict 20-cycle run
   passed 20/20 joins, cold contacts, multicast checks, and HWMP paths in 169 s

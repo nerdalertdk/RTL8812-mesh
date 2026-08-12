@@ -18,7 +18,8 @@
   2.4 GHz HT20 release profile, subject to the active regulatory domain and
   DFS requirements. 0.1.6 passed a non-DFS channel-149 5 GHz HT20 smoke;
   its quantitative multicast, security, transfer, and multi-cycle gates remain;
-  a channel-149/153 5 GHz HT40+ smoke also passes but is not full qualification.
+  a channel-149/153 5 GHz HT40+ and channel-13 HT40− smoke also pass but are
+  not full qualification.
 
 ## Pending hardware gates
 
