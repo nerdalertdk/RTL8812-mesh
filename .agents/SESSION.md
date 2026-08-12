@@ -61,6 +61,10 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   transport event, and the test restored 2.4 GHz HT20 afterward. This is not
   full 5 GHz qualification; see
   `tests/results/2026-08-12-5ghz-ht20-smoke-0.1.6.md`.
+- A matching channel-149/153 5 GHz HT40+ smoke passed open peering, HWMP, and
+  one serialized lifecycle cycle with a clean kernel interval, then restored
+  the 2.4 GHz profile. Full 5 GHz HT40 qualification remains open; see
+  `tests/results/2026-08-12-5ghz-ht40plus-smoke-0.1.6.md`.
 
 ## Behavioral evidence
 
