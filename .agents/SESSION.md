@@ -122,6 +122,10 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
 - A standalone current-source 512 MiB open transfer passed SHA-256 in both
   directions at 5.23 and 6.86 MB/s with reciprocal postflight HWMP and zero
   kernel transport event.
+- A current-source DKMS 0.1.5 bounded 30-minute soak completed 37/37
+  established-state samples, 74/74 ping batches, and six checksum-verified
+  transfers with zero recovery, invalidation, transport event, or throttling;
+  see `tests/results/2026-08-12-production-0.1.5-bounded-soak.md`.
 - The activation interval included an un-attributable Pi reboot with no
   persistent prior journal and a historical soft-temperature bit.  It is not
   physical USB qualification evidence; see

@@ -10,10 +10,10 @@
   the `1-1.2` post-swap runs delivered 395/400 then 381/400 into `…0d:8b`.
   This strongly localizes the issue to `1-1.2`; repeat across direct/powered
   paths before closing qualification or attributing a driver fault.
-- [ ] Complete current-source 0.1.5 bounded/long-duration endurance gates.
-  Strict open churn/HWMP/multicast, SAE/AMPE plus 32 MiB secured transfer, and
-  a 512 MiB bidirectional checksum-verified open transfer now pass on
-  `1-1.1`/`1-1.4`.
+- [ ] Complete a thermally clean long-duration current-source endurance gate.
+  The 30-minute bounded 0.1.5 soak now passes on `1-1.1`/`1-1.4`; strict open
+  churn/HWMP/multicast, SAE/AMPE plus 32 MiB secured transfer, and a 512 MiB
+  bidirectional checksum-verified open transfer also pass there.
 - [ ] Qualify 2.4 GHz HT40 and 5 GHz HT20/HT40 separately from the core
   2.4 GHz HT20 release profile, subject to the active regulatory domain and
   DFS requirements.
