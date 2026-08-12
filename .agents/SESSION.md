@@ -37,8 +37,10 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   checksum transfer with no fresh warning or transport event. Both PHYs now
   expose zero selectable antenna masks, as intended. Two 400-frame group
   probes nevertheless delivered 391/400 then 394/400 root-to-peer to
-  `1-1.1`, while reverse delivery was 400/400 and no transport event occurred;
-  this is a failing, un-attributed 0.1.6 group-traffic gate. See
+  `1-1.1`, while reverse delivery was 400/400 and no transport event occurred.
+  A capture-valid 5 Hz diagnostic also delivered only 191/200 root-to-peer
+  while reverse delivery was 200/200. This is a failing, un-attributed 0.1.6
+  group-traffic gate. See
   `tests/results/2026-08-12-dkms-0.1.6-build-load-smoke.md`.
 
 ## Behavioral evidence
