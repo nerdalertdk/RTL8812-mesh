@@ -49,6 +49,8 @@
   multicast, and channels 1--13 HT20 with two RTL8812AU peers.
 - [x] Validate symmetric SAE/AMPE, protected traffic, group traffic, and HWMP
   using the mesh software-crypto fallback.
+- [x] Requalify exact 0.1.6 SAE/AMPE and bidirectional 32 MiB checksum
+  transfer on the validated HT20 topology, including provenance-safe recovery.
 - [x] Validate strict churn, checksummed 512 MiB transfers, and prior-build
   bounded/eight-hour endurance.
 - [x] Add bounded USB control-read retry, RX completion resubmission, RX submit

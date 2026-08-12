@@ -25,6 +25,7 @@ PEER_DRIVER=${PEER_DRIVER:-}
 PEER_DRIVER_ID=${PEER_DRIVER_ID:-}
 TRANSFER_TEST=${TRANSFER_TEST:-}
 SECURE_FILE_MIB=${SECURE_FILE_MIB:-32}
+EXPECTED_VERSION=${EXPECTED_VERSION:?set EXPECTED_VERSION to the exact DKMS package version}
 start_epoch=$(date +%s)
 
 [ "$(id -u)" -eq 0 ] || { echo "run this hardware test as root" >&2; exit 2; }
@@ -51,6 +52,7 @@ root_pid=
 peer_pid=
 capture_pid=
 topology_changed=0
+recovery_failed=0
 capture_kernel()
 {
 	journalctl -k --since "@$start_epoch" --no-pager >"$KERNEL_LOG" 2>&1 || true
@@ -81,7 +83,8 @@ cleanup()
 	# after mesh leave/join; reset only that peer driver if ordinary recovery
 	# cannot restore the open test topology.
 	flock -u 9
-	if ! [ -x "$OPEN_RECOVERY_HELPER" ] || ! "$OPEN_RECOVERY_HELPER"; then
+	if ! [ -x "$OPEN_RECOVERY_HELPER" ] ||
+	   ! EXPECTED_VERSION="$EXPECTED_VERSION" "$OPEN_RECOVERY_HELPER"; then
 		unbind=/sys/bus/usb/drivers/$PEER_DRIVER/unbind
 		bind=/sys/bus/usb/drivers/$PEER_DRIVER/bind
 		if [ -n "$PEER_DRIVER" ] && [ -n "$PEER_DRIVER_ID" ] &&
@@ -89,7 +92,12 @@ cleanup()
 			printf '%s' "$PEER_DRIVER_ID" >"$unbind"
 			sleep 2
 			printf '%s' "$PEER_DRIVER_ID" >"$bind"
-			[ ! -x "$OPEN_RECOVERY_HELPER" ] || "$OPEN_RECOVERY_HELPER" || true
+			if [ -x "$OPEN_RECOVERY_HELPER" ] &&
+			   ! EXPECTED_VERSION="$EXPECTED_VERSION" "$OPEN_RECOVERY_HELPER"; then
+				recovery_failed=1
+			fi
+		else
+			recovery_failed=1
 		fi
 	fi
 }
@@ -266,6 +274,10 @@ fi
 echo LOGS "$ROOT_LOG" "$PEER_LOG"
 
 cleanup
+if [ "$recovery_failed" -ne 0 ]; then
+	echo "open mesh recovery failed after secured test" >&2
+	exit 1
+fi
 transport_events=$(grep -Eic 'error -71|EPROTO|over.?current|under.?voltage|usb .*disconnect|usb .*reset|recoverable RX URB|transient RX URB submit error|USB TX URB error|read register .* (recovered|failed)|write register .* failed' \
 	"$KERNEL_LOG" || true)
 echo "KERNEL_LOG $KERNEL_LOG transport_events=$transport_events"

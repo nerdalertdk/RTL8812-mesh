@@ -136,6 +136,9 @@ size with `SECURE_FILE_MIB` (default 32 MiB). `ROOT_DRIVER` defaults to
 result cannot accidentally be attributed to the experimental fixture. The
 optional `PEER_DRIVER_ID` unbind fallback is only for a specifically identified
 test adapter and is disabled by default.
+Set `EXPECTED_VERSION` to the exact DKMS package version. The secured gate
+passes that value to its open-mesh recovery helper and fails closed if it cannot
+restore the provenance-checked open topology after the secured interval.
 Test supplicants are launched with directly tracked PIDs; an exact
 test-specific process already present causes exit 75 rather than duplicate
 nl80211 frame registration or unsafe process cleanup.
