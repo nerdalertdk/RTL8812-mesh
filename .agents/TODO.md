@@ -2,11 +2,11 @@
 
 ## In progress
 
-- [ ] Confirm and isolate production 0.1.5 multicast loss on USB hub branch
-  `1-1.2`: post-swap runs delivered 395/400 then 381/400 into `…0d:8b` on
-  `1-1.2`, versus 400/400 then 398/400 into `…08:c1` on `1-1.4`, with no
-  transport event. Test a direct or independently powered path before closing
-  multicast qualification or attributing a driver fault.
+- [ ] Complete the physical USB-path matrix. The multicast control now passes
+  399/400 into `…0d:8b` on `1-1.1` and 400/400 into `…08:c1` on `1-1.4`, while
+  the `1-1.2` post-swap runs delivered 395/400 then 381/400 into `…0d:8b`.
+  This strongly localizes the issue to `1-1.2`; repeat across direct/powered
+  paths before closing qualification or attributing a driver fault.
 - [ ] Restore exact production 0.1.5 and repeat strict open churn, HWMP,
   multicast, SAE/AMPE, checksummed transfer, and bounded endurance gates.
 - [ ] Qualify 2.4 GHz HT40 and 5 GHz HT20/HT40 separately from the core

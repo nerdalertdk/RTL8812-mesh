@@ -111,3 +111,18 @@ instead points to the shared physical topology/RF environment of `1-1.2` and
 does not support an RTL8812AU mesh data-path attribution. A direct or
 independently powered USB-path control is required before treating the physical
 path attribution as confirmed.
+
+## Alternate internal-hub branch control
+
+The former `1-1.2` adapter (`…0d:8b`) was moved again, this time to branch
+`1-1.1`; `…08:c1` remained on `1-1.4`. The kernel identifies both as 480 Mb/s
+devices below the same four-port USB 2.0 hub at `1-1`. The standard MAC-based
+mesh topology and exact DKMS 0.1.5 provenance were restored before testing.
+
+The complete sender-captured run (`20260812T120252Z`) delivered 399/400 into
+`…0d:8b` on `1-1.1` and 400/400 into `…08:c1` on `1-1.4`, meeting the 99%
+gate with no USB/rtw88 transport event and `get_throttled=0x0`. This is a valid
+control that clears the quantitative multicast gate on the new branch and makes
+the earlier `1-1.2` association materially stronger. It does not replace the
+three-repetition direct/powered USB matrix or prove whether `1-1.2` is affected
+by its electrical path, local RF geometry, or another shared physical factor.

@@ -94,12 +94,13 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   first complete 400-frame probe delivered 395/400 into `…0d:8b` now on USB
   branch `1-1.2`, but 400/400 into `…08:c1` now on `1-1.4`; the independent
   repeat delivered 381/400 and 398/400 respectively. Neither had a transport
-  event or throttle bit. This rules out a stable individual-adapter or namespace
-  cause and points to the `1-1.2` shared physical/RF/hub environment, though
-  it does not prove a receive-only failure. The exposed `rx_dropped` statistic
-  rises symmetrically and is not a valid attribution counter. Multicast
-  qualification remains blocked pending a direct or independently powered
-  physical-path test; see
+  event or throttle bit. Moving `…0d:8b` again to `1-1.1` while retaining
+  `…08:c1` on `1-1.4` then passed 399/400 and 400/400 with zero transport
+  event. This rules out a stable individual-adapter or namespace cause and
+  strongly localizes the issue to the `1-1.2` shared physical/RF/hub
+  environment, though it does not prove a receive-only failure. The exposed
+  `rx_dropped` statistic rises symmetrically and is not a valid attribution
+  counter. One control does not close the direct/powered USB matrix; see
   `tests/results/2026-08-11-production-multicast-regression.md`.
 
 ## Source 0.1.5 completed evidence
