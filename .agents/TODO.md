@@ -9,6 +9,9 @@
   multicast qualification or attributing a driver fault.
 - [ ] Restore exact production 0.1.5 and repeat strict open churn, HWMP,
   multicast, SAE/AMPE, checksummed transfer, and bounded endurance gates.
+- [ ] Qualify 2.4 GHz HT40 and 5 GHz HT20/HT40 separately from the core
+  2.4 GHz HT20 release profile, subject to the active regulatory domain and
+  DFS requirements.
 
 ## Pending hardware gates
 
