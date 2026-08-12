@@ -21,14 +21,17 @@ jobs:
     container: debian:trixie
 
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
       - name: Install build dependencies
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             build-essential ca-certificates dkms git linux-headers-amd64 make
+
+      - name: Check out source and validation tags
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+          fetch-depth: 0
 
       - name: Verify source and patch series
         run: make check-static
