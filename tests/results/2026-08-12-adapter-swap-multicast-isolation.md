@@ -34,7 +34,10 @@ The post-swap probe's own kernel interval was clean.
 ## Conclusion
 
 The severe group-frame loss follows the `fc:22:1c:30:08:c1` physical unit or
-an antenna physically attached to it, not either tested USB branch. The test
-does not distinguish the adapter from its attached antenna, and it does not
-prove a driver defect. A detached-antenna exchange or a known-good third
-RTL8812AU is required to separate those two hardware causes.
+an antenna physically attached to it, not either tested USB branch. The later
+5 GHz 400-frame-per-direction control passed 400/400 in both directions with
+the same unit and USB branches, further limiting the fault to the 2.4 GHz RF
+path rather than generic USB transport or mesh-driver behavior. The test does
+not distinguish the adapter's 2.4 GHz radio path from its attached antenna or
+local 2.4 GHz environment. A detached-antenna exchange or a known-good third
+RTL8812AU is required to separate those hardware causes.

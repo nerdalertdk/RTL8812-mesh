@@ -5,10 +5,11 @@
 - [ ] Build, install, provenance-check, and regress the distinct 0.1.6 package
   containing the correction that stops unsupported per-chain antenna selection
   from being advertised.
-- [ ] Separate the multicast fault that follows physical adapter `…08:c1`
-  across the `1-1.4`/`1-1.1` port swap from its attached antenna: exchange
-  detachable antennas or test a known-good third RTL8812AU. The A/B swap
-  rules out both tested USB branches as the primary cause.
+- [ ] Separate the 2.4 GHz multicast fault that follows physical adapter
+  `…08:c1` across the `1-1.4`/`1-1.1` port swap from its antenna or local RF
+  environment: exchange detachable antennas or test a known-good third
+  RTL8812AU. The A/B swap and 5 GHz 400/400 control rule out the tested USB
+  branches and generic driver/USB transport as the primary cause.
 - [ ] Complete the physical USB-path matrix after separating the `…08:c1`
   adapter from its antenna. The latest direct A/B swap between `1-1.1` and
   `1-1.4` shows those two branches are not the primary cause of the severe
