@@ -36,6 +36,9 @@ the production release gate so mixed-peer evidence cannot close it.
 The summary link intentionally remains dangling until the current run writes a
 summary, preventing monitoring code from mistaking an older result for the
 active run.
+Every sampled directional ping batch must receive every requested reply. A
+partial batch is a workload failure even when the `ping` process itself exits
+zero; this avoids treating packet loss as a clean endurance result.
 Its exit status is 0 only for a clean functional and kernel interval, 1 for a
 workload failure, 4 for a functionally recovered transport/recovery event that
 requires causal review, and 75 when the topology evidence is invalid or busy.

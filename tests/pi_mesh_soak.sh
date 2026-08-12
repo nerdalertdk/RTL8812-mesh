@@ -136,9 +136,9 @@ open_topology_ready()
 	has_ipv4 peer "$peer_if" "$PEER_IP" || return 1
 	[ "$(mesh_mfp root "$root_if")" = no ] || return 1
 	[ "$(mesh_mfp peer "$peer_if")" = no ] || return 1
-	ping -I "$root_if" -c 3 -W 1 "$PEER_IP" >/dev/null 2>&1 || return 1
-	ip netns exec "$PEER_NS" ping -I "$peer_if" -c 3 -W 1 "$ROOT_IP" \
-		>/dev/null 2>&1 || return 1
+	ping_counts 3 ping -I "$root_if" -c 3 -W 1 "$PEER_IP" || return 1
+	ping_counts 3 ip netns exec "$PEER_NS" ping -I "$peer_if" -c 3 -W 1 \
+		"$ROOT_IP" || return 1
 	return 0
 }
 
@@ -190,21 +190,52 @@ ensure_servers()
 	fi
 }
 
+ping_counts()
+{
+	expected=$1
+	shift
+	ping_output=$("$@" 2>&1)
+	ping_status=$?
+	ping_result_counts=$(printf '%s\n' "$ping_output" |
+		awk -F, '/packets transmitted/ {
+			tx = $1;
+			rx = $2;
+			gsub(/^[[:space:]]+/, "", tx);
+			gsub(/^[[:space:]]+/, "", rx);
+			sub(/ packets transmitted.*/, "", tx);
+			sub(/ received.*/, "", rx);
+			if (tx ~ /^[0-9]+$/ && rx ~ /^[0-9]+$/)
+				print tx " " rx;
+			exit
+		}')
+	set -- $ping_result_counts
+	ping_transmitted=${1:-}
+	ping_received=${2:-}
+	if [ -z "$ping_transmitted" ] || [ -z "$ping_received" ] ||
+	   [ "$ping_status" -ne 0 ] || [ "$ping_transmitted" -ne "$expected" ] ||
+	   [ "$ping_received" -ne "$expected" ]; then
+		ping_status=1
+		return 1
+	fi
+	return 0
+}
+
 ping_batch()
 {
 	direction=$1
-	shift
-	output=$("$@" 2>&1)
-	status=$?
-	stats=$(printf '%s\n' "$output" |
-		awk -F, '/packets transmitted/ {
-			gsub(/^[[:space:]]+/, "", $1);
-			gsub(/^[[:space:]]+/, "", $2);
-			print $1 "," $2;
-			exit
-		}')
-	[ -n "$stats" ] || stats=unavailable
-	log_event "event=ping direction=$direction status=$status stats=$stats"
+	expected=$2
+	shift 2
+	if ping_counts "$expected" "$@"; then
+		:
+	else
+		:
+	fi
+	if [ -n "${ping_transmitted:-}" ] && [ -n "${ping_received:-}" ]; then
+		stats="$ping_transmitted packets transmitted,$ping_received received"
+	else
+		stats=unavailable
+	fi
+	log_event "event=ping direction=$direction status=$ping_status expected=$expected stats=$stats"
 }
 
 transfer_one_way()
@@ -434,8 +465,8 @@ while [ "$(date +%s)" -lt "$end_epoch" ]; do
 				fi
 				;;
 		esac
-		ping_batch root-to-peer ping -I "$root_if" -c 10 -W 1 "$PEER_IP"
-		ping_batch peer-to-root ip netns exec "$PEER_NS" ping -I "$peer_if" \
+		ping_batch root-to-peer 10 ping -I "$root_if" -c 10 -W 1 "$PEER_IP"
+		ping_batch peer-to-root 10 ip netns exec "$PEER_NS" ping -I "$peer_if" \
 			-c 10 -W 1 "$ROOT_IP"
 		now=$(date +%s)
 		if [ "$now" -ge "$next_transfer" ]; then
