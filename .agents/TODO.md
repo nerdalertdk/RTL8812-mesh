@@ -2,6 +2,9 @@
 
 ## In progress
 
+- [ ] Build, install, provenance-check, and regress the distinct 0.1.6 package
+  containing the correction that stops unsupported per-chain antenna selection
+  from being advertised.
 - [ ] Complete the physical USB-path matrix. The multicast control now passes
   399/400 into `…0d:8b` on `1-1.1` and 400/400 into `…08:c1` on `1-1.4`, while
   the `1-1.2` post-swap runs delivered 395/400 then 381/400 into `…0d:8b`.

@@ -121,8 +121,8 @@ From the repository root:
 ./scripts/check-loaded-rtw88-conflicts.sh
 sudo make install_fw
 sudo dkms add .
-sudo dkms build rtl8812au-mesh/0.1.5
-sudo dkms install --force rtl8812au-mesh/0.1.5
+sudo dkms build rtl8812au-mesh/0.1.6
+sudo dkms install --force rtl8812au-mesh/0.1.6
 sudo depmod -a
 ```
 
@@ -143,7 +143,7 @@ for a live root and skips it for an explicit `INSTALL_MOD_PATH` staging root.
 Remove the DKMS package with:
 
 ```sh
-sudo dkms remove rtl8812au-mesh/0.1.5 --all
+sudo dkms remove rtl8812au-mesh/0.1.6 --all
 ```
 
 ## Create an open mesh point

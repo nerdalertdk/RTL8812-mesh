@@ -15,6 +15,9 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   capacity recovery, TX ownership/error reporting, and TX URB teardown.
 - RTL8812AU no longer advertises nl80211 per-chain antenna selection because
   its chip operation is absent; fixed 2T2R operation remains unchanged.
+- The deployed evidence package is 0.1.5. The current source has the later
+  antenna-capability correction and is now versioned as the unbuilt 0.1.6
+  candidate so provenance cannot conflate it with 0.1.5.
 - The package boundary is exactly `rtw_core`, `rtw_usb`, `rtw_88xxa`,
   `rtw_8812a`, and `rtw_8812au`.
 - Downstream nine-patch and pinned wireless-next nine-patch series reproduce
