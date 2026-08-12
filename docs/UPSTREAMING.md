@@ -20,8 +20,8 @@ Verify the tag's four exact blob IDs and the current delta with:
 git diff upstream-baseline-a56bcd2 -- main.c mac80211.c usb.c usb.h
 ```
 
-The materialized eight-patch mail series is under `patches/`. Verify that it
-has coherent `1/8` through `8/8` subjects and filenames, applies in order with
+The materialized nine-patch mail series is under `patches/`. Verify that it
+has coherent `1/9` through `9/9` subjects and filenames, applies in order with
 strict whitespace handling, and reproduces the validated production files
 byte-for-byte with:
 
@@ -63,7 +63,7 @@ moves beyond the pinned commit.
 
 ## Current wireless-next series
 
-The complete eight-patch rebase is materialized under
+The complete nine-patch rebase is materialized under
 `patches/wireless-next/` at wireless-next head
 `ca800a9302764c445de0da0e84d2252400a770ee`, inspected on 2026-08-06.
 `scripts/check-wireless-next-series.sh` verifies the four exact baseline blobs,

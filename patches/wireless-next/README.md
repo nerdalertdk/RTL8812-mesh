@@ -2,7 +2,7 @@
 
 This directory pins the four affected rtw88 files from wireless-next commit
 `ca800a9302764c445de0da0e84d2252400a770ee`, inspected on 2026-08-06, and an
-eight-patch rebase of the complete production delta.
+nine-patch rebase of the complete production delta.
 
 The rebase intentionally differs from the downstream series where current
 wireless-next has changed:
@@ -15,7 +15,7 @@ wireless-next has changed:
 - TX ownership/error handling is applied after the control and RX changes.
 
 Run `scripts/check-wireless-next-series.sh` to verify all four baseline hashes,
-coherent `1/8` through `8/8` mail metadata, strict patch application, and all
+coherent `1/9` through `9/9` mail metadata, strict patch application, and all
 four final hashes. All generated patches pass Linux v6.12
 `checkpatch.pl --strict --no-tree --no-signoff` with zero errors, warnings, or
 checks. The neutral identity and omitted sign-off are intentional repository
