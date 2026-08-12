@@ -81,6 +81,9 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   one serialized lifecycle cycle with a clean kernel interval, then restored
   the 2.4 GHz profile. Full 5 GHz HT40 qualification remains open; see
   `tests/results/2026-08-12-5ghz-ht40plus-smoke-0.1.6.md`.
+- The same 5 GHz HT40+ profile passed sender-captured multicast 400/400 in
+  both directions with a clean kernel interval, then restored HT20; see
+  `tests/results/2026-08-12-5ghz-ht40plus-multicast-0.1.6.md`.
 
 ## Behavioral evidence
 
