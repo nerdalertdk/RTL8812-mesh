@@ -70,7 +70,8 @@ jobs:
           cp -a "$extract/${package}-${version}" "/usr/src/${package}-${version}"
           dkms add -m "$package" -v "$version"
           dkms build -m "$package" -v "$version" -k "$kernel"
-          build_dir="/var/lib/dkms/${package}/${version}/${kernel}/$(dpkg --print-architecture)/build"
+          build_dir=$(find "/var/lib/dkms/${package}/${version}" -type d -name build -print -quit)
+          test -n "$build_dir"
           test "$(find "$build_dir" -maxdepth 1 -name '*.ko' -type f | wc -l)" -eq 5
           mkdir -p dist/modules
           cp "$build_dir"/*.ko dist/modules/
