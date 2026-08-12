@@ -152,6 +152,8 @@ requests disabled HT40 and VHT: a 5 GHz `frequency` alone is insufficient to
 constrain wpa_supplicant mesh operation to HT20. Always verify the resulting
 channel width with `iw dev info` while the secured mesh is active, since the
 station-rate label may retain `VHT` even for 20 MHz operation.
+`wpa_sae_mesh_5ghz_ht40plus.conf` is the matching non-DFS channel-149/153
+HT40+ profile. Verify the active width with `iw dev info` during the run.
 optional `PEER_DRIVER_ID` unbind fallback is only for a specifically identified
 test adapter and is disabled by default.
 Set `EXPECTED_VERSION` to the exact DKMS package version. The secured gate

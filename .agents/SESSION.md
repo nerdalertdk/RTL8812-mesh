@@ -107,6 +107,11 @@ long-duration, physical USB-path, and remaining HT40/5 GHz behavioral gates.
   width-verified 20 MHz SAE/AMPE with protected 32 MiB transfers passed at the
   DK-enforced 13 dBm limit. The secured harness restored open channel-1 HT20;
   see `tests/results/2026-08-12-5ghz-ht20-full-0.1.6.md`.
+- Exact 0.1.6 also fully qualified non-DFS channel-149/153 HT40+: five churn
+  cycles, width-verified 40 MHz SAE/AMPE, 400/400 bidirectional multicast,
+  64 MiB open transfers, and protected 32 MiB transfers passed at the
+  DK-enforced 13 dBm limit. The secured harness restored open channel-1 HT20;
+  see `tests/results/2026-08-12-5ghz-ht40plus-full-0.1.6.md`.
 - A matching channel-149/153 5 GHz HT40+ smoke passed open peering, HWMP, and
   one serialized lifecycle cycle with a clean kernel interval, then restored
   the 2.4 GHz profile. Full 5 GHz HT40 qualification remains open; see

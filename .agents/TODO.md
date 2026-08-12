@@ -4,14 +4,6 @@
 
 - [ ] Complete a thermally clean long-duration current-source endurance gate.
   It must use the strict lossless-ping accounting now in the soak harness.
-- [ ] Qualify 5 GHz HT20/HT40 separately from the core 2.4 GHz release
-  profiles, subject to the active regulatory domain and DFS requirements.
-  Exact 0.1.6 fully qualified the legal 2.4 GHz channel-13 HT40− profile.
-  DFS channel 100 HT20 is unavailable because the current driver does not
-  expose radar detection; it fully qualified non-DFS channel-149 5 GHz HT20;
-  its quantitative multicast, security, transfer, and multi-cycle gates remain;
-  a channel-149/153 5 GHz HT40+ and channel-13 HT40− smoke also pass but are
-  not full qualification.
 
 ## Parked non-mesh follow-up
 
