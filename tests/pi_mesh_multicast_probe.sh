@@ -26,6 +26,19 @@ for value in "$ROUNDS" "$PACKETS" "$CAPTURE_TIMEOUT" "$MIN_DELIVERY_PERCENT"; do
 done
 [ "$MIN_DELIVERY_PERCENT" -le 100 ] || { echo "MIN_DELIVERY_PERCENT must be <= 100" >&2; exit 2; }
 
+# A capture that expires during its own configured packet burst cannot prove
+# sender delivery. Leave one full second of slack for process scheduling and
+# require callers using a slower interval to increase CAPTURE_TIMEOUT.
+min_capture_timeout=$(awk -v packets="$PACKETS" -v interval="$INTERVAL" 'BEGIN {
+	if (interval !~ /^[0-9]+([.][0-9]+)?$/ || interval <= 0)
+		exit 1
+	printf "%d\n", int(packets * interval) + 2
+}') || { echo "INTERVAL must be a positive decimal number" >&2; exit 2; }
+[ "$CAPTURE_TIMEOUT" -ge "$min_capture_timeout" ] || {
+	echo "CAPTURE_TIMEOUT=$CAPTURE_TIMEOUT is too short for PACKETS=$PACKETS INTERVAL=$INTERVAL; need >= $min_capture_timeout" >&2
+	exit 2
+}
+
 command -v flock >/dev/null 2>&1 || { echo "flock is required" >&2; exit 2; }
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
