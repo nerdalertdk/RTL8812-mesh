@@ -72,6 +72,9 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   and 32 MiB checksummed transfers in both directions. The corrected harness
   then provenance-safely restored open HT20; see
   `tests/results/2026-08-12-secure-mesh-0.1.6.md`.
+- Exact 0.1.6 passed the open 512 MiB checksum transfer in both directions
+  (5.04/7.01 MB/s), with matching SHA-256, reciprocal HWMP, and no transport
+  event; see `tests/results/2026-08-12-open-transfer-0.1.6.md`.
 - The serialized 0.1.6 mesh lifecycle gate waits for both mesh station tables
   to quiesce and then settles before netdev down/up. Its strict 20-cycle run
   passed 20/20 joins, cold contacts, multicast checks, and HWMP paths in 169 s

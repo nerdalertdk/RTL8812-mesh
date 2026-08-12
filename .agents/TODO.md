@@ -53,6 +53,8 @@
   transfer on the validated HT20 topology, including provenance-safe recovery.
 - [x] Validate strict churn, checksummed 512 MiB transfers, and prior-build
   bounded/eight-hour endurance.
+- [x] Requalify exact 0.1.6 open bidirectional 512 MiB checksum transfer on
+  the validated HT20 topology with reciprocal HWMP and clean transport interval.
 - [x] Add bounded USB control-read retry, RX completion resubmission, RX submit
   retry, and synchronized RX teardown.
 - [x] Add automatic version/provenance-safe topology reconstruction after USB
