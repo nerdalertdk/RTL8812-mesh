@@ -9,11 +9,10 @@
   while taking a 0.1.5 mesh interface down, recover the USB-bound/no-PHY peer
   on `1-1.1`, and establish a warning-free controlled reload procedure before
   attempting 0.1.6 runtime qualification.
-- [ ] Diagnose reproducible 0.1.6 root-to-peer multicast loss on validated
-  branches `1-1.4` to `1-1.1` (391/400 then 394/400 at 20 Hz and 191/200 at
-  5 Hz; reverse 400/400 and 200/200; zero transport event) without attributing
-  it to driver, USB, power, or RF before controlled evidence separates those
-  causes.
+- [ ] Separate the multicast fault that follows physical adapter `…08:c1`
+  across the `1-1.4`/`1-1.1` port swap from its attached antenna: exchange
+  detachable antennas or test a known-good third RTL8812AU. The A/B swap
+  rules out both tested USB branches as the primary cause.
 - [ ] Complete the physical USB-path matrix. The multicast control now passes
   399/400 into `…0d:8b` on `1-1.1` and 400/400 into `…08:c1` on `1-1.4`, while
   the `1-1.2` post-swap runs delivered 395/400 then 381/400 into `…0d:8b`.

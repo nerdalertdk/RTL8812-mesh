@@ -42,6 +42,14 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   while reverse delivery was 200/200. This is a failing, un-attributed 0.1.6
   group-traffic gate. See
   `tests/results/2026-08-12-dkms-0.1.6-build-load-smoke.md`.
+- A physical port swap then isolated the severe group-frame loss to physical
+  unit `fc:22:1c:30:08:c1` or its attached antenna: its sender capture fell
+  from 391/400 and 394/400 on `1-1.4` to 333/400 on `1-1.1`; the other unit
+  delivered 395/400 from the swapped `1-1.4` port. The clean post-swap probe
+  had zero transport event. This rules out both tested USB branches as the
+  primary cause but requires an antenna exchange or third adapter to separate
+  card from antenna; see
+  `tests/results/2026-08-12-adapter-swap-multicast-isolation.md`.
 
 ## Behavioral evidence
 
