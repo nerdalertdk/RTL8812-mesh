@@ -152,6 +152,11 @@ GitHub tag releases contain:
 Use DKMS to build on the target kernel and architecture; do not install the CI
 AMD64 modules on another kernel or architecture.
 
+Pushing a matching `vX.Y.Z` tag publishes a release. If Actions were disabled
+when a tag was pushed, enable Actions with **Read and write permissions** for
+workflows, open **Actions → Build and release → Run workflow**, and enter the
+existing tag (for example `v0.1.6`) in **release_tag**.
+
 Run repository-only checks without touching hardware:
 
 ```sh
