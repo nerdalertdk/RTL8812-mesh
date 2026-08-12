@@ -63,6 +63,21 @@ sudo depmod -a
 sudo modprobe rtw_8812au
 ```
 
+### Switch from an existing driver
+
+Do not remove the distribution kernel modules or alter the kernel source.
+Remove or disable any separate vendor `8812au` DKMS driver that already owns
+the adapter, then install this package normally. Rebooting is the safest way
+to switch module stacks.
+
+Without rebooting, and only when no other device uses an `rtw_*` module from a
+different source revision, unload the matching stack before loading this one:
+
+```sh
+sudo modprobe -r rtw_8812au rtw_8812a rtw_88xxa rtw_usb rtw_core
+sudo modprobe rtw_8812au
+```
+
 Confirm the selected driver and mesh capability:
 
 ```sh
