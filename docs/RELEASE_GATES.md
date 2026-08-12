@@ -3,6 +3,8 @@
 This matrix defines the evidence required before the Debian driver can be
 called robust for native IEEE 802.11s. A passing mixed-adapter result is useful
 regression evidence, but cannot substitute for an RTL8812AU-to-RTL8812AU gate.
+Generic USB fault-injection and physical-path rows are retained as historical
+driver-hardening evidence, but are parked outside the active mesh-support scope.
 
 | Requirement | Required evidence | Current evidence | Status |
 | --- | --- | --- | --- |
@@ -17,19 +19,19 @@ regression evidence, but cannot substitute for an RTL8812AU-to-RTL8812AU gate.
 | 2.4 GHz HT40 compatibility | Where regulatory domain, channel pairing, and coexistence rules permit it: open peering, HWMP, sender-captured multicast, SAE/AMPE, transfer, and short churn with two RTL8812AU peers | Exact 0.1.6 smoke passed open bilateral peering/HWMP and one serialized lifecycle cycle on legal channel-13 HT40− with a clean kernel interval; quantitative multicast, security, transfer, and multi-cycle coverage remain | Smoke pass; full gate pending |
 | 5 GHz HT20 compatibility | Open peering, HWMP, sender-captured multicast, SAE/AMPE, transfer, and short churn on permitted 5 GHz channels with two RTL8812AU peers | Exact 0.1.6 passed open bilateral peering/HWMP, one serialized churn cycle, and quantitative sender-captured multicast 400/400 in both directions on non-DFS channel 149 at the DK-enforced 13 dBm limit, with clean kernel intervals; security, transfer, and multi-cycle coverage remain | Partial pass; full gate pending |
 | 5 GHz HT40 compatibility | Same as 5 GHz HT20 at 40 MHz where permitted, including DFS handling when the selected channel requires it | Exact 0.1.6 passed open bilateral peering/HWMP, one serialized churn cycle, and quantitative sender-captured multicast 400/400 in both directions on the non-DFS channel-149/153 HT40+ block at the DK-enforced 13 dBm limit, with clean kernel intervals; security, transfer, multi-cycle, and DFS coverage remain | Partial pass; full gate pending |
-| Transient control `-EPROTO` | Read-only injected fault is consumed by bounded retry; no write injection | Two matching reads, injected failure followed by successful retry, no miss | Pass |
-| RX submit recovery | Every RX slot recovers after injected transient failures; traffic remains valid | Eight failures consumed, success mask `0xf`, 40/40 pings each way | Pass |
-| Retry teardown safety | Unload while retries are pending with no post-free work, warning, Oops, or UAF | Unload with 99,980 failures pending; production reload in 857 ms; no kernel fault signature | Pass |
-| TX submission/completion errors | Driver-owned aggregate buffers never enter mac80211 status/purge paths; failed submissions release all callback-owned state; completion errors report no false ACK and are observable without blind replay | Disposable 0.1.5 injection passed pre-submit rejection, populated aggregate rejection with post-cleanup proof, and completion `-EPROTO` with the post-status exact-count marker | Pass (disposable fault gate) |
-| TX teardown safety | Every submitted TX URB is quiesced before skb, mac80211, or driver state is freed | Disposable selected-device test proved USB core serializes remove after an active completion; post-kill anchor and callback counts were zero and rebind was bounded, with no lifetime fault signature | Pass (disposable teardown gate) |
-| Physical USB fault attribution | Three valid repetitions for direct USB3, direct USB2, powered USB3, and powered USB2 with topology/power/event logs | Matrix, causal rules, and serialized evidence runner exist; independently powered paths unavailable | Pending hardware |
+| Transient control `-EPROTO` | Read-only injected fault is consumed by bounded retry; no write injection | Two matching reads, injected failure followed by successful retry, no miss | Parked generic hardening |
+| RX submit recovery | Every RX slot recovers after injected transient failures; traffic remains valid | Eight failures consumed, success mask `0xf`, 40/40 pings each way | Parked generic hardening |
+| Retry teardown safety | Unload while retries are pending with no post-free work, warning, Oops, or UAF | Unload with 99,980 failures pending; production reload in 857 ms; no kernel fault signature | Parked generic hardening |
+| TX submission/completion errors | Driver-owned aggregate buffers never enter mac80211 status/purge paths; failed submissions release all callback-owned state; completion errors report no false ACK and are observable without blind replay | Disposable 0.1.5 injection passed pre-submit rejection, populated aggregate rejection with post-cleanup proof, and completion `-EPROTO` with the post-status exact-count marker | Parked generic hardening |
+| TX teardown safety | Every submitted TX URB is quiesced before skb, mac80211, or driver state is freed | Disposable selected-device test proved USB core serializes remove after an active completion; post-kill anchor and callback counts were zero and rebind was bounded, with no lifetime fault signature | Parked generic hardening |
+| Physical USB fault attribution | Three valid repetitions for direct USB3, direct USB2, powered USB3, and powered USB2 with topology/power/event logs | Matrix, causal rules, and serialized evidence runner exist; independently powered paths unavailable | Parked generic hardening |
 | Endurance | Bounded unattended run with peer/HWMP state, traffic, checksums, recovery, USB events, temperature, and power flags | DKMS 0.1.5 bounded 30-minute soak completed 37/37 states, 74/74 ping batches, and 6/6 checksum-verified transfers with zero recovery, invalidation, transport event, or throttling on `1-1.1`/`1-1.4`; the earlier 0.1.4 eight-hour result remains historical evidence | Pass for 0.1.5 bounded validated topology; long-duration and 0.1.6 pending |
 | Upstream hygiene | Reviewable patch split, exact-kernel warning build, strict checkpatch, and comparison with current kernel behavior | Nine downstream and pinned wireless-next patches reproduce production byte-for-byte; a two-patch TX-only series against pinned Linux `315f4bd234b3` reproduces exact final hashes. Static qualification, including exact-kernel `W=1`/DKMS build-only contracts, passes | Pass for repository hygiene; upstream review still required |
 
 ## Completion rule
 
-Release readiness requires every row to pass at its stated scope. Behavioral
-evidence must match the current production source or be
+Mesh-release readiness requires every non-parked row to pass at its stated
+scope. Behavioral evidence must match the current production source or be
 explicitly repeated after a production change that can affect that behavior;
 a previously qualified package version is regression history, not qualification
 of a newer unbuilt DKMS package. In particular, synthetic USB recovery proves
