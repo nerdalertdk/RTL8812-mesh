@@ -111,6 +111,11 @@ the IEEE 802.11s behavioral and endurance regressions with two RTL8812AU peers.
   installed/loaded hashes and `srcversion` fields matched exactly.
 - Version-pinned recovery rebuilt two RTL8812AU mesh points with bilateral
   `ESTAB`, reciprocal HWMP, and lossless five-packet traffic in both directions.
+- On the validated `1-1.1`/`1-1.4` topology, a retained strict 20-cycle open
+  churn repeat passed bilateral peering, cold contact, multicast, and HWMP with
+  zero USB event. A current-source SAE/AMPE run passed peer-specific security,
+  MFP, authorization, bidirectional unicast/multicast/HWMP, and 32 MiB
+  checksummed transfers in both directions, then recovered the open topology.
 - The activation interval included an un-attributable Pi reboot with no
   persistent prior journal and a historical soft-temperature bit.  It is not
   physical USB qualification evidence; see

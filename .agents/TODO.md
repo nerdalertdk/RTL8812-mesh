@@ -7,8 +7,9 @@
   the `1-1.2` post-swap runs delivered 395/400 then 381/400 into `…0d:8b`.
   This strongly localizes the issue to `1-1.2`; repeat across direct/powered
   paths before closing qualification or attributing a driver fault.
-- [ ] Restore exact production 0.1.5 and repeat strict open churn, HWMP,
-  multicast, SAE/AMPE, checksummed transfer, and bounded endurance gates.
+- [ ] Complete current-source 0.1.5 512 MiB bidirectional open transfer and
+  bounded/long-duration endurance gates. Strict open churn/HWMP/multicast and
+  SAE/AMPE plus 32 MiB secured transfer now pass on `1-1.1`/`1-1.4`.
 - [ ] Qualify 2.4 GHz HT40 and 5 GHz HT20/HT40 separately from the core
   2.4 GHz HT20 release profile, subject to the active regulatory domain and
   DFS requirements.
