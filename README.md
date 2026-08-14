@@ -44,6 +44,19 @@ sudo apt install build-essential dkms kmod linux-headers-$(uname -r) \
   iw wpasupplicant rfkill util-linux
 ```
 
+On Raspberry Pi OS, use the Pi kernel-header package instead when it matches
+the running kernel:
+
+```sh
+sudo apt install raspberrypi-kernel-headers build-essential dkms kmod
+```
+
+If the build stops with a missing
+`/lib/modules/<running-kernel>/build` directory, stop there: the headers do
+not match the running kernel. Install the matching header package, reboot into
+the matching kernel if needed, and retry. Do not point DKMS at headers for a
+different kernel.
+
 From a source checkout, or after extracting the released source archive:
 
 ```sh
@@ -61,6 +74,33 @@ sudo dkms build rtl8812au-mesh/0.1.6
 sudo dkms install --force rtl8812au-mesh/0.1.6
 sudo depmod -a
 sudo modprobe rtw_8812au
+```
+
+### Secure Boot
+
+On a UEFI system with Secure Boot enabled, DKMS may build successfully but the
+kernel will reject the modules until the DKMS Machine Owner Key (MOK) is
+enrolled. This does not normally apply to Raspberry Pi systems.
+
+```sh
+sudo mokutil --sb-state
+sudo mokutil --import /var/lib/dkms/mok.pub
+```
+
+Set the requested one-time password, reboot, and enroll the key in the MOK
+screen. If the distribution uses a different DKMS/shim key path, use the path
+reported by its DKMS setup. After reboot, retry `sudo modprobe rtw_8812au` and
+inspect `dmesg` if the module is still rejected.
+
+### Upgrade a DKMS installation
+
+For a replacement package version, remove the old DKMS version before adding
+the new source. This avoids accidentally building or loading a stale shared
+`rtw_core`/`rtw_usb` pair:
+
+```sh
+sudo dkms remove rtl8812au-mesh/0.1.6 --all
+# extract or update to the replacement source, then run the DKMS install steps above
 ```
 
 ### Switch from an existing driver
