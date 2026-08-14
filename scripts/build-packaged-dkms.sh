@@ -22,8 +22,8 @@ cp -a "$extract/$package-$version" "/usr/src/$package-$version"
 dkms add -m "$package" -v "$version"
 dkms build -m "$package" -v "$version" -k "$kernel"
 
-build_dir=$(find "/var/lib/dkms/$package/$version" -type d -name build -print -quit)
-[ -n "$build_dir" ] || { echo "DKMS build directory not found" >&2; exit 1; }
+build_dir="/var/lib/dkms/$package/$version/build"
+[ -d "$build_dir" ] || { echo "DKMS build directory not found: $build_dir" >&2; exit 1; }
 [ "$(find "$build_dir" -maxdepth 1 -name '*.ko' -type f | wc -l)" -eq 5 ] || {
 	echo "DKMS did not produce exactly five modules in $build_dir" >&2
 	exit 1
