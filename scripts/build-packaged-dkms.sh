@@ -27,11 +27,12 @@ module_dir="/lib/modules/$kernel/updates/dkms"
 
 mkdir -p "$output_dir/modules"
 for module in rtw_core rtw_usb rtw_88xxa rtw_8812a rtw_8812au; do
-	[ -f "$module_dir/$module.ko" ] || {
+	module_file=$(find "$module_dir" -maxdepth 1 -type f -name "$module.ko*" -print -quit)
+	[ -n "$module_file" ] || {
 		echo "DKMS did not install $module_dir/$module.ko" >&2
 		exit 1
 	}
-	cp "$module_dir/$module.ko" "$output_dir/modules/"
+	cp "$module_file" "$output_dir/modules/"
 done
 printf 'package=%s\nversion=%s\nkernel=%s\narchitecture=%s\n' \
 	"$package" "$version" "$kernel" "$architecture" > "$output_dir/modules/BUILD-INFO"

@@ -24,7 +24,7 @@ docker run --rm --platform "$platform" \
 		./scripts/create-release-artifacts.sh /out >/dev/null
 		./scripts/build-packaged-dkms.sh /out
 		tar -tzf /out/*-modules.tar.gz >/dev/null
-		test "$(find /out/modules -maxdepth 1 -type f -name "*.ko" | wc -l)" -eq 5
+		test "$(find /out/modules -maxdepth 1 -type f -name "*.ko*" | wc -l)" -eq 5
 	'
 
 echo "release_ci=pass platform=$platform"
