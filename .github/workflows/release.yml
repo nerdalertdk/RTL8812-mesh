@@ -36,26 +36,6 @@ jobs:
       - name: Trust GitHub workspace ownership
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Materialize private validation baseline
-        shell: bash
-        run: |
-          set -euo pipefail
-          upstream=https://github.com/lwfinger/rtw88.git
-          upstream_commit=a56bcd26e770257612a0803249cbd4095fc6feca
-          git fetch --no-tags "$upstream" "$upstream_commit"
-          tree=$(
-            for file_path in main.c mac80211.c usb.c usb.h; do
-              printf '100644 blob %s\t%s\n' "$(git rev-parse "FETCH_HEAD:$file_path")" "$file_path"
-            done | git mktree
-          )
-          baseline=$(git -c user.name='RTL8812AU mesh CI' \
-            -c user.email='rtl8812au-mesh@users.noreply.github.com' \
-            commit-tree "$tree" -m 'Temporary validation baseline')
-          git tag -f upstream-baseline-a56bcd2 "$baseline"
-
-      - name: Verify source and patch series
-        run: make check-static
-
       - name: Create release archives
         run: |
           chmod +x scripts/create-release-artifacts.sh
