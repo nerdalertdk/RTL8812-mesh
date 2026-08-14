@@ -21,16 +21,18 @@ tar -xzf "$output_dir/$package-$version-dkms.tar.gz" -C "$extract"
 cp -a "$extract/$package-$version" "/usr/src/$package-$version"
 dkms add -m "$package" -v "$version"
 dkms build -m "$package" -v "$version" -k "$kernel"
+dkms install -m "$package" -v "$version" -k "$kernel"
 
-build_dir="/var/lib/dkms/$package/$version/build"
-[ -d "$build_dir" ] || { echo "DKMS build directory not found: $build_dir" >&2; exit 1; }
-[ "$(find "$build_dir" -maxdepth 1 -name '*.ko' -type f | wc -l)" -eq 5 ] || {
-	echo "DKMS did not produce exactly five modules in $build_dir" >&2
-	exit 1
-}
+module_dir="/lib/modules/$kernel/updates/dkms"
 
 mkdir -p "$output_dir/modules"
-cp "$build_dir"/*.ko "$output_dir/modules/"
+for module in rtw_core rtw_usb rtw_88xxa rtw_8812a rtw_8812au; do
+	[ -f "$module_dir/$module.ko" ] || {
+		echo "DKMS did not install $module_dir/$module.ko" >&2
+		exit 1
+	}
+	cp "$module_dir/$module.ko" "$output_dir/modules/"
+done
 printf 'package=%s\nversion=%s\nkernel=%s\narchitecture=%s\n' \
 	"$package" "$version" "$kernel" "$architecture" > "$output_dir/modules/BUILD-INFO"
 tar -C "$output_dir" -czf "$package-$version-debian-trixie-$architecture-$kernel-modules.tar.gz" modules
