@@ -61,23 +61,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          chmod +x scripts/build-packaged-dkms.sh
+          ./scripts/build-packaged-dkms.sh dist
           package=$(sed -n 's/^PACKAGE_NAME="\([^"]*\)"$/\1/p' dkms.conf)
           version=$(sed -n 's/^PACKAGE_VERSION="\([^"]*\)"$/\1/p' dkms.conf)
-          kernel=$(find /lib/modules -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n 1)
-          test -n "$kernel"
-          extract=$(mktemp -d)
-          tar -xzf "dist/${package}-${version}-dkms.tar.gz" -C "$extract"
-          cp -a "$extract/${package}-${version}" "/usr/src/${package}-${version}"
-          dkms add -m "$package" -v "$version"
-          dkms build -m "$package" -v "$version" -k "$kernel"
-          build_dir=$(find "/var/lib/dkms/${package}/${version}" -type d -name build -print -quit)
-          test -n "$build_dir"
-          test "$(find "$build_dir" -maxdepth 1 -name '*.ko' -type f | wc -l)" -eq 5
-          mkdir -p dist/modules
-          cp "$build_dir"/*.ko dist/modules/
-          printf 'package=%s\nversion=%s\nkernel=%s\narchitecture=%s\n' \
-            "$package" "$version" "$kernel" "$(dpkg --print-architecture)" > dist/modules/BUILD-INFO
-          tar -C dist -czf "dist/${package}-${version}-debian-trixie-$(dpkg --print-architecture)-${kernel}-modules.tar.gz" modules
           echo "package=$package" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 

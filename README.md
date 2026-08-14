@@ -203,6 +203,12 @@ Run repository-only checks without touching hardware:
 make check-static
 ```
 
+To reproduce the Debian AMD64 release package build locally (Docker required):
+
+```sh
+./scripts/test-release-ci.sh
+```
+
 Hardware harnesses are documented in [tests/README.md](tests/README.md). They
 need two dedicated adapters, explicit MAC addresses, and an isolated test
 topology. Fault-injection modules are test-only and must never be shipped as
